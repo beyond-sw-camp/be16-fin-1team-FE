@@ -1,0 +1,60 @@
+<template>
+  <div class="main-fill">
+    <v-container class="pa-6">
+      <v-row>
+
+        <!-- 이 카드를 복사해서 사용하세요. -->
+        <v-col cols="12" md="4">
+          <v-card>
+            <v-card-title>홈</v-card-title>
+            <v-card-text>
+              설명이 필요하면 적어주세요.
+            </v-card-text>
+            <v-card-actions>
+              <v-btn variant="flat" color="primary" :to="'/'">랜딩페이지</v-btn>
+              <v-btn variant="flat" color="primary" :to="'/'">홈 이동2</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-col>
+
+
+        <!-- User -->
+        <v-col cols="12" md="4">
+          <v-card>
+            <v-card-title>User</v-card-title>
+            <v-card-text>
+              회원 관련
+            </v-card-text>
+            <v-card-actions>
+              <v-btn variant="flat" color="primary" :to="'/'">회원가입</v-btn>
+              <v-btn variant="flat" color="primary" :to="'/login'">로그인</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-col>
+
+
+
+
+        
+      </v-row>
+    </v-container>
+  </div>
+  
+</template>
+
+<script>
+export default {
+  name: "Main",
+};
+</script>
+
+<style scoped>
+.main-fill {
+  position: fixed;
+  top: 64px;
+  left: 240px;
+  right: 0;
+  bottom: 0;
+  background-color: #F5F5F5;
+}
+</style>
