@@ -1,8 +1,8 @@
 <template>
   <v-app>
-    <SideBarComponent />
-    <HeaderComponent />
-    <v-main>
+    <SideBarComponent v-if="!hideLayout" />
+    <HeaderComponent v-if="!hideLayout" />
+    <v-main :class="hideLayout ? 'no-offset' : 'with-offset'">
       <router-view />
     </v-main>
   </v-app>
@@ -18,9 +18,9 @@ export default {
     SideBarComponent,
     HeaderComponent,
   },
-  data() {
-    return {
-      
+  computed: {
+    hideLayout() {
+      return this.$route.meta?.hideLayout === true;
     }
   }
 }
@@ -39,4 +39,6 @@ export default {
 .logo.vue:hover {
   filter: drop-shadow(0 0 2em #42b883aa);
 }
+.with-offset { padding-top: 64px; padding-left: 240px; }
+.no-offset { padding: 0; }
 </style>

@@ -1,4 +1,4 @@
-import Main from "../views/Main/main.vue";
+import Main from "../views/Main/Main.vue";
 
 
 export const mainRouter = [

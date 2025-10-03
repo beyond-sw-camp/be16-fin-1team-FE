@@ -5,6 +5,7 @@ export const userRouter = [
     {
         path: "/login",
         name: "UserLogin",
-        component: UserLogin
+        component: UserLogin,
+        meta: { hideLayout: true }
     }
 ]
