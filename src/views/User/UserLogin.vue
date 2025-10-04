@@ -34,7 +34,7 @@
                     </div>
 
                   <div class="btn-wrap">
-                    <v-btn class="login-btn" height="49" rounded="lg" :loading="isLoading" @click="handleLogin">로그인</v-btn>
+                    <v-btn class="login-btn" height="45" rounded="lg" :loading="isLoading" @click="handleLogin">로그인</v-btn>
                   </div>
 
                   <div class="signup">
@@ -52,13 +52,13 @@
                   </div>
 
                   <div class="btn-wrap">
-                    <v-btn class="oauth-btn" @click="googleLogin" height="48" rounded="lg" variant="flat">
+                    <v-btn class="oauth-btn" @click="googleLogin" height="44" rounded="lg" variant="flat">
                       <img src="/src/assets/icons/user/login_google.svg" alt="Google" width="20" height="20" />
                       <span>Google</span>
                     </v-btn>
                   </div>
                   <div class="btn-wrap">
-                    <v-btn class="oauth-btn" @click="kakaoLogin" height="48" rounded="lg" variant="flat">
+                    <v-btn class="oauth-btn" @click="kakaoLogin" height="44" rounded="lg" variant="flat">
                       <img src="/src/assets/icons/user/login_kakao.svg" alt="Kakao" width="26" height="26" />
                       <span>Kakao</span>
                     </v-btn>
@@ -147,6 +147,8 @@ export default {
   border-radius: 15px;
   color: #FFFFFF;
   min-height: 720px;
+  max-width: 420px;
+  margin: 0 auto;
 }
 .content { display: flex; flex-direction: column; height: 100%; }
 .content > :first-child { flex: 1 0 auto; }
@@ -170,7 +172,7 @@ export default {
 .text-bg :deep(input::placeholder) { color: #9E9E9E; opacity: 1; }
 .row-between { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 16px; }
 /* limit checkbox row to same width as inputs/buttons */
-.controls-group .row-between { max-width: 380px; margin-left: auto; margin-right: auto; margin-top: 32px; margin-bottom: 8px; }
+.controls-group .row-between { max-width: 350px; margin-left: auto; margin-right: auto; margin-top: 32px; margin-bottom: 8px; }
 .controls-group .login-btn { margin-top: 8px; }
 .keep-login-label { display: inline-flex; align-items: center; gap: 8px; color: #FFFFFF; font-size: 12px; }
 .keep-login-checkbox { width: 16px; height: 16px; appearance: none; background: #FFFFFF; border: 1px solid #5F5F5F; border-radius: 4px; display: inline-block; position: relative; }
@@ -180,7 +182,7 @@ export default {
 .text-link { color: #2276FF; text-decoration: none; font-size: 12px; }
 .text-link:hover { text-decoration: underline; }
 .login-btn { background: #FFE364; color: #2A2828; border-radius: 15px; margin: 16px 0; font-weight: 700; }
-.divider { display: flex; align-items: center; gap: 12px; color: #9E9E9E; margin: 8px auto; max-width: 380px; }
+.divider { display: flex; align-items: center; gap: 12px; color: #9E9E9E; margin: 8px auto; max-width: 350px; }
 .divider .line { flex: 1; border-top: 1px solid #E0E0E0; }
 .divider .or { font-size: 12px; }
 .oauth-btn { background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 15px; color: #000000; justify-content: center; gap: 12px; margin-bottom: 12px; text-transform: none; }
@@ -189,8 +191,8 @@ export default {
 .signup .text { color: #FFFFFF; font-size: 12px; }
 .card-body { padding: 48px 20px 28px; }
 /* narrower widths for inputs and buttons */
-.controls-group .field { max-width: 380px; width: 100%; margin-left: auto; margin-right: auto; }
-.btn-wrap { max-width: 380px; margin: 0 auto 12px; display: flex; justify-content: center; }
+.controls-group .field { max-width: 350px; width: 100%; margin-left: auto; margin-right: auto; }
+.btn-wrap { max-width: 350px; margin: 0 auto 12px; display: flex; justify-content: center; }
 .btn-wrap :deep(.v-btn) { width: 100%; }
 .bottom-group .divider + .btn-wrap { margin-top: 24px; }
 /* remove focus ring on buttons within login view */
