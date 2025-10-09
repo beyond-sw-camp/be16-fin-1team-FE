@@ -12,8 +12,9 @@
                                 <div
                                     v-for="(msg, index) in messages"
                                     :key="index"
+                                    :class="['chat-message', msg.senderEmail === this.senderEmail ? 'sent' : 'received']"
                                 >
-                                    {{ msg }}
+                                <strong>{{ msg.senderEmail }}: </strong> {{ msg.message }}
                                 </div>
                             </div>
                             <v-text-field
@@ -43,16 +44,23 @@ import * as Stomp from 'webstomp-client';
                 newMessage: "",
                 stompClient: null,
                 accessToken: null,
+                senderEmail: null,
             }
         },
         created() {
             this.connectWebsocket();
+            this.senderEmail = localStorage.getItem("email");
+        },
+        beforeRouteLeave(to, from, next) {
+            this.disconnectWebSocket();
+            next();
         },
         beforeUnmount() {
-            // this.disconnectWebSocket();
+            this.disconnectWebSocket();
         },
         methods: {
             connectWebsocket() {
+                if(this.stompClient && this.stompClient.connected) { return; }
                 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
                 const sockJs = new SockJS(`${baseURL}/chat-service/connect`);
                 this.stompClient = Stomp.over(sockJs);
@@ -62,7 +70,8 @@ import * as Stomp from 'webstomp-client';
                 },
                     () => {
                         this.stompClient.subscribe(`/topic/1`, (message) => {
-                            this.messages.push(message.body);
+                            const parseMessage = JSON.parse(message.body);
+                            this.messages.push(parseMessage);
                             this.scrollToBottom();
                         });
                     }
@@ -70,7 +79,8 @@ import * as Stomp from 'webstomp-client';
             },
             sendMessage() {
                 if(this.newMessage.trim() === "") return;
-                this.stompClient.send(`/publish/1`, this.newMessage);
+                const message = { senderEmail: this.senderEmail, message: this.newMessage }
+                this.stompClient.send(`/publish/1`, JSON.stringify(message));
                 this.newMessage = ""
             },
             scrollToBottom() {
@@ -105,4 +115,15 @@ import * as Stomp from 'webstomp-client';
     border: 1px solid #ddd;
     margin-bottom: 10px;
 }
+.chat-message{
+    margin-bottom: 10px;
+
+}
+.sent{
+    text-align: right;
+}
+.received{
+    text-align: left;
+}
+
 </style>

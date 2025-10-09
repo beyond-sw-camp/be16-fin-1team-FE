@@ -19,6 +19,7 @@
 
 <script>
 import axios from "axios";
+import { jwtDecode } from 'jwt-decode';
 
 export default {
   name: "KakaoRedirect",
@@ -46,10 +47,12 @@ export default {
       );
       const accessToken = data?.result?.accessToken;
       const refreshToken = data?.result?.refreshToken;
+      const email = jwtDecode(accessToken).sub;
       if (!accessToken) throw new Error("토큰 없음");
       localStorage.setItem("accessToken", accessToken);
       if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-
+      if (email) localStorage.setItem("email", email);
+      
       this.statusText = "로그인 성공! 이동 중…";
       this.$router.replace("/");
     } catch (e) {
