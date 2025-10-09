@@ -45,11 +45,13 @@ import * as Stomp from 'webstomp-client';
                 stompClient: null,
                 accessToken: null,
                 senderEmail: null,
+                roomId: null,
             }
         },
         created() {
             this.connectWebsocket();
             this.senderEmail = localStorage.getItem("email");
+            this.roomId = this.$route.params.roomId;
         },
         beforeRouteLeave(to, from, next) {
             this.disconnectWebSocket();
@@ -69,7 +71,7 @@ import * as Stomp from 'webstomp-client';
                     Authorization: `Bearer ${this.accessToken}`
                 },
                     () => {
-                        this.stompClient.subscribe(`/topic/1`, (message) => {
+                        this.stompClient.subscribe(`/topic/${this.roomId}`, (message) => {
                             const parseMessage = JSON.parse(message.body);
                             this.messages.push(parseMessage);
                             this.scrollToBottom();
@@ -80,7 +82,7 @@ import * as Stomp from 'webstomp-client';
             sendMessage() {
                 if(this.newMessage.trim() === "") return;
                 const message = { senderEmail: this.senderEmail, message: this.newMessage }
-                this.stompClient.send(`/publish/1`, JSON.stringify(message));
+                this.stompClient.send(`/publish/${this.roomId}`, JSON.stringify(message));
                 this.newMessage = ""
             },
             scrollToBottom() {
@@ -90,11 +92,10 @@ import * as Stomp from 'webstomp-client';
                 });
             },
             disconnectWebSocket() {
-                // if(this.ws) {
-                //     this.ws.close();
-                //     console.log("disconnected!!");
-                //     this.ws = null;
-                // }
+                if(this.stompClient && this.stompClient.connected) {
+                    this.stompClient.unsubscribe(`/topic/${this.roomId}`);
+                    this.stompClient.disconnect();
+                }
             }
         }
     }
