@@ -42,6 +42,7 @@ import * as Stomp from 'webstomp-client';
                 messages: [],
                 newMessage: "",
                 stompClient: null,
+                accessToken: null,
             }
         },
         created() {
@@ -53,14 +54,12 @@ import * as Stomp from 'webstomp-client';
         methods: {
             connectWebsocket() {
                 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-                const sockJs = new SockJS(`${baseURL}/chat-service/connect`, null, {
-                    transportOptions: {
-                        xhrStream: { withCredentials: false },
-                        xhrPolling: { withCredentials: false },
-                    }
-                });
+                const sockJs = new SockJS(`${baseURL}/chat-service/connect`);
                 this.stompClient = Stomp.over(sockJs);
-                this.stompClient.connect({headers: {Authorization: `Bearer 1234`}},
+                this.accessToken = localStorage.getItem("accessToken");
+                this.stompClient.connect({
+                    Authorization: `Bearer ${this.accessToken}`
+                },
                     () => {
                         this.stompClient.subscribe(`/topic/1`, (message) => {
                             this.messages.push(message.body);
