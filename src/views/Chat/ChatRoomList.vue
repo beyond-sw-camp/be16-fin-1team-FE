@@ -1,6 +1,6 @@
 <template>
-    <div class="main-fill">
-        <v-container>
+    <div :class="embedded ? '' : 'main-fill'">
+        <v-container fluid>
             <v-row>
                 <v-col>
                     <v-card>
@@ -24,8 +24,8 @@
                                         <td>{{ chat.roomId }}</td>
                                         <td>{{ chat.roomName }}</td>
                                         <td>
-                                            <v-btn color="primary" @click="joinChatRoom(chat.roomId)">
-                                                참여하기
+                                            <v-btn color="primary" @click="selectRoom(chat.roomId)">
+                                                선택
                                             </v-btn>
                                         </td>
                                     </tr>
@@ -61,6 +61,9 @@
 import axios from 'axios';
 
     export default {
+        props: {
+            embedded: { type: Boolean, default: false }
+        },
         data() {
             return {
                 chatRoomList: [],
@@ -73,10 +76,8 @@ import axios from 'axios';
             this.loadChatRooms();
         },
         methods: {
-            async joinChatRoom(roomId) {
-                // const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-                // await axios.post(`${baseURL}/chat/room/group/${roomId}/join`, null);
-                this.$router.push(`/chat/page/${roomId}`);
+            selectRoom(roomId) {
+                this.$emit('select-room', roomId);
             },
             async createChatRoom() {
                 // const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';

@@ -1,6 +1,6 @@
 <template>
-    <div class="main-fill">
-        <v-container>
+    <div :class="embedded ? '' : 'main-fill'">
+        <v-container fluid>
             <v-row justify="center">
                 <v-col cols="12" md="8">
                     <v-card>
@@ -12,7 +12,7 @@
                                 <div
                                     v-for="(msg, index) in messages"
                                     :key="index"
-                                    :class="['chat-message', msg.senderEmail === this.senderEmail ? 'sent' : 'received']"
+                                    :class="['chat-message', msg.senderEmail === senderEmail ? 'sent' : 'received']"
                                 >
                                 <strong>{{ msg.senderEmail }}: </strong> {{ msg.message }}
                                 </div>
@@ -38,6 +38,13 @@ import * as Stomp from 'webstomp-client';
 
 
     export default {
+        props: {
+            roomId: {
+                type: [String, Number],
+                default: null,
+            },
+            embedded: { type: Boolean, default: false }
+        },
         data() {
             return {
                 messages: [],
@@ -45,13 +52,10 @@ import * as Stomp from 'webstomp-client';
                 stompClient: null,
                 accessToken: null,
                 senderEmail: null,
-                roomId: null,
             }
         },
         created() {
-            this.connectWebsocket();
             this.senderEmail = localStorage.getItem("email");
-            this.roomId = this.$route.params.roomId;
         },
         beforeRouteLeave(to, from, next) {
             this.disconnectWebSocket();
@@ -95,6 +99,23 @@ import * as Stomp from 'webstomp-client';
                 if(this.stompClient && this.stompClient.connected) {
                     this.stompClient.unsubscribe(`/topic/${this.roomId}`);
                     this.stompClient.disconnect();
+                }
+            }
+        }
+        ,
+        watch: {
+            roomId: {
+                immediate: true,
+                handler(newVal, oldVal) {
+                    if (!newVal) {
+                        this.disconnectWebSocket();
+                        this.messages = [];
+                        return;
+                    }
+                    // 방이 바뀌면 재연결
+                    this.disconnectWebSocket();
+                    this.messages = [];
+                    this.$nextTick(() => this.connectWebsocket());
                 }
             }
         }
