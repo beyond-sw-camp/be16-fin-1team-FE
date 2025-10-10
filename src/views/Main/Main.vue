@@ -32,6 +32,19 @@
           </v-card>
         </v-col>
 
+        <!-- Chat -->
+        <v-col cols="12" md="4">
+          <v-card>
+            <v-card-title>Chat</v-card-title>
+            <v-card-text>
+              채팅 관련
+            </v-card-text>
+            <v-card-actions>
+              <v-btn variant="flat" color="primary" :to="'/chat/page'">채팅 화면</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-col>
+
 
 
 
