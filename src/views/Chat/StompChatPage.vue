@@ -33,8 +33,7 @@
 </template>
 
 <script>
-import SockJS from 'sockjs-client/dist/sockjs';
-import * as Stomp from 'webstomp-client';
+import stompManager from '@/services/stompService.js';
 import axios from 'axios';
 
 
@@ -50,8 +49,7 @@ import axios from 'axios';
             return {
                 messages: [],
                 newMessage: "",
-                stompClient: null,
-                accessToken: null,
+                roomUnsub: null,
                 senderEmail: null,
             }
         },
@@ -59,11 +57,11 @@ import axios from 'axios';
             this.senderEmail = localStorage.getItem("email");
         },
         beforeRouteLeave(to, from, next) {
-            this.disconnectWebSocket();
+            this.teardownRoomSubscription();
             next();
         },
         beforeUnmount() {
-            this.disconnectWebSocket();
+            this.teardownRoomSubscription();
         },
         methods: {
             async loadHistory() {
@@ -78,28 +76,17 @@ import axios from 'axios';
                     console.warn('load history failed', e);
                 }
             },
-            connectWebsocket() {
-                if(this.stompClient && this.stompClient.connected) { return; }
-                const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-                const sockJs = new SockJS(`${baseURL}/chat-service/connect`);
-                this.stompClient = Stomp.over(sockJs);
-                this.accessToken = localStorage.getItem("accessToken");
-                this.stompClient.connect({
-                    Authorization: `Bearer ${this.accessToken}`
-                },
-                    () => {
-                        this.stompClient.subscribe(`/topic/${this.roomId}`, (message) => {
-                            const parseMessage = JSON.parse(message.body);
-                            this.messages.push(parseMessage);
-                            this.scrollToBottom();
-                        }, { Authorization: `Bearer ${this.accessToken}`});
-                    }
-                );
+            async connectWebsocket() {
+                const topic = `/topic/${this.roomId}`;
+                this.roomUnsub = await stompManager.subscribe(topic, (message) => {
+                    this.messages.push(message);
+                    this.scrollToBottom();
+                });
             },
             sendMessage() {
                 if(this.newMessage.trim() === "") return;
                 const message = { senderEmail: this.senderEmail, message: this.newMessage }
-                this.stompClient.send(`/publish/${this.roomId}`, JSON.stringify(message));
+                stompManager.send(`/publish/${this.roomId}`, JSON.stringify(message));
                 this.newMessage = ""
             },
             scrollToBottom() {
@@ -108,10 +95,10 @@ import axios from 'axios';
                     chatBox.scrollTop = chatBox.scrollHeight;
                 });
             },
-            disconnectWebSocket() {
-                if(this.stompClient && this.stompClient.connected) {
-                    this.stompClient.unsubscribe(`/topic/${this.roomId}`);
-                    this.stompClient.disconnect();
+            teardownRoomSubscription() {
+                if (this.roomUnsub) {
+                    try { this.roomUnsub(); } catch (_) {}
+                    this.roomUnsub = null;
                 }
             }
         }
@@ -121,12 +108,12 @@ import axios from 'axios';
                 immediate: true,
                 handler(newVal, oldVal) {
                     if (!newVal) {
-                        this.disconnectWebSocket();
+                        this.teardownRoomSubscription();
                         this.messages = [];
                         return;
                     }
                     // 방이 바뀌면 재연결
-                    this.disconnectWebSocket();
+                    this.teardownRoomSubscription();
                     this.messages = [];
                     this.$nextTick(async () => {
                         await this.loadHistory();

@@ -2,7 +2,7 @@
     <div class="main-fill">
         <div class="chat-layout">
             <div class="room-list-panel">
-                <ChatRoomList embedded @select-room="handleSelectRoom" />
+                <ChatRoomList embedded @select-room="handleSelectRoom" :summaries-by-room-id="summariesByRoomId" />
             </div>
             <div class="chat-panel">
                 <StompChatPage v-if="selectedRoomId" embedded :room-id="selectedRoomId" />
@@ -16,13 +16,37 @@
 <script>
 import ChatRoomList from './ChatRoomList.vue';
 import StompChatPage from './StompChatPage.vue';
+import stompManager from '@/services/stompService.js';
 
 export default {
     components: { ChatRoomList, StompChatPage },
     data() {
         return {
             selectedRoomId: null,
+            summariesByRoomId: {},
+            summaryUnsub: null,
         };
+    },
+    async created() {
+        const email = localStorage.getItem('email');
+        if (email) {
+            const topic = `/topic/summary/${email}`;
+            this.summaryUnsub = await stompManager.subscribe(topic, (summary) => {
+                // summary: { roomId, lastMessage, lastSenderEmail, unreadCount }
+                if (summary && summary.roomId != null) {
+                    this.summariesByRoomId = {
+                        ...this.summariesByRoomId,
+                        [summary.roomId]: summary,
+                    };
+                }
+            });
+        }
+    },
+    beforeUnmount() {
+        if (this.summaryUnsub) {
+            try { this.summaryUnsub(); } catch (_) {}
+            this.summaryUnsub = null;
+        }
     },
     methods: {
         handleSelectRoom(roomId) {

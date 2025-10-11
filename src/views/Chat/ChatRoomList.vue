@@ -16,6 +16,8 @@
                                     <tr>
                                         <th>방번호</th>
                                         <th>방제목</th>
+                                        <th>마지막메시지</th>
+                                        <th>안읽음</th>
                                         <th>채팅</th>
                                     </tr>
                                 </thead>
@@ -23,6 +25,8 @@
                                     <tr v-for="chat in chatRoomList " :key="chat.roomId">
                                         <td>{{ chat.roomId }}</td>
                                         <td>{{ chat.roomName }}</td>
+                                        <td>{{ summariesByRoomId[chat.roomId]?.lastMessage || '-' }}</td>
+                                        <td>{{ summariesByRoomId[chat.roomId]?.unreadCount || 0 }}</td>
                                         <td>
                                             <v-btn color="primary" @click="selectRoom(chat.roomId)">
                                                 선택
@@ -62,7 +66,8 @@ import axios from 'axios';
 
     export default {
         props: {
-            embedded: { type: Boolean, default: false }
+            embedded: { type: Boolean, default: false },
+            summariesByRoomId: { type: Object, default: () => ({}) }
         },
         data() {
             return {
