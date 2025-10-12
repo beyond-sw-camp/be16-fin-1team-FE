@@ -47,11 +47,20 @@ export default {
             });
         }
     },
+    beforeRouteLeave(to, from, next) {
+        if (this.summaryUnsub) {
+            try { this.summaryUnsub(); } catch (_) {}
+            this.summaryUnsub = null;
+        }
+        try { stompManager.disconnect(); } catch (_) {}
+        next();
+    },
     beforeUnmount() {
         if (this.summaryUnsub) {
             try { this.summaryUnsub(); } catch (_) {}
             this.summaryUnsub = null;
         }
+        try { stompManager.disconnect(); } catch (_) {}
     },
     methods: {
         handleSelectRoom(room) {
