@@ -153,7 +153,13 @@ import axios from 'axios';
             },
             teardownRoomSubscription() {
                 if (this.roomUnsub) {
-                    try { this.roomUnsub(); } catch (_) {}
+                    try {
+                        if (typeof this.roomUnsub.unsubscribe === 'function') {
+                            this.roomUnsub.unsubscribe();
+                        } else {
+                            this.roomUnsub();
+                        }
+                    } catch (_) {}
                     this.roomUnsub = null;
                 }
             }

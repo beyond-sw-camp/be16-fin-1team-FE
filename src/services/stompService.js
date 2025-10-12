@@ -75,11 +75,15 @@ class StompManager {
             },
             { Authorization: `Bearer ${accessToken}`, ...headers }
         );
-        this.subscriptions.set(key, () => {
+        const disposer = () => {
             try { sub.unsubscribe(); } catch (_) {}
             this.subscriptions.delete(key);
-        });
-        return () => this.unsubscribe(topic);
+        };
+        this.subscriptions.set(key, disposer);
+        // Return a callable disposer that also exposes an unsubscribe() method
+        const callable = () => this.unsubscribe(topic);
+        callable.unsubscribe = callable;
+        return callable;
     }
 
     async send(destination, body, headers = {}) {
