@@ -5,7 +5,7 @@
                 <ChatRoomList embedded @select-room="handleSelectRoom" :summaries-by-room-id="summariesByRoomId" :selected-room-id="selectedRoomId" />
             </div>
             <div class="chat-panel">
-                <StompChatPage v-if="selectedRoomId" embedded :room-id="selectedRoomId" />
+                <StompChatPage v-if="selectedRoomId" embedded :room-id="selectedRoomId" :room-title="selectedRoomTitle" :participant-count="selectedRoomParticipantCount" />
                 <div v-else class="empty-state">채팅방을 선택하세요</div>
             </div>
         </div>
@@ -23,6 +23,8 @@ export default {
     data() {
         return {
             selectedRoomId: null,
+            selectedRoomTitle: '',
+            selectedRoomParticipantCount: 0,
             summariesByRoomId: {},
             summaryUnsub: null,
         };
@@ -52,8 +54,10 @@ export default {
         }
     },
     methods: {
-        handleSelectRoom(roomId) {
-            this.selectedRoomId = roomId;
+        handleSelectRoom(room) {
+            this.selectedRoomId = room.roomId;
+            this.selectedRoomTitle = room.roomName || '';
+            this.selectedRoomParticipantCount = room.participantCount || 0;
         }
     }
 };

@@ -16,7 +16,7 @@
                                     <tr
                                         v-for="chat in roomsWithSummary"
                                         :key="chat.roomId"
-                                        @click="selectRoom(chat.roomId)"
+                                        @click="selectRoom(chat)"
                                         :class="['room-row', { selected: selectedRoomId === chat.roomId }]"
                                     >
                                         <td class="col-avatar">
@@ -120,8 +120,8 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
             this.loadChatRooms();
         },
         methods: {
-            selectRoom(roomId) {
-                this.$emit('select-room', roomId);
+            selectRoom(room) {
+                this.$emit('select-room', room);
             },
             visibleAvatars(list) {
                 if (!Array.isArray(list)) return [];
