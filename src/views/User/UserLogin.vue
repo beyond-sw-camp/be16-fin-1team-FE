@@ -109,11 +109,11 @@ export default {
         }, { headers: { 'Content-Type': 'application/json' }});
         const accessToken = data?.result?.accessToken;
         const refreshToken = data?.result?.refreshToken;
-        const email = jwtDecode(accessToken).sub;
+        const id = jwtDecode(accessToken).sub;
         if (accessToken && refreshToken) {
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', refreshToken);
-          localStorage.setItem('email', email);
+          localStorage.setItem('id', id);
           alert('로그인 성공');
         } else {
           throw new Error('토큰 없음');

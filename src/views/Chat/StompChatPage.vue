@@ -15,14 +15,14 @@
                                 <div
                                     v-for="(msg, index) in messages"
                                     :key="index"
-                                    :class="['chat-row', msg.senderEmail === senderEmail ? 'sent' : 'received']"
+                                    :class="['chat-row', msg.senderId === senderId ? 'sent' : 'received']"
                                 >
-                                    <div v-if="msg.senderEmail !== senderEmail" class="avatar">
+                                    <div v-if="msg.senderId !== senderId" class="avatar">
                                         <img :src="msg.userProfileImageUrl || userDefault" alt="user" @error="onAvatarError($event)" />
                                     </div>
-                                    <div :class="['content', msg.senderEmail === senderEmail ? 'content-sent' : 'content-received']">
-                                        <div v-if="msg.senderEmail !== senderEmail" class="name">{{ msg.senderName || msg.senderEmail }}</div>
-                                        <div :class="['line', msg.senderEmail === senderEmail ? 'line-sent' : 'line-received']">
+                                    <div :class="['content', msg.senderId === senderId ? 'content-sent' : 'content-received']">
+                                        <div v-if="msg.senderId !== senderId" class="name">{{ msg.senderName || msg.senderId }}</div>
+                                        <div :class="['line', msg.senderId === senderId ? 'line-sent' : 'line-received']">
                                             <div class="bubble">{{ msg.message }}</div>
                                             <div class="time">{{ formatChatTime(msg.lastSendTime) }}</div>
                                         </div>
@@ -76,12 +76,12 @@ import axios from 'axios';
                 messages: [],
                 newMessage: "",
                 roomUnsub: null,
-                senderEmail: null,
+                senderId: null,
                 userDefault,
             }
         },
         created() {
-            this.senderEmail = localStorage.getItem("email");
+            this.senderId = localStorage.getItem("id");
         },
         beforeRouteLeave(to, from, next) {
             this.teardownRoomSubscription();
@@ -141,7 +141,7 @@ import axios from 'axios';
                 if(this.newMessage.trim() === "") return;
                 const message = {
                     roomId: this.roomId,
-                    senderEmail: this.senderEmail,
+                    senderId: this.senderId,
                     message: this.newMessage,
                     lastSendTime: this.getNowLocalDateTime(),
                 }

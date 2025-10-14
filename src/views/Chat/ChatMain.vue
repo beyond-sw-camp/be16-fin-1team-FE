@@ -30,9 +30,9 @@ export default {
         };
     },
     async created() {
-        const email = localStorage.getItem('email');
-        if (email) {
-            const topic = `/topic/summary/${email}`;
+        const id = localStorage.getItem('id');
+        if (id) {
+            const topic = `/topic/summary/${id}`;
             this.summaryUnsub = await stompManager.subscribe(topic, (summary) => {
                 // summary: { roomId, lastMessage, lastSendTime, lastSenderEmail, unreadCount }
                 if (summary && summary.roomId != null) {

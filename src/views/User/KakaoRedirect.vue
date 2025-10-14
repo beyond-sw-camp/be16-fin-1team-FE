@@ -47,11 +47,11 @@ export default {
       );
       const accessToken = data?.result?.accessToken;
       const refreshToken = data?.result?.refreshToken;
-      const email = jwtDecode(accessToken).sub;
+      const id = jwtDecode(accessToken).sub;
       if (!accessToken) throw new Error("토큰 없음");
       localStorage.setItem("accessToken", accessToken);
       if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-      if (email) localStorage.setItem("email", email);
+      if (id) localStorage.setItem("id", id);
       
       this.statusText = "로그인 성공! 이동 중…";
       this.$router.replace("/");
