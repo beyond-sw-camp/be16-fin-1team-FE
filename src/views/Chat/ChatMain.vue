@@ -27,6 +27,9 @@ export default {
             selectedRoomParticipantCount: 0,
             summariesByRoomId: {},
             summaryUnsub: null,
+            summaryTopic: null,
+            _offClose: null,
+            _reconnectTimerSummary: null,
         };
     },
     async created() {
@@ -45,7 +48,12 @@ export default {
                     };
                 }
             });
+            this.summaryTopic = topic;
         }
+        // Connection close detection
+        this._offClose = stompManager.on('close', (evt) => {
+            this.startSummaryReconnectLoop();
+        });
     },
     beforeRouteLeave(to, from, next) {
         if (this.summaryUnsub) {
@@ -53,6 +61,8 @@ export default {
             this.summaryUnsub = null;
         }
         try { stompManager.disconnect(); } catch (_) {}
+        if (this._offClose) { try { this._offClose(); } catch (_) {} this._offClose = null; }
+        if (this._reconnectTimerSummary) { clearInterval(this._reconnectTimerSummary); this._reconnectTimerSummary = null; }
         next();
     },
     beforeUnmount() {
@@ -61,6 +71,8 @@ export default {
             this.summaryUnsub = null;
         }
         try { stompManager.disconnect(); } catch (_) {}
+        if (this._offClose) { try { this._offClose(); } catch (_) {} this._offClose = null; }
+        if (this._reconnectTimerSummary) { clearInterval(this._reconnectTimerSummary); this._reconnectTimerSummary = null; }
     },
     methods: {
         handleSelectRoom(room) {
@@ -73,6 +85,34 @@ export default {
                 ...this.summariesByRoomId,
                 [room.roomId]: { ...prev, unreadCount: 0 }
             };
+        },
+        async resubscribeSummary() {
+            if (!this.summaryTopic) return;
+            try {
+                if (this.summaryUnsub) { try { this.summaryUnsub(); } catch(_) {} }
+                this.summaryUnsub = await stompManager.subscribe(this.summaryTopic, (summary) => {
+                    if (summary && summary.roomId != null) {
+                        this.summariesByRoomId = {
+                            ...this.summariesByRoomId,
+                            [summary.roomId]: {
+                                ...(this.summariesByRoomId[summary.roomId] || {}),
+                                ...summary,
+                            },
+                        };
+                    }
+                });
+            } catch(_) {}
+        },
+        startSummaryReconnectLoop() {
+            if (this._reconnectTimerSummary) return;
+            this._reconnectTimerSummary = setInterval(async () => {
+                try {
+                    await stompManager.connect();
+                    await this.resubscribeSummary();
+                    clearInterval(this._reconnectTimerSummary);
+                    this._reconnectTimerSummary = null;
+                } catch(_) {}
+            }, 5000);
         }
     }
 };

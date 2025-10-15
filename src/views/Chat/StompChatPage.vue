@@ -64,6 +64,12 @@
                             <v-overlay :model-value="uploading" class="align-center justify-center" scrim="rgba(0,0,0,0.12)" persistent>
                                 <v-progress-circular indeterminate :size="42" :width="4" color="#FFE364" />
                             </v-overlay>
+                            <v-overlay :model-value="reconnecting" class="align-center justify-center" scrim="rgba(0,0,0,0.25)" persistent>
+                                <div class="reconnect-banner">
+                                    <v-progress-circular indeterminate :size="36" :width="4" color="#FFE364" class="mr-3" />
+                                    <span>연결이 끊어졌습니다. 재연결 중…</span>
+                                </div>
+                            </v-overlay>
                         </v-card-text>
                     </v-card>
 
@@ -106,6 +112,8 @@ import axios from 'axios';
                 userDefault,
                 selectedFiles: [],
                 uploading: false,
+                reconnecting: false,
+                _reconnectTimer: null,
             }
         },
         created() {
@@ -117,6 +125,8 @@ import axios from 'axios';
         },
         beforeUnmount() {
             this.teardownRoomSubscription();
+            if (this._offClose) { try { this._offClose(); } catch(_) {} this._offClose = null; }
+            if (this._reconnectTimer) { clearInterval(this._reconnectTimer); this._reconnectTimer = null; }
         },
         methods: {
             getNowLocalDateTime() {
@@ -188,6 +198,28 @@ import axios from 'axios';
                     this.messages.push(this.normalizeMessage(message));
                     this.scrollToBottom();
                 });
+                // listen for connection close to trigger reconnect
+                if (!this._offClose) {
+                    this._offClose = stompManager.on('close', () => {
+                        this.startReconnectLoop();
+                    });
+                }
+            },
+            startReconnectLoop() {
+                if (this._reconnectTimer) return;
+                this.reconnecting = true;
+                this._reconnectTimer = setInterval(async () => {
+                    try {
+                        await stompManager.connect();
+                        // if connect succeeds, resubscribe room and stop loop
+                        await this.connectWebsocket();
+                        this.reconnecting = false;
+                        clearInterval(this._reconnectTimer);
+                        this._reconnectTimer = null;
+                    } catch (_) {
+                        // keep trying
+                    }
+                }, 5000);
             },
             async sendMessage() {
                 const hasText = this.newMessage.trim().length > 0;
@@ -341,5 +373,7 @@ import axios from 'axios';
 .files .file-chip{ display: inline-flex; align-items: center; padding: 4px 8px; border-radius: 12px; background: #F1F3F4; color: #455A64; font-size: 12px; text-decoration: none; }
 .files-sent{ justify-content: flex-end; }
 .files-received{ justify-content: flex-start; }
+
+.reconnect-banner{ background: rgba(255,255,255,0.95); color: #2A2828; padding: 12px 16px; border-radius: 12px; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 
 </style>
