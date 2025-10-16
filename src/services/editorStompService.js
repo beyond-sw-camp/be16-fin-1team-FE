@@ -1,4 +1,5 @@
 import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client/dist/sockjs.min.js';
 
 let client = null;
 let subscription = null;
@@ -26,7 +27,9 @@ export const connectStomp = (documentId, onMessageCallback, onConnectCallback) =
   }
   
   client = new Client({
-    brokerURL: 'ws://localhost:8080/drive-service/ws/editor',
+    webSocketFactory: () => {
+      return new SockJS('http://localhost:8080/drive-service/ws/editor');
+    },
     reconnectDelay: 5000,
     heartbeatIncoming: 4000,
     heartbeatOutgoing: 4000,

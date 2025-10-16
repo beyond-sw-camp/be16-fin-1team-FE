@@ -6,100 +6,159 @@
       <span v-else-if="connectionStatus === 'connected'">✅ 실시간 협업 활성화</span>
       <span v-else-if="connectionStatus === 'offline'">⚠️ 오프라인 모드 (변경사항이 저장되지 않습니다)</span>
     </div>
-
-    <!-- 에디터를 감싸는 컨테이너에 relative 포지션을 주어 커서 위치의 기준점으로 삼습니다. -->
-    <div class="editor-container" ref="editorContainerRef">
-      <editor-content v-if="editor" :editor="editor" />
-
-    <!-- 다른 사용자들의 커서를 렌더링하는 부분 -->
-    <div
-      v-for="cursor in remoteCursors"
-      :key="cursor.user.name"
-      class="remote-cursor"
-      :style="{
-        transform: `translate(${cursor.coords.left}px, ${cursor.coords.top}px)`,
-        backgroundColor: cursor.user.color,
-        height: cursor.height ? `${cursor.height}px` : '1.3em'
-      }"
-    >
-      <div class="cursor-flag" :style="{ backgroundColor: cursor.user.color }">
-        {{ cursor.user.name }}
+    <div v-if="editor">
+      <div class="toolbar">
+        <button @click="editor.chain().focus().toggleBold().run()" :class="{ 'is-active': editor.isActive('bold') }">Bold</button>
+        <button @click="editor.chain().focus().toggleHeading({ level: 1 }).run()" :class="{ 'is-active': editor.isActive('heading', { level: 1 }) }">H1</button>
+        <button @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" :class="{ 'is-active': editor.isActive('heading', { level: 2 }) }">H2</button>
+        <button @click="editor.chain().focus().setParagraph().run()" :class="{ 'is-active': editor.isActive('paragraph') }">Paragraph</button>
       </div>
-    </div>
+      <div class="editor-container" ref="editorContainerRef">
+        <editor-content :editor="editor" />
+        <!-- 다른 사용자들의 커서를 렌더링하는 부분 -->
+        <div
+          v-for="cursor in remoteCursors"
+          :key="cursor.senderId"
+          class="remote-cursor"
+          :style="{
+            transform: `translate(${cursor.coords.left}px, ${cursor.coords.top}px)`,
+            backgroundColor: cursor.user.color,
+            height: cursor.height ? `${cursor.height}px` : '1.3em'
+          }"
+        >
+          <div class="cursor-flag" :style="{ backgroundColor: cursor.user.color }">
+            {{ cursor.user.name }}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref, computed, nextTick } from 'vue';
-import { useEditor, EditorContent } from '@tiptap/vue-3';
+import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
+import { Editor, EditorContent } from '@tiptap/vue-3';
+import { Extension } from '@tiptap/core';
+import { Plugin, PluginKey } from 'prosemirror-state';
 import StarterKit from '@tiptap/starter-kit';
 import { connectStomp, sendStompMessage, disconnectStomp } from '../../services/editorStompService';
-import axios from 'axios';
 
-// --- 상태 관리 ---
-const documentId = 'ws_fol_doc_1';
-const editorContainerRef = ref(null); // 에디터 컨테이너 DOM 참조
-const isConnected = ref(false);
-const isUpdatingFromRemote = ref(false);
-const remoteCursorsMap = ref({}); // 다른 사용자 커서 정보 객체 { senderId: { user, pos } }
-const lastCursorUpdate = ref(0); // 커서 업데이트 throttle용
+function randomUUID() {
+  return 'line-' + Math.random().toString(36).substring(2, 11);
+}
+
+const UniqueIdExtension = Extension.create({
+  name: 'uniqueId',
+
+  addOptions() {
+    return {
+      types: ['heading', 'paragraph'],
+      attributeName: 'id',
+    };
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          [this.options.attributeName]: {
+            default: null,
+            parseHTML: element => element.getAttribute('data-id'),
+            renderHTML: attributes => {
+              if (!attributes[this.options.attributeName]) {
+                return {};
+              }
+              return { 'data-id': attributes[this.options.attributeName] };
+            },
+          },
+        },
+      },
+    ];
+  },
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('uniqueId'),
+        appendTransaction: (transactions, oldState, newState) => {
+          const docChanged = transactions.some(transaction => transaction.docChanged);
+          if (!docChanged) {
+            return;
+          }
+
+          const tr = newState.tr;
+          let modified = false;
+          const seenIds = new Set();
+
+          newState.doc.descendants((node, pos) => {
+            if (!this.options.types.includes(node.type.name)) {
+              return;
+            }
+
+            const id = node.attrs[this.options.attributeName];
+
+            if (id === null || id === undefined) {
+              tr.setNodeMarkup(pos, undefined, {
+                ...node.attrs,
+                [this.options.attributeName]: randomUUID(),
+              });
+              modified = true;
+            } else if (seenIds.has(id)) {
+              tr.setNodeMarkup(pos, undefined, {
+                ...node.attrs,
+                [this.options.attributeName]: randomUUID(),
+              });
+              modified = true;
+            } else {
+              seenIds.add(id);
+            }
+          });
+
+          if (modified) {
+            return tr;
+          }
+        },
+      }),
+    ];
+  },
+});
+
+// Props 정의
+const props = defineProps({
+  initialContent: {
+    type: String,
+    default: '',
+  },
+  documentId: {
+    type: String,
+    required: true,
+  }
+});
+
+// Emits 정의
+const emit = defineEmits(['document-line-created', 'document-line-updated', 'document-line-deleted']);
+
+// 반응형 변수 선언
+const editor = ref(null);
 const connectionStatus = ref('connecting'); // 'connecting' | 'connected' | 'offline'
-let connectionTimeout = null;
+const isUpdatingFromRemote = ref(false);
+const editorContainerRef = ref(null); // 에디터 컨테이너 DOM 참조
+const remoteCursorsMap = ref({}); // 다른 사용자 커서 정보 객체
+const lastCursorUpdate = ref(0); // 커서 업데이트 throttle용
+const savedLineIds = ref(new Set()); // "저장된" 라인 ID를 추적
 
 const user = {
   name: 'User ' + Math.floor(Math.random() * 100),
   color: '#' + Math.floor(Math.random()*16777215).toString(16),
 };
 
-// 연결 상태에 따른 CSS 클래스
 const connectionStatusClass = computed(() => ({
   'status-connecting': connectionStatus.value === 'connecting',
   'status-connected': connectionStatus.value === 'connected',
   'status-offline': connectionStatus.value === 'offline',
 }));
 
-// useEditor는 이미 ref를 반환하므로 직접 사용
-const editor = useEditor({
-  content: '<p>서버에 연결 중입니다...</p>',
-  editable: false,
-  extensions: [StarterKit],
-  
-  // 문서 내용 변경 시 서버로 전송
-  onUpdate: ({ editor }) => {
-    if (isUpdatingFromRemote.value || !isConnected.value) return;
-    sendStompMessage({
-      destination: '/publish/editor/update',
-      body: {
-        type: 'UPDATE',
-        documentId,
-        senderId: user.name,
-        content: editor.getJSON(),
-      },
-    });
-  },
-
-  // 커서/선택 영역 변경 시 서버로 전송 (throttle 적용)
-  onSelectionUpdate: ({ editor }) => {
-    if (isUpdatingFromRemote.value || !isConnected.value) return;
-    
-    const now = Date.now();
-    if (now - lastCursorUpdate.value < 100) return; // 100ms throttle
-    lastCursorUpdate.value = now;
-    
-    sendStompMessage({
-      destination: '/publish/editor/cursor',
-      body: {
-        type: 'CURSOR_UPDATE',
-        documentId,
-        senderId: user.name,
-        content: { pos: editor.state.selection.from, user },
-      },
-    });
-  },
-});
-
-// 커서 좌표 계산을 포함한 computed
 const remoteCursors = computed(() => {
   if (!editor.value || !editor.value.view || !editorContainerRef.value) {
     return [];
@@ -111,31 +170,21 @@ const remoteCursors = computed(() => {
   const containerRect = editorContainerRef.value.getBoundingClientRect();
   const cursors = [];
 
-  // ProseMirror의 padding, border가 포함되어 좌표가 밀리는 것을 방지하기 위해 보정값을 계산합니다.
-  const style = window.getComputedStyle(editorDom);
-  const paddingLeft = parseFloat(style.paddingLeft || '0');
-  const paddingTop = parseFloat(style.paddingTop || '0');
-  const borderLeft = parseFloat(style.borderLeftWidth || '0');
-  const borderTop = parseFloat(style.borderTopWidth || '0');
-
   for (const senderId in remoteCursorsMap.value) {
     const cursor = remoteCursorsMap.value[senderId];
     try {
-      // 문서의 최대 길이를 넘지 않도록 체크 (빈 문서도 안전하게 처리)
       const maxPos = editor.value.state.doc.content.size;
-      const safePos = Math.min(Math.max(cursor.pos, 0), maxPos);
+      const safePos = maxPos > 1
+        ? Math.min(Math.max(cursor.pos, 1), maxPos - 1)
+        : 0;
 
-      // viewport 기준 절대 좌표 { top, bottom, left, right }
-      const coords = editor.value.view.coordsAtPos(safePos);
-
-      // 커서 높이 = bottom - top
+      const coords = editor.value.view.coordsAtPos(safePos, -1);
       const cursorHeight = coords.bottom - coords.top;
-
-      // 컨테이너 기준으로 변환 + padding/border 보정
-      const relativeLeft = coords.left - containerRect.left - paddingLeft - borderLeft;
-      const relativeTop = coords.top - containerRect.top - paddingTop - borderTop;
+      const relativeLeft = coords.left - containerRect.left;
+      const relativeTop = coords.top - containerRect.top;
 
       cursors.push({
+        senderId,
         user: cursor.user,
         coords: {
           left: relativeLeft,
@@ -144,7 +193,6 @@ const remoteCursors = computed(() => {
         height: cursorHeight,
       });
     } catch (error) {
-      // pos가 유효하지 않을 경우 무시
       console.warn('Invalid cursor position:', cursor.pos, error);
     }
   }
@@ -152,26 +200,134 @@ const remoteCursors = computed(() => {
   return cursors;
 });
 
-// --- 메시지 수신 처리 ---
+// 라이프사이클 훅
+onMounted(() => {
+  editor.value = new Editor({
+    extensions: [
+      StarterKit,
+      UniqueIdExtension,
+    ],
+    content: props.initialContent || '<p></p>', // 초기 콘텐츠가 비어있을 경우를 대비
+    onCreate: ({ editor }) => {
+      // 에디터 생성 시, 초기 콘텐츠에 포함된 모든 ID를 "저장된" 것으로 간주
+      editor.state.doc.descendants((node) => {
+        if (node.isBlock && node.attrs.id) {
+          savedLineIds.value.add(node.attrs.id);
+        }
+      });
+    },
+    onUpdate: ({ editor, transaction }) => {
+      if (isUpdatingFromRemote.value) return;
+
+      sendStompMessage({
+        destination: '/publish/editor/update',
+        body: {
+          type: 'UPDATE',
+          documentId: props.documentId,
+          senderId: user.name,
+          content: editor.getJSON(),
+        },
+      });
+
+      if (!transaction.docChanged) {
+        return;
+      }
+
+      // "저장되지 않은" 라인을 찾아 저장 로직 실행
+      let unsavedNode = null;
+      editor.state.doc.descendants((node) => {
+        if (unsavedNode) return; // 첫 번째 하나만 찾으면 중단
+        if (node.isBlock && node.attrs.id && !savedLineIds.value.has(node.attrs.id)) {
+          unsavedNode = node;
+        }
+      });
+
+      if (unsavedNode) {
+        const newId = unsavedNode.attrs.id;
+        
+        // 다시 감지되지 않도록 즉시 저장된 것으로 표시
+        savedLineIds.value.add(newId);
+
+        nextTick(() => {
+          const element = document.querySelector(`[data-id="${newId}"]`);
+          console.log(`[prevId Debug] Looking for element with data-id: ${newId}. Found:`, element);
+
+          if (element) {
+            const prevElement = element.previousElementSibling;
+            console.log('[prevId Debug] Previous sibling element:', prevElement);
+
+            if(prevElement) {
+              console.log('[prevId Debug] Previous sibling data-id:', prevElement.getAttribute('data-id'));
+            }
+
+            const prevLineId = prevElement ? prevElement.getAttribute('data-id') : null;
+
+            emit('document-line-created', {
+              lineId: newId,
+              htmlContent: element.outerHTML,
+              prevLineId: prevLineId,
+            });
+          }
+        });
+      }
+    },
+    onSelectionUpdate: ({ editor }) => {
+      if (isUpdatingFromRemote.value || connectionStatus.value !== 'connected') return;
+      
+      const now = Date.now();
+      if (now - lastCursorUpdate.value < 100) return; // 100ms throttle
+      lastCursorUpdate.value = now;
+      
+      sendStompMessage({
+        destination: '/publish/editor/cursor',
+        body: {
+          type: 'CURSOR_UPDATE',
+          documentId: props.documentId,
+          senderId: user.name,
+          content: { pos: editor.state.selection.from, user },
+        },
+      });
+    },
+  });
+
+  connectStomp(
+    props.documentId,
+    handleIncomingMessage, // 메시지 수신 콜백
+    () => { // 연결 성공 콜백
+      connectionStatus.value = 'connected';
+      editor.value.setOptions({ editable: true });
+    }
+  );
+
+  setTimeout(() => {
+    if (connectionStatus.value === 'connecting') {
+      connectionStatus.value = 'offline';
+      editor.value.setOptions({ editable: false });
+    }
+  }, 5000);
+});
+
+onBeforeUnmount(() => {
+  disconnectStomp();
+  if (editor.value) {
+    editor.value.destroy();
+  }
+});
+
 const handleIncomingMessage = (message) => {
   if (!editor.value) return;
 
-  // 1. 문서 내용 업데이트 처리
   if (message.type === 'UPDATE' && message.senderId !== user.name) {
     isUpdatingFromRemote.value = true;
     const { from, to } = editor.value.state.selection;
     
-    // JSON 형식으로 받아서 JSON으로 설정
     editor.value.chain()
       .setContent(message.content, false)
       .setTextSelection({ from, to })
       .run();
     
     isUpdatingFromRemote.value = false;
-  }
-  
-  // 2. 커서 위치 업데이트 처리
-  if (message.type === 'CURSOR_UPDATE' && message.senderId !== user.name) {
+  } else if (message.type === 'CURSOR_UPDATE' && message.senderId !== user.name) {
     remoteCursorsMap.value = {
       ...remoteCursorsMap.value,
       [message.senderId]: {
@@ -182,83 +338,15 @@ const handleIncomingMessage = (message) => {
   }
 };
 
-// 에디터 활성화 함수
-const enableEditor = (content = '<p>여기에 입력하세요...</p>', isOnline = false) => {
-  if (!editor.value) return;
-  
-  if (connectionTimeout) {
-    clearTimeout(connectionTimeout);
-    connectionTimeout = null;
-  }
-  
-  editor.value.commands.setContent(content, false);
-  editor.value.setOptions({ editable: true });
-  nextTick(() => {
-    editor.value?.commands.focus('end');
-  });
-  
-  isConnected.value = isOnline;
-  connectionStatus.value = isOnline ? 'connected' : 'offline';
-  
-  console.log(isOnline ? '✅ 온라인 모드로 에디터 활성화' : '⚠️ 오프라인 모드로 에디터 활성화');
-};
-
-// --- STOMP 연결 성공 시 콜백 ---
-const onStompConnected = async () => {
-  console.log('🔗 STOMP 연결 성공, 문서 로딩 시작...');
-  
-  try {
-    // 1. API 서버에서 문서 초기 내용 로드
-    const response = await axios.get(`http://localhost:8080/drive-service/drive/document/${documentId}`);
-    
-    console.log('📄 문서 로드 성공:', response.data);
-    
-    // 2. 에디터에 내용 설정
-    const content = response.data.content || '<p>여기에 입력하세요...</p>';
-    enableEditor(content, true);
-    
-  } catch (error) {
-    console.error('❌ 문서 로딩 실패:', error);
-    // 서버에서 문서를 못 가져와도 편집은 가능하도록
-    enableEditor('<p>문서를 불러올 수 없습니다. 새로 작성합니다.</p>', false);
-  }
-};
-
-// --- 컴포넌트 생명주기 ---
-onMounted(() => {
-  console.log('📝 에디터 마운트, 연결 시도 중...');
-  
-  // STOMP 연결 시작
-  connectStomp(documentId, handleIncomingMessage, onStompConnected);
-  
-  // 3초 후에도 연결 안되면 오프라인 모드로 전환
-  connectionTimeout = setTimeout(() => {
-    if (!isConnected.value) {
-      console.warn('⏱️ 연결 타임아웃 - 오프라인 모드로 전환');
-      enableEditor('<p>여기에 입력하세요...</p>', false);
-    }
-  }, 3000);
-});
-
-onBeforeUnmount(() => {
-  if (connectionTimeout) {
-    clearTimeout(connectionTimeout);
-  }
-  disconnectStomp();
-  if (editor.value) {
-    editor.value.destroy();
-  }
-});
 </script>
 
-<style scoped>
+<style>
 .editor-wrapper {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-/* 연결 상태 표시 */
 .connection-status {
   padding: 0.5rem 1rem;
   border-radius: 4px;
@@ -290,18 +378,13 @@ onBeforeUnmount(() => {
   position: relative; /* 원격 커서 위치의 기준점 */
 }
 
+.toolbar button.is-active {
+  font-weight: bold;
+  background-color: #eee;
+}
 .ProseMirror {
   border: 1px solid #ccc;
-  padding: 1rem;
-  min-height: 300px;
-  border-radius: 4px;
-  background-color: white;
-}
-
-.ProseMirror:focus {
-  outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+  padding: 10px;
 }
 
 /* 원격 커서 스타일 */

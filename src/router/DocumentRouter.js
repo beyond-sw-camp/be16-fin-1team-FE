@@ -1,10 +1,10 @@
-import RealTimeEditor from "../components/document/RealTimeEditor.vue";
-
+import DocumentDetail from "../views/Document/DocumentDetail.vue";
 
 export const documentRouter = [
     {
-        path: "/document/editor",
-        name: "RealTimeEditor",
-        component: RealTimeEditor
+        path: "/document/:documentId",
+        name: "DocumentDetail",
+        component: DocumentDetail,
+        props: true
     }
 ]
