@@ -146,7 +146,7 @@ const isUpdatingFromRemote = ref(false);
 const editorContainerRef = ref(null); // 에디터 컨테이너 DOM 참조
 const remoteCursorsMap = ref({}); // 다른 사용자 커서 정보 객체
 const lastCursorUpdate = ref(0); // 커서 업데이트 throttle용
-const savedLineIds = ref(new Set()); // "저장된" 라인 ID를 추적
+const previousNodesById = ref(new Map()); // "이전 상태"를 저장
 
 const user = {
   name: 'User ' + Math.floor(Math.random() * 100),
@@ -209,65 +209,80 @@ onMounted(() => {
     ],
     content: props.initialContent || '<p></p>', // 초기 콘텐츠가 비어있을 경우를 대비
     onCreate: ({ editor }) => {
-      // 에디터 생성 시, 초기 콘텐츠에 포함된 모든 ID를 "저장된" 것으로 간주
+      // 에디터 생성 시, 초기 상태를 "이전 상태"로 저장
       editor.state.doc.descendants((node) => {
         if (node.isBlock && node.attrs.id) {
-          savedLineIds.value.add(node.attrs.id);
+          previousNodesById.value.set(node.attrs.id, node.toJSON());
         }
       });
     },
     onUpdate: ({ editor, transaction }) => {
-      if (isUpdatingFromRemote.value) return;
-
-      sendStompMessage({
-        destination: '/publish/editor/update',
-        body: {
-          messageType: 'UPDATE',
-          documentId: props.documentId,
-          senderId: user.name,
-          content: editor.getHTML(), // getJSON() 대신 getHTML()을 사용하여 문자열로 통일
-        },
-      });
-
-      if (!transaction.docChanged) {
+      if (isUpdatingFromRemote.value || !transaction.docChanged) {
         return;
       }
 
-      // "저장되지 않은" 라인을 찾아 저장 로직 실행
-      let unsavedNode = null;
+      // 1. 현재 상태 수집
+      const currentNodes = [];
+      const currentNodesById = new Map();
       editor.state.doc.descendants((node) => {
-        if (unsavedNode) return; // 첫 번째 하나만 찾으면 중단
-        if (node.isBlock && node.attrs.id && !savedLineIds.value.has(node.attrs.id)) {
-          unsavedNode = node;
+        if (node.isBlock && node.attrs.id) {
+          const nodeJSON = node.toJSON();
+          currentNodes.push(nodeJSON);
+          currentNodesById.set(node.attrs.id, nodeJSON);
         }
       });
-
-      if (unsavedNode) {
-        const newId = unsavedNode.attrs.id;
-        
-        savedLineIds.value.add(newId);
-
-        nextTick(() => {
-          const element = document.querySelector(`[data-id="${newId}"]`);
-          if (element) {
-            const prevElement = element.previousElementSibling;
-            const prevLineId = prevElement ? prevElement.getAttribute('data-id') : null;
-
-            sendStompMessage({
-              destination: '/publish/editor/create',
-              body: {
-                messageType: 'CREATE',
-                documentId: props.documentId,
-                senderId: user.name,
-                lineId: newId,
-                prevLineId: prevLineId,
-                content: element.outerHTML,
-              },
-            });
-            console.log('새 문서 라인 생성 메시지 전송:', newId);
-          }
-        });
+      
+      // 2. "수정"된 라인 찾아 UPDATE 메시지 전송
+      for (const [id, nodeJSON] of previousNodesById.value.entries()) {
+        const currentNode = currentNodesById.get(id);
+        if (currentNode && JSON.stringify(currentNode.content) !== JSON.stringify(nodeJSON.content)) {
+          nextTick(() => {
+            const element = document.querySelector(`[data-id="${id}"]`);
+            if (element) {
+              sendStompMessage({
+                destination: '/publish/editor/update',
+                body: {
+                  messageType: 'UPDATE',
+                  documentId: props.documentId,
+                  senderId: user.name,
+                  lineId: id,
+                  content: element.outerHTML,
+                },
+              });
+            }
+          });
+        }
       }
+
+      // 3. "생성"된 라인 찾아 CREATE 메시지 전송
+      for (let i = 0; i < currentNodes.length; i++) {
+        const currentNode = currentNodes[i];
+        const id = currentNode.attrs.id;
+
+        if (!previousNodesById.value.has(id)) {
+          const prevLineId = i > 0 ? currentNodes[i-1].attrs.id : null;
+          
+          nextTick(() => {
+            const element = document.querySelector(`[data-id="${id}"]`);
+            if (element) {
+              sendStompMessage({
+                destination: '/publish/editor/create',
+                body: {
+                  messageType: 'CREATE',
+                  documentId: props.documentId,
+                  senderId: user.name,
+                  lineId: id,
+                  prevLineId: prevLineId,
+                  content: element.outerHTML,
+                },
+              });
+            }
+          });
+        }
+      }
+
+      // 4. 현재 상태를 "이전 상태"로 갱신
+      previousNodesById.value = currentNodesById;
     },
     onSelectionUpdate: ({ editor }) => {
       if (isUpdatingFromRemote.value || connectionStatus.value !== 'connected') return;
@@ -313,28 +328,65 @@ onBeforeUnmount(() => {
 });
 
 const handleIncomingMessage = (message) => {
-  if (!editor.value) return;
+  if (!editor.value || message.senderId === user.name) {
+    return;
+  }
 
-  if (message.messageType === 'UPDATE' && message.senderId !== user.name) {
-    isUpdatingFromRemote.value = true;
-    const { from, to } = editor.value.state.selection;
-    
-    editor.value.chain()
-      .setContent(message.content, false)
-      .setTextSelection({ from, to })
-      .run();
-    
-    isUpdatingFromRemote.value = false;
-  } else if (message.messageType === 'CURSOR_UPDATE' && message.senderId !== user.name) {
-      const cursorData = JSON.parse(message.content); // 문자열로 받은 커서 데이터를 다시 객체로 변환
-      remoteCursorsMap.value = {
-        ...remoteCursorsMap.value,
-        [message.senderId]: {
-          user: cursorData.user,
-          pos: cursorData.pos,
+  isUpdatingFromRemote.value = true;
+  const { from, to } = editor.value.state.selection; // 현재 커서/선택 위치 저장
+
+  if (message.messageType === 'CREATE') {
+    let insertPos = 1; // 기본값: 문서 시작
+    if (message.prevLineId) {
+      let found = false;
+      editor.value.state.doc.descendants((node, pos) => {
+        if (!found && node.isBlock && node.attrs.id === message.prevLineId) {
+          insertPos = pos + node.nodeSize;
+          found = true;
         }
-      };
+      });
+      if (!found) { // 이전 노드를 못찾으면 맨 끝에 추가
+        insertPos = editor.value.state.doc.content.size;
+      }
     }
+    editor.value.chain()
+      .insertContentAt(insertPos, message.content)
+      .setTextSelection({ from, to }) // 커서 위치 복원
+      .run();
+
+  } else if (message.messageType === 'UPDATE') {
+    let nodeToUpdate = null;
+    let nodeToUpdatePos = -1;
+    editor.value.state.doc.descendants((node, pos) => {
+      if (node.isBlock && node.attrs.id === message.lineId) {
+        nodeToUpdate = node;
+        nodeToUpdatePos = pos;
+      }
+    });
+
+    if (nodeToUpdate) {
+      editor.value.chain()
+        .deleteRange({ from: nodeToUpdatePos, to: nodeToUpdatePos + nodeToUpdate.nodeSize })
+        .insertContentAt(nodeToUpdatePos, message.content)
+        .setTextSelection({ from, to }) // 커서 위치 복원
+        .run();
+    }
+
+  } else if (message.messageType === 'CURSOR_UPDATE') {
+    const cursorData = JSON.parse(message.content);
+    remoteCursorsMap.value = {
+      ...remoteCursorsMap.value,
+      [message.senderId]: {
+        user: cursorData.user,
+        pos: cursorData.pos,
+      }
+    };
+  }
+
+  // isUpdatingFromRemote 플래그가 너무 빨리 해제되어 다른 로직에 영향을 주는 것을 방지
+  setTimeout(() => {
+    isUpdatingFromRemote.value = false;
+  }, 50);
 };
 
 </script>
