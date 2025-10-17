@@ -41,12 +41,11 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, onMounted } from 'vue';
 import axios from 'axios';
 
-const messages = ref([
-  { role: 'assistant', text: '안녕하세요! ORBIT의 귀염둥이 챗봇 오르빙입니다🤖 무엇을 도와드릴까요?', time: new Date() },
-]);
+const WELCOME = '안녕하세요! ORBIT의 귀염둥이 챗봇 오르빙입니다🤖 무엇을 도와드릴까요?';
+const messages = ref([]);
 const inputText = ref('');
 const isLoading = ref(false);
 
@@ -99,6 +98,39 @@ async function handleSend() {
 function scrollToBottom() {
   const el = document.querySelector('.chatbot-body');
   if (el) el.scrollTop = el.scrollHeight;
+}
+
+// 초기 히스토리 불러오기
+onMounted(loadHistory);
+async function loadHistory() {
+  try {
+    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const { data } = await axios.get(`${baseURL}/workspace-service/chatbot/workspaces/ws_1/chat/messages`);
+    const list = Array.isArray(data?.result) ? data.result : [];
+    const mapped = list.map(item => ({
+      role: String(item?.type).toUpperCase() === 'USER' ? 'user' : 'assistant',
+      text: normalizeContent(item?.content),
+      time: new Date(),
+    }));
+    // 환영 문구는 가장 마지막(최신)으로 표시
+    messages.value = [...mapped, { role: 'assistant', text: WELCOME, time: new Date() }];
+    await nextTick();
+    scrollToBottom();
+  } catch (e) {
+    // 실패해도 환영 문구는 유지
+  }
+}
+
+function normalizeContent(content) {
+  if (!content) return '';
+  // BOT 응답이 문자열 JSON인 경우 text만 추출
+  if (typeof content === 'string' && content.trim().startsWith('{')) {
+    try {
+      const obj = JSON.parse(content);
+      return obj?.text ?? content;
+    } catch(_) { return content; }
+  }
+  return content;
 }
 </script>
 
