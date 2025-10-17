@@ -239,6 +239,7 @@ onMounted(() => {
           nextTick(() => {
             const element = document.querySelector(`[data-id="${id}"]`);
             if (element) {
+              const cleanedHtml = element.outerHTML.replace(/<br class="ProseMirror-trailingBreak">/g, '');
               sendStompMessage({
                 destination: '/publish/editor/update',
                 body: {
@@ -246,7 +247,7 @@ onMounted(() => {
                   documentId: props.documentId,
                   senderId: user.name,
                   lineId: id,
-                  content: element.outerHTML,
+                  content: cleanedHtml,
                 },
               });
             }
@@ -254,7 +255,27 @@ onMounted(() => {
         }
       }
 
-      // 3. "생성"된 라인 찾아 CREATE 메시지 전송
+      // 3. "삭제"된 라인 찾아 DELETE 메시지 전송
+      const previousIds = Array.from(previousNodesById.value.keys());
+      for (let i = 0; i < previousIds.length; i++) {
+        const oldId = previousIds[i];
+        if (!currentNodesById.has(oldId)) {
+          const prevLineId = i > 0 ? previousIds[i - 1] : null;
+          console.log(`[Delete Debug] Line deleted. ID: ${oldId}, prevLineId: ${prevLineId}. Sending DELETE message...`);
+          sendStompMessage({
+            destination: '/publish/editor/delete',
+            body: {
+              messageType: 'DELETE',
+              documentId: props.documentId,
+              senderId: user.name,
+              lineId: oldId,
+              prevLineId: prevLineId,
+            },
+          });
+        }
+      }
+
+      // 4. "생성"된 라인 찾아 CREATE 메시지 전송
       for (let i = 0; i < currentNodes.length; i++) {
         const currentNode = currentNodes[i];
         const id = currentNode.attrs.id;
@@ -265,6 +286,7 @@ onMounted(() => {
           nextTick(() => {
             const element = document.querySelector(`[data-id="${id}"]`);
             if (element) {
+              const cleanedHtml = element.outerHTML.replace(/<br class="ProseMirror-trailingBreak">/g, '');
               sendStompMessage({
                 destination: '/publish/editor/create',
                 body: {
@@ -273,7 +295,7 @@ onMounted(() => {
                   senderId: user.name,
                   lineId: id,
                   prevLineId: prevLineId,
-                  content: element.outerHTML,
+                  content: cleanedHtml,
                 },
               });
             }
@@ -290,16 +312,35 @@ onMounted(() => {
       const now = Date.now();
       if (now - lastCursorUpdate.value < 100) return; // 100ms throttle
       lastCursorUpdate.value = now;
-      
-      sendStompMessage({
-        destination: '/publish/editor/cursor',
-        body: {
-          messageType: 'CURSOR_UPDATE',
-          documentId: props.documentId,
-          senderId: user.name,
-          content: JSON.stringify({ pos: editor.state.selection.from, user }), // 객체를 문자열로 변환
-        },
-      });
+
+      // 1. 현재 커서 위치의 lineId와 offset 계산
+      const { from } = editor.state.selection;
+      const resolvedPos = editor.state.doc.resolve(from);
+      let cursorLineId = null;
+      let cursorOffset = 0;
+
+      for (let i = resolvedPos.depth; i > 0; i--) {
+        const node = resolvedPos.node(i);
+        if (node.isBlock && node.attrs.id) {
+          cursorLineId = node.attrs.id;
+          const nodePos = resolvedPos.start(i);
+          cursorOffset = from - nodePos;
+          break;
+        }
+      }
+
+      // 2. 계산된 정보로 메시지 전송
+      if (cursorLineId) {
+        sendStompMessage({
+          destination: '/publish/editor/cursor',
+          body: {
+            messageType: 'CURSOR_UPDATE',
+            documentId: props.documentId,
+            senderId: user.name,
+            content: JSON.stringify({ lineId: cursorLineId, offset: cursorOffset, user }),
+          },
+        });
+      }
     },
   });
 
@@ -333,10 +374,26 @@ const handleIncomingMessage = (message) => {
   }
 
   isUpdatingFromRemote.value = true;
-  const { from, to } = editor.value.state.selection; // 현재 커서/선택 위치 저장
+  
+  // 1. 커서의 "상대 위치" 저장
+  const { selection } = editor.value.state;
+  const resolvedPos = editor.value.state.doc.resolve(selection.from);
+  let anchorNodeId = null;
+  let startOffset = 0;
+  
+  for (let i = resolvedPos.depth; i > 0; i--) {
+    const node = resolvedPos.node(i);
+    if (node.isBlock && node.attrs.id) {
+      anchorNodeId = node.attrs.id;
+      const nodePos = resolvedPos.start(i);
+      startOffset = selection.from - nodePos;
+      break;
+    }
+  }
 
+  // 2. 메시지 종류에 따라 변경사항 적용
   if (message.messageType === 'CREATE') {
-    let insertPos = 1; // 기본값: 문서 시작
+    let insertPos = 1;
     if (message.prevLineId) {
       let found = false;
       editor.value.state.doc.descendants((node, pos) => {
@@ -345,14 +402,11 @@ const handleIncomingMessage = (message) => {
           found = true;
         }
       });
-      if (!found) { // 이전 노드를 못찾으면 맨 끝에 추가
+      if (!found) {
         insertPos = editor.value.state.doc.content.size;
       }
     }
-    editor.value.chain()
-      .insertContentAt(insertPos, message.content)
-      .setTextSelection({ from, to }) // 커서 위치 복원
-      .run();
+    editor.value.chain().insertContentAt(insertPos, message.content).run();
 
   } else if (message.messageType === 'UPDATE') {
     let nodeToUpdate = null;
@@ -368,22 +422,69 @@ const handleIncomingMessage = (message) => {
       editor.value.chain()
         .deleteRange({ from: nodeToUpdatePos, to: nodeToUpdatePos + nodeToUpdate.nodeSize })
         .insertContentAt(nodeToUpdatePos, message.content)
-        .setTextSelection({ from, to }) // 커서 위치 복원
+        .run();
+    }
+
+  } else if (message.messageType === 'DELETE') {
+    console.log('[Delete Debug] Received DELETE message for line ID:', message.lineId);
+    let nodeToDelete = null;
+    let nodeToDeletePos = -1;
+    editor.value.state.doc.descendants((node, pos) => {
+      if (node.isBlock && node.attrs.id === message.lineId) {
+        nodeToDelete = node;
+        nodeToDeletePos = pos;
+      }
+    });
+    
+    console.log(`[Delete Debug] Found node to delete in local editor:`, nodeToDelete);
+
+    if (nodeToDelete) {
+      console.log(`[Delete Debug] Deleting node at pos: ${nodeToDeletePos}`);
+      editor.value.chain()
+        .deleteRange({ from: nodeToDeletePos, to: nodeToDeletePos + nodeToDelete.nodeSize })
         .run();
     }
 
   } else if (message.messageType === 'CURSOR_UPDATE') {
     const cursorData = JSON.parse(message.content);
-    remoteCursorsMap.value = {
-      ...remoteCursorsMap.value,
-      [message.senderId]: {
-        user: cursorData.user,
-        pos: cursorData.pos,
+    
+    // 1. lineId를 기반으로 절대 위치(pos) 계산
+    let absolutePos = -1;
+    editor.value.state.doc.descendants((node, pos) => {
+      if (absolutePos === -1 && node.isBlock && node.attrs.id === cursorData.lineId) {
+        absolutePos = pos + cursorData.offset;
       }
-    };
+    });
+
+    // 2. 계산된 위치에 커서 정보 업데이트
+    if (absolutePos !== -1) {
+      remoteCursorsMap.value = {
+        ...remoteCursorsMap.value,
+        [message.senderId]: {
+          user: cursorData.user,
+          pos: absolutePos,
+        }
+      };
+    }
   }
 
-  // isUpdatingFromRemote 플래그가 너무 빨리 해제되어 다른 로직에 영향을 주는 것을 방지
+  // 3. "상대 위치"를 기반으로 커서 위치 복원
+  if (anchorNodeId && (message.messageType === 'CREATE' || message.messageType === 'UPDATE')) {
+    let newAnchorPos = -1;
+    editor.value.state.doc.descendants((node, pos) => {
+        if (newAnchorPos === -1 && node.isBlock && node.attrs.id === anchorNodeId) {
+            newAnchorPos = pos;
+        }
+    });
+
+    if (newAnchorPos !== -1) {
+        const node = editor.value.state.doc.nodeAt(newAnchorPos);
+        const newAbsolutePos = newAnchorPos + startOffset;
+        const finalPos = Math.max(newAnchorPos + 1, Math.min(newAbsolutePos, newAnchorPos + node.nodeSize -1));
+        editor.value.commands.setTextSelection(finalPos);
+    }
+  }
+
   setTimeout(() => {
     isUpdatingFromRemote.value = false;
   }, 50);
