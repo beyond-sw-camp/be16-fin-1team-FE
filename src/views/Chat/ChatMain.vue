@@ -2,7 +2,7 @@
     <div class="main-fill">
         <div class="chat-layout">
             <div class="room-list-panel">
-                <ChatRoomList embedded @select-room="handleSelectRoom" :summaries-by-room-id="summariesByRoomId" :selected-room-id="selectedRoomId" />
+                <ChatRoomList embedded @select-room="handleSelectRoom" @preview-summary="handlePreviewSummary" :summaries-by-room-id="summariesByRoomId" :selected-room-id="selectedRoomId" />
             </div>
             <div class="chat-panel">
                 <StompChatPage v-if="selectedRoomId" embedded :room-id="selectedRoomId" :room-title="selectedRoomTitle" :participant-count="selectedRoomParticipantCount" />
@@ -19,6 +19,22 @@
         <ChatBotPage />
     </v-overlay>
 
+    <!-- 요약 미리보기 다이얼로그 -->
+    <v-dialog v-model="isSummaryDialogOpen" max-width="520px">
+        <v-card>
+            <v-card-title class="text-h6">요약 미리보기</v-card-title>
+            <v-card-text :key="summaryDialogVersion">
+                <div v-if="summaryDialogLoading" class="d-flex align-center justify-center" style="min-height:120px">
+                    <v-progress-circular indeterminate :size="42" :width="4" color="#FFE364" />
+                </div>
+                <div v-else v-html="formatMultiline(summaryDialogText)" style="white-space: normal; line-height: 1.5;"></div>
+            </v-card-text>
+            <v-card-actions class="justify-end">
+                <v-btn color="primary" variant="text" @click="isSummaryDialogOpen = false">닫기</v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
+
 </template>
 
 <script>
@@ -26,6 +42,7 @@ import ChatRoomList from './ChatRoomList.vue';
 import StompChatPage from './StompChatPage.vue';
 import stompManager from '@/services/stompService.js';
 import ChatBotPage from '../ChatBot/ChatBotPage.vue';
+import axios from 'axios';
 
 export default {
     components: { ChatRoomList, StompChatPage, ChatBotPage },
@@ -40,6 +57,10 @@ export default {
             _offClose: null,
             _reconnectTimerSummary: null,
             isChatBotOpen: false,
+            isSummaryDialogOpen: false,
+            summaryDialogLoading: false,
+            summaryDialogText: '',
+            summaryDialogVersion: 0,
         };
     },
     async created() {
@@ -123,6 +144,36 @@ export default {
                     this._reconnectTimerSummary = null;
                 } catch(_) {}
             }, 5000);
+        },
+        async handlePreviewSummary(room) {
+            this.isSummaryDialogOpen = true;
+            this.summaryDialogLoading = true;
+            this.summaryDialogText = '';
+            try {
+                const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                console.log('[summary] request roomId=', room?.roomId);
+                const { data } = await axios.get(`${baseURL}/workspace-service/chatbot/message/chat-room/${room.roomId}`);
+                console.log('[summary] response data=', data);
+                const text = (data && data.result && typeof data.result === 'object') ? (data.result.text || '') : (typeof data?.result === 'string' ? data.result : '');
+                this.summaryDialogText = String(text || '');
+                this.summaryDialogLoading = false;
+                console.log('[summary] set text & stop loading');
+                try { await this.$nextTick(); } catch(_) {}
+            } catch (e) {
+                console.error('[summary] request failed', e);
+                this.summaryDialogText = '요약을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+            } finally {
+                this.summaryDialogLoading = false;
+                console.log('[summary] loading ->', this.summaryDialogLoading, 'text len=', (this.summaryDialogText||'').length);
+                this.summaryDialogVersion++;
+                try { await this.$nextTick(); } catch(_) {}
+                // 안전망: 혹시 반영이 지연될 경우 200ms 후 한 번 더 로딩 해제
+                setTimeout(() => { this.summaryDialogLoading = false; }, 200);
+            }
+        },
+        formatMultiline(text) {
+            if (!text) return '';
+            return String(text).replace(/\n/g, '<br/>');
         }
     }
 };

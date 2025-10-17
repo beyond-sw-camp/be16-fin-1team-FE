@@ -55,6 +55,9 @@
                                                 {{ chat.unreadCount ?? 0 }}
                                             </div>
                                         </td>
+                                        <td class="col-actions">
+                                            <v-btn size="x-small" variant="text" @click.stop="previewSummary(chat)">요약 미리보기</v-btn>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </v-table>
@@ -122,6 +125,9 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
         methods: {
             selectRoom(room) {
                 this.$emit('select-room', room);
+            },
+            previewSummary(room) {
+                this.$emit('preview-summary', room);
             },
             visibleAvatars(list, participantCount) {
                 const filtered = Array.isArray(list) ? list.filter((u) => !!u) : [];
