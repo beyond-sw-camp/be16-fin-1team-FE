@@ -187,6 +187,9 @@ const editorContainerRef = ref(null); // 에디터 컨테이너 DOM 참조
 const remoteCursorsMap = ref({}); // 다른 사용자 커서 정보 객체
 const lastCursorUpdate = ref(0); // 커서 업데이트 throttle용
 const previousNodesById = ref(new Map()); // "이전 상태"를 저장
+const changesQueue = ref([]);
+const typingTimer = ref(null);
+const batchSendInterval = ref(null);
 
 const toggleBold = ref(null);
 const toggleHeading = ref(null);
@@ -284,6 +287,27 @@ const remoteCursors = computed(() => {
   return cursors;
 });
 
+const sendBatchChanges = () => {
+  if (changesQueue.value.length === 0) {
+    return;
+  }
+
+  const payload = {
+    messageType: 'EDITOR_BATCH_MESSAGE',
+    documentId: props.documentId,
+    senderId: user.name,
+    changesList: changesQueue.value,
+    content: ''
+  };
+
+  sendStompMessage({
+    destination: '/publish/editor/batch-update',
+    body: payload,
+  });
+
+  changesQueue.value = [];
+};
+
 // 라이프사이클 훅
 onMounted(() => {
   editor.value = new Editor({
@@ -320,7 +344,7 @@ onMounted(() => {
         }
       });
       
-      // 2. "수정"된 라인 찾아 UPDATE 메시지 전송
+      // 2. "수정"된 라인 찾아 큐에 추가
       for (const [id, nodeJSON] of previousNodesById.value.entries()) {
         const currentNode = currentNodesById.get(id);
         if (currentNode && JSON.stringify(currentNode) !== JSON.stringify(nodeJSON)) {
@@ -328,42 +352,31 @@ onMounted(() => {
             const element = document.querySelector(`[data-id="${id}"]`);
             if (element) {
               const cleanedHtml = element.outerHTML.replace(/<br class="ProseMirror-trailingBreak">/g, '');
-              sendStompMessage({
-                destination: '/publish/editor/update',
-                body: {
-                  messageType: 'UPDATE',
-                  documentId: props.documentId,
-                  senderId: user.name,
-                  lineId: id,
-                  content: cleanedHtml,
-                },
+              changesQueue.value.push({
+                type: 'UPDATE',
+                lineId: id,
+                content: cleanedHtml,
               });
             }
           });
         }
       }
 
-      // 3. "삭제"된 라인 찾아 DELETE 메시지 전송
+      // 3. "삭제"된 라인 찾아 큐에 추가
       const previousIds = Array.from(previousNodesById.value.keys());
       for (let i = 0; i < previousIds.length; i++) {
         const oldId = previousIds[i];
         if (!currentNodesById.has(oldId)) {
           const prevLineId = i > 0 ? previousIds[i - 1] : null;
-          console.log(`[Delete Debug] Line deleted. ID: ${oldId}, prevLineId: ${prevLineId}. Sending DELETE message...`);
-          sendStompMessage({
-            destination: '/publish/editor/delete',
-            body: {
-              messageType: 'DELETE',
-              documentId: props.documentId,
-              senderId: user.name,
-              lineId: oldId,
-              prevLineId: prevLineId,
-            },
+          changesQueue.value.push({
+            type: 'DELETE',
+            lineId: oldId,
+            prevLineId: prevLineId,
           });
         }
       }
 
-      // 4. "생성"된 라인 찾아 CREATE 메시지 전송
+      // 4. "생성"된 라인 찾아 큐에 추가
       for (let i = 0; i < currentNodes.length; i++) {
         const currentNode = currentNodes[i];
         const id = currentNode.attrs.id;
@@ -375,24 +388,36 @@ onMounted(() => {
             const element = document.querySelector(`[data-id="${id}"]`);
             if (element) {
               const cleanedHtml = element.outerHTML.replace(/<br class="ProseMirror-trailingBreak">/g, '');
-              sendStompMessage({
-                destination: '/publish/editor/create',
-                body: {
-                  messageType: 'CREATE',
-                  documentId: props.documentId,
-                  senderId: user.name,
-                  lineId: id,
-                  prevLineId: prevLineId,
-                  content: cleanedHtml,
-                },
+              changesQueue.value.push({
+                type: 'CREATE',
+                lineId: id,
+                prevLineId: prevLineId,
+                content: cleanedHtml,
               });
             }
           });
         }
       }
 
-      // 4. 현재 상태를 "이전 상태"로 갱신
+      // 5. 현재 상태를 "이전 상태"로 갱신
       previousNodesById.value = currentNodesById;
+
+      // 6. 타이머 로직으로 묶어서 전송
+      if (typingTimer.value) {
+        clearTimeout(typingTimer.value);
+      }
+
+      if (!batchSendInterval.value) {
+        batchSendInterval.value = setInterval(sendBatchChanges, 500);
+      }
+
+      typingTimer.value = setTimeout(() => {
+        if (batchSendInterval.value) {
+          clearInterval(batchSendInterval.value);
+          batchSendInterval.value = null;
+        }
+        sendBatchChanges(); // Send any remaining changes
+      }, 700);
     },
     onSelectionUpdate: ({ editor }) => {
       if (isUpdatingFromRemote.value || connectionStatus.value !== 'connected') return;
@@ -450,11 +475,70 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  if (typingTimer.value) {
+    clearTimeout(typingTimer.value);
+  }
+  if (batchSendInterval.value) {
+    clearInterval(batchSendInterval.value);
+  }
+  sendBatchChanges(); // 컴포넌트 파괴 전 마지막으로 변경사항 전송
   disconnectStomp();
   if (editor.value) {
     editor.value.destroy();
   }
 });
+
+const applyCreate = (change) => {
+  let insertPos = 1;
+  if (change.prevLineId) {
+    let found = false;
+    editor.value.state.doc.descendants((node, pos) => {
+      if (!found && node.isBlock && node.attrs.id === change.prevLineId) {
+        insertPos = pos + node.nodeSize;
+        found = true;
+      }
+    });
+    if (!found) {
+      insertPos = editor.value.state.doc.content.size;
+    }
+  }
+  editor.value.chain().insertContentAt(insertPos, change.content).run();
+};
+
+const applyUpdate = (change) => {
+  let nodeToUpdate = null;
+  let nodeToUpdatePos = -1;
+  editor.value.state.doc.descendants((node, pos) => {
+    if (node.isBlock && node.attrs.id === change.lineId) {
+      nodeToUpdate = node;
+      nodeToUpdatePos = pos;
+    }
+  });
+
+  if (nodeToUpdate) {
+    editor.value.chain()
+      .deleteRange({ from: nodeToUpdatePos, to: nodeToUpdatePos + nodeToUpdate.nodeSize })
+      .insertContentAt(nodeToUpdatePos, change.content)
+      .run();
+  }
+};
+
+const applyDelete = (change) => {
+  let nodeToDelete = null;
+  let nodeToDeletePos = -1;
+  editor.value.state.doc.descendants((node, pos) => {
+    if (node.isBlock && node.attrs.id === change.lineId) {
+      nodeToDelete = node;
+      nodeToDeletePos = pos;
+    }
+  });
+
+  if (nodeToDelete) {
+    editor.value.chain()
+      .deleteRange({ from: nodeToDeletePos, to: nodeToDeletePos + nodeToDelete.nodeSize })
+      .run();
+  }
+};
 
 const handleIncomingMessage = (message) => {
   if (!editor.value || message.senderId === user.name) {
@@ -480,59 +564,22 @@ const handleIncomingMessage = (message) => {
   }
 
   // 2. 메시지 종류에 따라 변경사항 적용
-  if (message.messageType === 'CREATE') {
-    let insertPos = 1;
-    if (message.prevLineId) {
-      let found = false;
-      editor.value.state.doc.descendants((node, pos) => {
-        if (!found && node.isBlock && node.attrs.id === message.prevLineId) {
-          insertPos = pos + node.nodeSize;
-          found = true;
-        }
-      });
-      if (!found) {
-        insertPos = editor.value.state.doc.content.size;
+  if (message.messageType === 'EDITOR_BATCH_MESSAGE') {
+    message.changesList.forEach(change => {
+      if (change.type === 'CREATE') {
+        applyCreate(change);
+      } else if (change.type === 'UPDATE') {
+        applyUpdate(change);
+      } else if (change.type === 'DELETE') {
+        applyDelete(change);
       }
-    }
-    editor.value.chain().insertContentAt(insertPos, message.content).run();
-
+    });
+  } else if (message.messageType === 'CREATE') {
+    applyCreate(message);
   } else if (message.messageType === 'UPDATE') {
-    let nodeToUpdate = null;
-    let nodeToUpdatePos = -1;
-    editor.value.state.doc.descendants((node, pos) => {
-      if (node.isBlock && node.attrs.id === message.lineId) {
-        nodeToUpdate = node;
-        nodeToUpdatePos = pos;
-      }
-    });
-
-    if (nodeToUpdate) {
-      editor.value.chain()
-        .deleteRange({ from: nodeToUpdatePos, to: nodeToUpdatePos + nodeToUpdate.nodeSize })
-        .insertContentAt(nodeToUpdatePos, message.content)
-        .run();
-    }
-
+    applyUpdate(message);
   } else if (message.messageType === 'DELETE') {
-    console.log('[Delete Debug] Received DELETE message for line ID:', message.lineId);
-    let nodeToDelete = null;
-    let nodeToDeletePos = -1;
-    editor.value.state.doc.descendants((node, pos) => {
-      if (node.isBlock && node.attrs.id === message.lineId) {
-        nodeToDelete = node;
-        nodeToDeletePos = pos;
-      }
-    });
-    
-    console.log(`[Delete Debug] Found node to delete in local editor:`, nodeToDelete);
-
-    if (nodeToDelete) {
-      console.log(`[Delete Debug] Deleting node at pos: ${nodeToDeletePos}`);
-      editor.value.chain()
-        .deleteRange({ from: nodeToDeletePos, to: nodeToDeletePos + nodeToDelete.nodeSize })
-        .run();
-    }
-
+    applyDelete(message);
   } else if (message.messageType === 'CURSOR_UPDATE') {
     const cursorData = JSON.parse(message.content);
     
@@ -557,7 +604,7 @@ const handleIncomingMessage = (message) => {
   }
 
   // 3. "상대 위치"를 기반으로 커서 위치 복원
-  if (anchorNodeId && (message.messageType === 'CREATE' || message.messageType === 'UPDATE')) {
+  if (anchorNodeId && (message.messageType === 'CREATE' || message.messageType === 'UPDATE' || message.messageType === 'EDITOR_BATCH_MESSAGE')) {
     let newAnchorPos = -1;
     editor.value.state.doc.descendants((node, pos) => {
         if (newAnchorPos === -1 && node.isBlock && node.attrs.id === anchorNodeId) {
