@@ -129,31 +129,61 @@ const UniqueIdExtension = Extension.create({
 
           const tr = newState.tr;
           let modified = false;
+          
           const seenIds = new Set();
+          const duplicateIds = new Set();
 
-          newState.doc.descendants((node, pos) => {
-            if (!this.options.types.includes(node.type.name)) {
-              return;
-            }
-
+          // 첫 번째 순회: 중복된 ID를 모두 찾습니다.
+          newState.doc.descendants((node) => {
+            if (!this.options.types.includes(node.type.name)) return;
             const id = node.attrs[this.options.attributeName];
-
-            if (id === null || id === undefined) {
-              tr.setNodeMarkup(pos, undefined, {
-                ...node.attrs,
-                [this.options.attributeName]: randomUUID(),
-              });
-              modified = true;
-            } else if (seenIds.has(id)) {
-              tr.setNodeMarkup(pos, undefined, {
-                ...node.attrs,
-                [this.options.attributeName]: randomUUID(),
-              });
-              modified = true;
-            } else {
-              seenIds.add(id);
+            if (id) {
+              if (seenIds.has(id)) {
+                duplicateIds.add(id);
+              } else {
+                seenIds.add(id);
+              }
             }
           });
+
+          // 중복된 ID가 없으면, ID가 없는 노드만 처리합니다.
+          if (duplicateIds.size === 0) {
+            newState.doc.descendants((node, pos) => {
+              if (!this.options.types.includes(node.type.name)) return;
+              const id = node.attrs[this.options.attributeName];
+              if (id === null || id === undefined) {
+                tr.setNodeMarkup(pos, undefined, {
+                  ...node.attrs,
+                  [this.options.attributeName]: randomUUID(),
+                });
+                modified = true;
+              }
+            });
+          } else {
+            // 두 번째 순회: 중복된 ID의 첫 번째 등장(붙여넣기된 노드)에 새 ID를 부여합니다.
+            const rewrittenDuplicates = new Set();
+            newState.doc.descendants((node, pos) => {
+              if (!this.options.types.includes(node.type.name)) return;
+              
+              const id = node.attrs[this.options.attributeName];
+              
+              if (id && duplicateIds.has(id) && !rewrittenDuplicates.has(id)) {
+                tr.setNodeMarkup(pos, undefined, {
+                  ...node.attrs,
+                  [this.options.attributeName]: randomUUID(),
+                });
+                modified = true;
+                rewrittenDuplicates.add(id);
+              } else if (id === null || id === undefined) {
+                // ID가 없는 노드도 처리합니다.
+                tr.setNodeMarkup(pos, undefined, {
+                  ...node.attrs,
+                  [this.options.attributeName]: randomUUID(),
+                });
+                modified = true;
+              }
+            });
+          }
 
           if (modified) {
             return tr;
