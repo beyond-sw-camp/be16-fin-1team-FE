@@ -56,17 +56,23 @@
                 <span class="member-count">{{ group.groupParticipantCount }}명</span>
               </div>
               <div class="group-actions">
-                <div class="action-menu" @click="toggleActionMenu(group.accessGroupId)">
+                <div class="action-menu" @click.stop="toggleActionMenu(group.accessGroupId)">
                   <span>⋯</span>
                 </div>
               </div>
             </div>
             
             <!-- 액션 메뉴 -->
-            <div v-if="activeActionMenu === group.accessGroupId" class="action-dropdown">
+            <div v-if="activeActionMenu === group.accessGroupId" class="action-dropdown" @click.stop>
               <div class="action-item" @click="editGroup(group)">수정하기</div>
               <div class="action-item" @click="manageMembers(group)">사용자 추가/제거</div>
-              <div class="action-item delete" @click="deleteGroup(group)">삭제하기</div>
+              <div 
+                class="action-item delete" 
+                :class="{ 'disabled': group.accessGroupName === '일반 유저 그룹' || group.accessGroupName === '관리자 그룹' }"
+                @click="deleteGroup(group)"
+              >
+                삭제하기
+              </div>
             </div>
           </div>
 
@@ -218,6 +224,14 @@ export default {
     if (this.activeTab === 'permission') {
       await this.loadPermissionGroups();
     }
+    
+    // 바깥쪽 클릭 시 액션 메뉴 닫기
+    document.addEventListener('click', this.handleOutsideClick);
+  },
+  
+  beforeUnmount() {
+    // 이벤트 리스너 제거
+    document.removeEventListener('click', this.handleOutsideClick);
   },
   
   watch: {
@@ -308,9 +322,16 @@ export default {
       this.activeActionMenu = this.activeActionMenu === groupId ? null : groupId;
     },
     
+    handleOutsideClick(event) {
+      // 액션 메뉴가 열려있고, 클릭된 요소가 액션 메뉴나 관련 요소가 아닌 경우
+      if (this.activeActionMenu && !event.target.closest('.action-menu') && !event.target.closest('.action-dropdown')) {
+        this.activeActionMenu = null;
+      }
+    },
+    
     createPermissionGroup() {
-      // 권한 그룹 생성 로직
-      console.log('권한 그룹 생성');
+      // 권한 그룹 생성 페이지로 이동
+      this.$router.push('/admin/create-permission-group');
     },
     
     editGroup(group) {
@@ -325,11 +346,54 @@ export default {
       this.activeActionMenu = null;
     },
     
-    deleteGroup(group) {
-      // 권한 그룹 삭제 로직
-      if (confirm(`${group.accessGroupName} 그룹을 삭제하시겠습니까?`)) {
-        console.log('권한 그룹 삭제:', group);
+    async deleteGroup(group) {
+      // 기본 그룹 삭제 방지
+      if (group.accessGroupName === '일반 유저 그룹' || group.accessGroupName === '관리자 그룹') {
+        alert('기본 권한 그룹은 삭제할 수 없습니다.');
         this.activeActionMenu = null;
+        return;
+      }
+
+      // 권한 그룹 삭제 확인
+      if (confirm(`${group.accessGroupName} 그룹을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
+        try {
+          const token = localStorage.getItem('token');
+          const userId = localStorage.getItem('userId') || 'user123';
+          
+          const response = await axios.delete(
+            `http://localhost:8080/workspace-service/access/${group.accessGroupId}/delete`,
+            {
+              headers: {
+                'X-User-Id': userId,
+                'Authorization': `Bearer ${token}`
+              }
+            }
+          );
+          
+          if (response.data.statusCode === 200) {
+            alert('권한 그룹이 성공적으로 삭제되었습니다.');
+            // 목록 새로고침
+            await this.loadPermissionGroups();
+          } else {
+            alert('권한 그룹 삭제에 실패했습니다.');
+          }
+        } catch (error) {
+          console.error('권한 그룹 삭제 실패:', error);
+          
+          // 백엔드에서 반환하는 구체적인 오류 메시지 처리
+          if (error.response && error.response.data) {
+            const errorMessage = error.response.data.statusMessage || error.response.data.message;
+            if (errorMessage) {
+              alert(`삭제 실패: ${errorMessage}`);
+            } else {
+              alert('권한 그룹 삭제 중 오류가 발생했습니다.');
+            }
+          } else {
+            alert('권한 그룹 삭제 중 오류가 발생했습니다.');
+          }
+        } finally {
+          this.activeActionMenu = null;
+        }
       }
     }
   }
@@ -698,8 +762,8 @@ export default {
   padding: 12px 16px;
   font-family: 'Pretendard', sans-serif;
   font-weight: 400;
-  font-size: 8px;
-  line-height: 10px;
+  font-size: 12px;
+  line-height: 14px;
   color: #000000;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -716,6 +780,16 @@ export default {
 
 .action-item.delete {
   color: #FF4444;
+}
+
+.action-item.delete.disabled {
+  color: #CCCCCC;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.action-item.delete.disabled:hover {
+  background: transparent;
 }
 
 .create-permission-btn,
