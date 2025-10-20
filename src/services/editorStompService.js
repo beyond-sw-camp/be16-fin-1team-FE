@@ -124,24 +124,27 @@ export const sendStompMessage = ({ destination, body }) => {
  * STOMP 연결 해제
  */
 export const disconnectStomp = () => {
-  if (subscription) {
-    try {
-      subscription.unsubscribe();
-      subscription = null;
-    } catch (error) {
-      console.warn('Error unsubscribing:', error);
+  // 마지막 메시지가 전송될 수 있도록 짧은 지연 시간을 줌
+  setTimeout(() => {
+    if (subscription) {
+      try {
+        subscription.unsubscribe();
+        subscription = null;
+      } catch (error) {
+        console.warn('Error unsubscribing:', error);
+      }
     }
-  }
-  
-  if (client) {
-    try {
-      client.deactivate();
-      console.log('🔌 STOMP 연결 해제 완료');
-    } catch (error) {
-      console.error('Error disconnecting STOMP:', error);
+
+    if (client) {
+      try {
+        client.deactivate();
+        console.log('🔌 STOMP 연결 해제 완료');
+      } catch (error) {
+        console.error('Error disconnecting STOMP:', error);
+      }
+      client = null;
     }
-    client = null;
-  }
+  }, 100);
 };
 
 /**

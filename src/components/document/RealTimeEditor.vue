@@ -90,12 +90,17 @@ import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from 'prosemirror-state';
+import { DOMSerializer } from 'prosemirror-model';
+import { Decoration, DecorationSet } from 'prosemirror-view';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import { connectStomp, sendStompMessage, disconnectStomp } from '../../services/editorStompService';
 
-function randomUUID() {
-  return 'line-' + Math.random().toString(36).substring(2, 11);
+function generateUniqueId(userId) {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 9);
+  // 사용자 ID, 타임스탬프, 랜덤 문자열을 조합하여 고유성을 크게 높임
+  return `line-${userId}-${timestamp}-${randomPart}`;
 }
 
 const UniqueIdExtension = Extension.create({
@@ -165,7 +170,7 @@ const UniqueIdExtension = Extension.create({
               if (id === null || id === undefined) {
                 tr.setNodeMarkup(pos, undefined, {
                   ...node.attrs,
-                  [this.options.attributeName]: randomUUID(),
+                  [this.options.attributeName]: generateUniqueId(user.name),
                 });
                 modified = true;
               }
@@ -181,7 +186,7 @@ const UniqueIdExtension = Extension.create({
               if (id && duplicateIds.has(id) && !rewrittenDuplicates.has(id)) {
                 tr.setNodeMarkup(pos, undefined, {
                   ...node.attrs,
-                  [this.options.attributeName]: randomUUID(),
+                  [this.options.attributeName]: generateUniqueId(user.name),
                 });
                 modified = true;
                 rewrittenDuplicates.add(id);
@@ -189,7 +194,7 @@ const UniqueIdExtension = Extension.create({
                 // ID가 없는 노드도 처리합니다.
                 tr.setNodeMarkup(pos, undefined, {
                   ...node.attrs,
-                  [this.options.attributeName]: randomUUID(),
+                  [this.options.attributeName]: generateUniqueId(user.name),
                 });
                 modified = true;
               }
@@ -203,6 +208,72 @@ const UniqueIdExtension = Extension.create({
       }),
     ];
   },
+});
+
+const LineLockingExtension = Extension.create({
+  name: 'lineLocking',
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('lineLocking'),
+        props: {
+          decorations(state) {
+            const decorations = [];
+            const lockedLinesValue = lockedLines.value; 
+            if (!lockedLinesValue) return DecorationSet.empty;
+            
+            state.doc.descendants((node, pos) => {
+              if (node.isBlock && node.attrs.id) {
+                const isLocked = lockedLinesValue.has(node.attrs.id);
+                if (isLocked) {
+                  const lockingUser = lockedLinesValue.get(node.attrs.id);
+                  if (lockingUser !== user.name) {
+                    decorations.push(
+                      Decoration.node(pos, pos + node.nodeSize, {
+                        class: 'locked-line',
+                      })
+                    );
+                  }
+                }
+              }
+            });
+            return DecorationSet.create(state.doc, decorations);
+          },
+        },
+        filterTransaction: (transaction, state) => {
+          // 원격 업데이트는 항상 허용
+          if (isUpdatingFromRemote.value) {
+            return true;
+          }
+
+          if (!transaction.docChanged) {
+            return true;
+          }
+
+          let isAllowed = true;
+          const lockedLinesValue = lockedLines.value;
+
+          transaction.steps.forEach(step => {
+            step.getMap().forEach((oldStart, oldEnd) => {
+              state.doc.nodesBetween(oldStart, oldEnd, (node, pos) => {
+                if (node.isBlock && node.attrs.id) {
+                  if (lockedLinesValue.has(node.attrs.id)) {
+                    const lockingUser = lockedLinesValue.get(node.attrs.id);
+                    if (lockingUser !== user.name) {
+                      isAllowed = false;
+                    }
+                  }
+                }
+              });
+            });
+          });
+
+          return isAllowed;
+        }
+      })
+    ];
+  }
 });
 
 // Props 정의
@@ -229,8 +300,9 @@ const remoteCursorsMap = ref({}); // 다른 사용자 커서 정보 객체
 const lastCursorUpdate = ref(0); // 커서 업데이트 throttle용
 const previousNodesById = ref(new Map()); // "이전 상태"를 저장
 const changesQueue = ref([]);
-const typingTimer = ref(null);
-const batchSendInterval = ref(null);
+const typingTimer = ref(null); // 타이핑 감지 타이머
+const locallyLockedIds = ref(new Set()); // 현재 내가 잠근 라인 ID 목록
+const lockedLines = ref(new Map()); // 잠긴 라인 목록 {lineId: userId}
 
 const toggleBold = ref(null);
 const toggleHeading = ref(null);
@@ -443,6 +515,7 @@ onMounted(() => {
         types: ['heading', 'paragraph'],
         defaultAlignment: 'left',
       }),
+      LineLockingExtension,
     ],
     content: props.initialContent || '<p></p>', // 초기 콘텐츠가 비어있을 경우를 대비
     editorProps: {
@@ -453,6 +526,25 @@ onMounted(() => {
         const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
         if (!pos) { 
             return false;
+        }
+
+        // 드롭 대상이 잠긴 라인인지 확인
+        const resolvedPos = view.state.doc.resolve(pos.pos);
+        let targetNode = null;
+        for (let i = resolvedPos.depth; i > 0; i--) {
+          const node = resolvedPos.node(i);
+          if (node.isBlock && node.attrs.id) {
+            targetNode = node;
+            break;
+          }
+        }
+
+        if (targetNode) {
+          const lockingUser = lockedLines.value.get(targetNode.attrs.id);
+          if (lockingUser && lockingUser !== user.name) {
+            // 다른 사용자가 잠근 라인이므로 드롭을 막습니다.
+            return true;
+          }
         }
 
         // 기존 ID를 제거하여 노드를 '새로운' 노드로 만듭니다.
@@ -487,7 +579,10 @@ onMounted(() => {
       // 에디터 생성 시, 초기 상태를 "이전 상태"로 저장
       editor.state.doc.descendants((node) => {
         if (node.isBlock && node.attrs.id) {
-          previousNodesById.value.set(node.attrs.id, node.toJSON());
+          previousNodesById.value.set(node.attrs.id, {
+            json: node.toJSON(),
+            node,
+          });
         }
       });
     },
@@ -496,31 +591,33 @@ onMounted(() => {
         return;
       }
 
+      const serializer = DOMSerializer.fromSchema(editor.state.schema);
+
       // 1. 현재 상태 수집
-      const currentNodes = [];
       const currentNodesById = new Map();
       editor.state.doc.descendants((node) => {
         if (node.isBlock && node.attrs.id) {
-          const nodeJSON = node.toJSON();
-          currentNodes.push(nodeJSON);
-          currentNodesById.set(node.attrs.id, nodeJSON);
+          currentNodesById.set(node.attrs.id, { 
+            json: node.toJSON(), 
+            node: node 
+          });
         }
       });
       
       // 2. "수정"된 라인 찾아 큐에 추가
-      for (const [id, nodeJSON] of previousNodesById.value.entries()) {
-        const currentNode = currentNodesById.get(id);
-        if (currentNode && JSON.stringify(currentNode) !== JSON.stringify(nodeJSON)) {
-          nextTick(() => {
-            const element = document.querySelector(`[data-id="${id}"]`);
-            if (element) {
-              const cleanedHtml = element.outerHTML.replace(/<br class="ProseMirror-trailingBreak">/g, '');
-              changesQueue.value.push({
-                type: 'UPDATE',
-                lineId: id,
-                content: cleanedHtml,
-              });
-            }
+      const allChanges = [];
+      for (const [id, prevNodeData] of previousNodesById.value.entries()) {
+        const currentNodeData = currentNodesById.get(id);
+        if (currentNodeData && JSON.stringify(currentNodeData.json) !== JSON.stringify(prevNodeData.json)) {
+          const domNode = serializer.serializeNode(currentNodeData.node);
+          const wrapper = document.createElement('div');
+          wrapper.appendChild(domNode);
+          const content = wrapper.innerHTML.replace(/<br class="ProseMirror-trailingBreak">/g, '');
+
+          allChanges.push({
+            type: 'UPDATE',
+            lineId: id,
+            content: content,
           });
         }
       }
@@ -531,7 +628,7 @@ onMounted(() => {
         const oldId = previousIds[i];
         if (!currentNodesById.has(oldId)) {
           const prevLineId = i > 0 ? previousIds[i - 1] : null;
-          changesQueue.value.push({
+          allChanges.push({
             type: 'DELETE',
             lineId: oldId,
             prevLineId: prevLineId,
@@ -540,24 +637,24 @@ onMounted(() => {
       }
 
       // 4. "생성"된 라인 찾아 큐에 추가
+      const currentNodes = Array.from(currentNodesById.values());
       for (let i = 0; i < currentNodes.length; i++) {
-        const currentNode = currentNodes[i];
-        const id = currentNode.attrs.id;
+        const currentNodeData = currentNodes[i];
+        const id = currentNodeData.json.attrs.id;
 
         if (!previousNodesById.value.has(id)) {
-          const prevLineId = i > 0 ? currentNodes[i-1].attrs.id : null;
+          const prevLineId = i > 0 ? currentNodes[i-1].json.attrs.id : null;
           
-          nextTick(() => {
-            const element = document.querySelector(`[data-id="${id}"]`);
-            if (element) {
-              const cleanedHtml = element.outerHTML.replace(/<br class="ProseMirror-trailingBreak">/g, '');
-              changesQueue.value.push({
-                type: 'CREATE',
-                lineId: id,
-                prevLineId: prevLineId,
-                content: cleanedHtml,
-              });
-            }
+          const domNode = serializer.serializeNode(currentNodeData.node);
+          const wrapper = document.createElement('div');
+          wrapper.appendChild(domNode);
+          const content = wrapper.innerHTML.replace(/<br class="ProseMirror-trailingBreak">/g, '');
+
+          allChanges.push({
+            type: 'CREATE',
+            lineId: id,
+            prevLineId: prevLineId,
+            content: content,
           });
         }
       }
@@ -565,45 +662,134 @@ onMounted(() => {
       // 5. 현재 상태를 "이전 상태"로 갱신
       previousNodesById.value = currentNodesById;
 
-      // 6. 타이머 로직으로 묶어서 전송
-      if (typingTimer.value) {
-        clearTimeout(typingTimer.value);
-      }
+      // 변경사항을 '생성'과 '그 외'로 분리
+      const immediateChanges = [];
+      const debouncedChanges = [];
 
-      if (!batchSendInterval.value) {
-        batchSendInterval.value = setInterval(sendBatchChanges, 500);
-      }
-
-      typingTimer.value = setTimeout(() => {
-        if (batchSendInterval.value) {
-          clearInterval(batchSendInterval.value);
-          batchSendInterval.value = null;
+      allChanges.forEach(change => {
+        if (change.type === 'CREATE') {
+          immediateChanges.push(change);
+        } else {
+          debouncedChanges.push(change);
         }
-        sendBatchChanges(); // Send any remaining changes
-      }, 700);
+      });
+
+      // '생성' 변경사항은 즉시 전송
+      if (immediateChanges.length > 0) {
+        const payload = {
+          messageType: 'EDITOR_BATCH_MESSAGE',
+          documentId: props.documentId,
+          senderId: user.name,
+          changesList: immediateChanges,
+          content: ''
+        };
+        sendStompMessage({
+          destination: '/publish/editor/batch-update',
+          body: payload,
+        });
+      }
+
+      // '수정', '삭제' 변경사항은 지능적으로 디바운싱하여 전송
+      if (debouncedChanges.length > 0) {
+        // 큐에 추가하기 전, 같은 lineId를 가진 기존 UPDATE 작업을 제거하고 최신으로 덮어씀
+        debouncedChanges.forEach(change => {
+          const index = changesQueue.value.findIndex(c => c.lineId === change.lineId);
+          if (index !== -1) {
+            changesQueue.value.splice(index, 1);
+          }
+          changesQueue.value.push(change);
+        });
+
+        if (typingTimer.value) {
+          clearTimeout(typingTimer.value);
+        }
+        typingTimer.value = setTimeout(() => {
+          if (changesQueue.value.length > 0) {
+            sendBatchChanges();
+          }
+        }, 250); // 충돌 방지를 위해 지연시간을 250ms로 약간 늘립니다.
+      }
     },
     onSelectionUpdate: ({ editor }) => {
       if (isUpdatingFromRemote.value || connectionStatus.value !== 'connected') return;
+
+      // --- 잠금 로직 (지연 시간 없음) ---
+      const { from, to } = editor.state.selection;
       
+      // 1. 현재 선택된 모든 라인의 ID를 수집
+      const currentLineIds = new Set();
+      editor.state.doc.nodesBetween(from, to, (node) => {
+        if (node.isBlock && node.attrs.id) {
+          currentLineIds.add(node.attrs.id);
+        }
+      });
+      
+      // 2. 변경사항(잠금/해제할 라인) 식별
+      const oldLockedIds = locallyLockedIds.value;
+      const linesToUnlock = [...oldLockedIds].filter(id => !currentLineIds.has(id));
+      const linesToLock = [...currentLineIds].filter(id => !oldLockedIds.has(id));
+
+      // 3. 식별된 라인들에 대해 잠금 해제 메시지 전송
+      if (linesToUnlock.length > 0) {
+        linesToUnlock.forEach(lineId => {
+          // Optimistically unlock for the current user
+          if (lockedLines.value.get(lineId) === user.name) {
+            lockedLines.value.delete(lineId);
+          }
+          sendStompMessage({
+            destination: '/publish/editor/lock',
+            body: {
+              messageType: 'UNLOCK_LINE',
+              documentId: props.documentId,
+              senderId: user.name,
+              content: JSON.stringify({ lineId: lineId }),
+            },
+          });
+        });
+      }
+
+      // 4. 식별된 라인들에 대해 잠금 메시지 전송
+      if (linesToLock.length > 0) {
+        linesToLock.forEach(lineId => {
+          // Lock locally only if the line is not already locked by someone else.
+          if (!lockedLines.value.has(lineId)) {
+            lockedLines.value.set(lineId, user.name);
+            sendStompMessage({
+              destination: '/publish/editor/lock',
+              body: {
+                messageType: 'LOCK_LINE',
+                documentId: props.documentId,
+                senderId: user.name,
+                content: JSON.stringify({ lineId: lineId }),
+              },
+            });
+          }
+        });
+      }
+      
+      // 5. 로컬 잠금 상태 업데이트 및 UI 갱신
+      if (linesToLock.length > 0 || linesToUnlock.length > 0) {
+        locallyLockedIds.value = currentLineIds;
+        lockedLines.value = new Map(lockedLines.value); // reactivity
+        if (editor.value) {
+          editor.value.view.dispatch(editor.value.state.tr); // force decoration update
+        }
+      }
+
+      // --- 커서 위치 전송 로직 (100ms 지연 적용) ---
       const now = Date.now();
-      if (now - lastCursorUpdate.value < 100) return; // 100ms throttle
+      if (now - lastCursorUpdate.value < 100) return;
       lastCursorUpdate.value = now;
 
-      // 1. 현재 커서 및 선택 영역 정보 계산
-      const { from, to } = editor.state.selection;
+      // 현재 커서 및 선택 영역 정보 계산
       const selections = [];
-
-      // 사용자가 텍스트를 드래그하여 선택한 경우 (from과 to가 다름)
-      if (from !== to) {
+      if (from !== to) { // 드래그 선택
         editor.state.doc.nodesBetween(from, to, (node, pos) => {
           if (node.isBlock && node.attrs.id) {
             const nodeStart = pos;
             const nodeEnd = pos + node.nodeSize;
-
-            // 선택 영역이 현재 노드와 겹치는 부분 계산
             const selectionStartInNode = Math.max(from, nodeStart);
             const selectionEndInNode = Math.min(to, nodeEnd);
-
             selections.push({
               lineId: node.attrs.id,
               startOffset: selectionStartInNode - nodeStart,
@@ -611,7 +797,7 @@ onMounted(() => {
             });
           }
         });
-      } else { // 단순 커서인 경우 (from과 to가 같음)
+      } else { // 단순 커서
         const resolvedPos = editor.state.doc.resolve(from);
         for (let i = resolvedPos.depth; i > 0; i--) {
           const node = resolvedPos.node(i);
@@ -628,7 +814,7 @@ onMounted(() => {
         }
       }
 
-      // 2. 계산된 정보로 메시지 전송
+      // 커서 정보 메시지 전송
       if (selections.length > 0) {
         sendStompMessage({
           destination: '/publish/editor/cursor',
@@ -663,9 +849,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (typingTimer.value) {
     clearTimeout(typingTimer.value);
-  }
-  if (batchSendInterval.value) {
-    clearInterval(batchSendInterval.value);
   }
   sendBatchChanges(); // 컴포넌트 파괴 전 마지막으로 변경사항 전송
   disconnectStomp();
@@ -768,12 +951,7 @@ const handleIncomingMessage = (message) => {
     applyDelete(message);
   } else if (message.messageType === 'CURSOR_UPDATE') {
     const cursorData = JSON.parse(message.content);
-    console.log('Received cursor update:', { message, cursorData });
     
-    if (!cursorData.selections || cursorData.selections.length === 0) {
-      return;
-    }
-
     // 1. 수신된 선택 정보(selections)의 첫 번째 항목을 사용하여 커서 위치를 계산합니다.
     // 현재는 선택 영역의 시작점에 커서를 표시합니다.
     const firstSelection = cursorData.selections[0];
@@ -797,6 +975,31 @@ const handleIncomingMessage = (message) => {
           selections: cursorData.selections,
         }
       };
+    }
+  } else if (message.messageType === 'LOCK_LINE') {
+    const lockData = JSON.parse(message.content);
+    const { lineId } = lockData;
+    const { senderId } = message;
+
+    // A lock request is only granted if the line is not already locked.
+    // This creates a "first come, first served" system based on a combination
+    // of optimistic local locking and message arrival time.
+    if (!lockedLines.value.has(lineId)) {
+      lockedLines.value.set(lineId, senderId);
+      lockedLines.value = new Map(lockedLines.value);
+      if (editor.value) {
+        editor.value.view.dispatch(editor.value.state.tr);
+      }
+    }
+  } else if (message.messageType === 'UNLOCK_LINE') {
+    const lockData = JSON.parse(message.content);
+    if (lockedLines.value.get(lockData.lineId) === message.senderId) {
+      lockedLines.value.delete(lockData.lineId);
+      lockedLines.value = new Map(lockedLines.value);
+      // ProseMirror의 데코레이션을 강제로 다시 그리도록 뷰를 업데이트
+      if (editor.value) {
+        editor.value.view.dispatch(editor.value.state.tr);
+      }
     }
   }
 
@@ -880,5 +1083,14 @@ const handleIncomingMessage = (message) => {
   opacity: 0.3;
   pointer-events: none;
   z-index: 5;
+}
+
+.locked-line {
+  background-color: rgba(255, 0, 0, 0.1);
+  cursor: not-allowed;
+}
+
+.ProseMirror .locked-line {
+  pointer-events: none;
 }
 </style>
