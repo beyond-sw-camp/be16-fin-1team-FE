@@ -1,0 +1,6 @@
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- 사용자 머리 (원형) -->
+<circle cx="10" cy="4" r="3.5" stroke="#FDF5EB" stroke-width="1.5" fill="none"/>
+<!-- 사용자 몸 (어깨와 몸체) - 완전한 형태 -->
+<path d="M4 14c0-2.5 2.7-4.5 6-4.5s6 2 6 4.5v4H4v-4z" stroke="#FDF5EB" stroke-width="1.5" fill="none"/>
+</svg>
