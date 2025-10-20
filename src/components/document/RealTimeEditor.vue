@@ -51,9 +51,12 @@
       </v-toolbar>
 
       <v-card-text>
-        <div class="editor-container" ref="editorContainerRef">
+        <div 
+          class="editor-container" 
+          ref="editorContainerRef"
+        >
           <editor-content :editor="editor" />
-          <!-- 다른 사용자들의 커서를 렌더링하는 부분 -->
+          
           <div
             v-for="cursor in remoteCursors"
             :key="cursor.senderId"
@@ -350,6 +353,44 @@ onMounted(() => {
       }),
     ],
     content: props.initialContent || '<p></p>', // 초기 콘텐츠가 비어있을 경우를 대비
+    editorProps: {
+      handleDOMEvents: {
+      },
+      handleDrop: (view, event, slice, moved) => {
+        // 드롭 위치 계산
+        const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        if (!pos) { 
+            return false;
+        }
+
+        // 기존 ID를 제거하여 노드를 '새로운' 노드로 만듭니다.
+        // 이렇게 하면 UniqueIdExtension이 새로운 ID를 할당합니다.
+        const nodesWithoutIds = [];
+        slice.content.forEach(node => {
+            const newNodeAttrs = { ...node.attrs };
+            delete newNodeAttrs.id; 
+            
+            const newNode = node.type.create(newNodeAttrs, node.content, node.marks);
+            nodesWithoutIds.push(newNode);
+        });
+
+        const fragment = view.state.schema.node("doc", null, nodesWithoutIds).content;
+        const newSlice = new slice.constructor(fragment, slice.openStart, slice.openEnd);
+
+        // 트랜잭션 생성
+        let tr = view.state.tr;
+        if (moved) {
+            tr.deleteSelection();
+        }
+        
+        const insertPos = tr.mapping.map(pos.pos);
+        tr.replace(insertPos, insertPos, newSlice);
+        view.dispatch(tr.scrollIntoView());
+
+        // 우리가 드롭 이벤트를 처리했음을 알립니다.
+        return true;
+      }
+    },
     onCreate: ({ editor }) => {
       // 에디터 생성 시, 초기 상태를 "이전 상태"로 저장
       editor.state.doc.descendants((node) => {
@@ -672,8 +713,7 @@ const handleIncomingMessage = (message) => {
 }
 
 .editor-container {
-  position: relative; /* 원격 커서 위치의 기준점 */
-  min-height: 400px;
+  position: relative;
   padding: 1rem;
 }
 
