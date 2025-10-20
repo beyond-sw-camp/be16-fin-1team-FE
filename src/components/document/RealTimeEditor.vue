@@ -362,20 +362,25 @@ const remoteSelectionHighlights = computed(() => {
     const userColor = remoteUser.user.color;
 
     remoteUser.selections.forEach((selection, index) => {
-      let nodePos = -1;
+      let nodeWithPos = null;
       editor.value.state.doc.descendants((node, pos) => {
-        if (nodePos !== -1) return false;
+        if (nodeWithPos) return false;
         if (node.isBlock && node.attrs.id === selection.lineId) {
-          nodePos = pos;
+          nodeWithPos = { node, pos };
         }
       });
 
-      if (nodePos === -1) return;
+      if (!nodeWithPos) return;
 
-      const from = nodePos + selection.startOffset;
-      const to = nodePos + selection.endOffset;
+      const { node: selectedNode, pos: nodePos } = nodeWithPos;
+      
+      const contentStartPos = nodePos + 1;
+      const contentEndPos = contentStartPos + selectedNode.content.size;
 
-      if (from === to) return;
+      const from = Math.max(nodePos + selection.startOffset, contentStartPos);
+      const to = Math.min(nodePos + selection.endOffset, contentEndPos);
+
+      if (from >= to) return;
 
       try {
         const fromDom = editor.value.view.domAtPos(from);
