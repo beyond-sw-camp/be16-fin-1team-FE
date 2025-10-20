@@ -87,24 +87,32 @@
 
 <script>
 import axios from 'axios';
+import { useWorkspaceStore } from '@/stores/workspace';
 
 export default {
   name: "SideBarComponent",
   data() {
     return {
-      workspaces: [],
-      selectedWorkspace: null,
       showWorkspaceDropdown: false
     };
   },
+  setup() {
+    const workspaceStore = useWorkspaceStore();
+    return { workspaceStore };
+  },
   computed: {
+    workspaces() {
+      return this.workspaceStore.getWorkspaces;
+    },
+    selectedWorkspace() {
+      return this.workspaceStore.getCurrentWorkspace;
+    },
     currentRoute() {
       return this.$route.path;
     }
   },
   async mounted() {
     await this.loadWorkspaces();
-    this.loadSelectedWorkspace();
   },
   methods: {
     async loadWorkspaces() {
@@ -118,10 +126,18 @@ export default {
         });
         
         if (response.data.statusCode === 200) {
-          this.workspaces = response.data.result;
-          // 첫 번째 워크스페이스를 기본 선택으로 설정
-          if (this.workspaces.length > 0 && !this.selectedWorkspace) {
-            this.selectWorkspace(this.workspaces[0]);
+          this.workspaceStore.setWorkspaces(response.data.result);
+          // localStorage에 저장된 워크스페이스가 있으면 그것을 사용, 없으면 첫 번째 워크스페이스 선택
+          const savedWorkspaceId = localStorage.getItem('selectedWorkspaceId');
+          if (savedWorkspaceId) {
+            const savedWorkspace = response.data.result.find(w => w.workspaceId === savedWorkspaceId);
+            if (savedWorkspace) {
+              this.workspaceStore.setCurrentWorkspace(savedWorkspace);
+            } else if (response.data.result.length > 0) {
+              this.selectWorkspace(response.data.result[0]);
+            }
+          } else if (response.data.result.length > 0) {
+            this.selectWorkspace(response.data.result[0]);
           }
         }
       } catch (error) {
@@ -130,27 +146,10 @@ export default {
     },
     
     selectWorkspace(workspace) {
-      this.selectedWorkspace = workspace;
+      this.workspaceStore.setCurrentWorkspace(workspace);
       this.showWorkspaceDropdown = false;
-      // 선택된 워크스페이스 정보를 localStorage에 저장
-      localStorage.setItem('selectedWorkspaceId', workspace.workspaceId);
-      localStorage.setItem('selectedWorkspaceName', workspace.workspaceName);
-      localStorage.setItem('selectedWorkspaceRole', workspace.role);
     },
     
-    loadSelectedWorkspace() {
-      const workspaceId = localStorage.getItem('selectedWorkspaceId');
-      const workspaceName = localStorage.getItem('selectedWorkspaceName');
-      const workspaceRole = localStorage.getItem('selectedWorkspaceRole');
-      
-      if (workspaceId && workspaceName) {
-        this.selectedWorkspace = {
-          workspaceId,
-          workspaceName,
-          role: workspaceRole
-        };
-      }
-    },
     
     toggleWorkspaceDropdown() {
       this.showWorkspaceDropdown = !this.showWorkspaceDropdown;

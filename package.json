@@ -11,12 +11,13 @@
   "dependencies": {
     "@mdi/font": "^7.4.47",
     "axios": "^1.12.2",
+    "core-js": "^3.8.3",
+    "jwt-decode": "^4.0.0",
+    "pinia": "^3.0.3",
+    "sockjs-client": "^1.6.1",
     "vue": "^3.5.21",
     "vue-router": "^4.5.1",
     "vuetify": "^3.10.3",
-    "core-js": "^3.8.3",
-    "jwt-decode": "^4.0.0",
-    "sockjs-client": "^1.6.1",
     "webstomp-client": "^1.2.6"
   },
   "devDependencies": {

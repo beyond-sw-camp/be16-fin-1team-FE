@@ -23,9 +23,10 @@
         <!-- 권한 그룹 목록 -->
         <div class="permission-groups-container">
           <!-- 권한 생성 버튼 -->
-          <div class="create-permission-btn" @click="createPermissionGroup">
-            <div class="btn-icon">+</div>
-            <span>권한 생성</span>
+          <div class="button-container">
+            <div class="create-permission-btn" @click="createPermissionGroup">
+              <span>권한 생성</span>
+            </div>
           </div>
 
           <!-- 권한 그룹 헤더 -->
@@ -41,6 +42,13 @@
           <!-- API에서 가져온 권한 그룹들 -->
           <div v-for="group in permissionGroups" :key="group.accessGroupId" class="permission-group-card">
             <div class="group-header">
+              <div class="group-icon">
+                <img 
+                  :src="group.accessGroupName === '관리자 그룹' ? '/src/assets/icons/sidebar/admin.svg' : '/src/assets/icons/user/user_default_icon.svg'" 
+                  :alt="group.accessGroupName"
+                  class="group-icon-img"
+                />
+              </div>
               <div class="group-info">
                 <h3 class="group-title">{{ group.accessGroupName }}</h3>
               </div>
@@ -63,9 +71,10 @@
           </div>
 
           <!-- 더보기 버튼 -->
-          <div class="more-permissions-btn" @click="loadMorePermissions">
-            <div class="btn-icon">+</div>
-            <span>더보기</span>
+          <div class="button-container">
+            <div class="more-permissions-btn" @click="loadMorePermissions">
+              <span>더보기</span>
+            </div>
           </div>
         </div>
       </div>
@@ -187,6 +196,7 @@
 
 <script>
 import axios from 'axios';
+import { useWorkspaceStore } from '@/stores/workspace';
 
 export default {
   name: "AdminDashboard",
@@ -200,9 +210,28 @@ export default {
       totalPages: 1
     };
   },
+  setup() {
+    const workspaceStore = useWorkspaceStore();
+    return { workspaceStore };
+  },
   async mounted() {
     if (this.activeTab === 'permission') {
       await this.loadPermissionGroups();
+    }
+  },
+  
+  watch: {
+    'workspaceStore.currentWorkspace': {
+      handler(newWorkspace, oldWorkspace) {
+        if (newWorkspace && newWorkspace.workspaceId !== oldWorkspace?.workspaceId) {
+          console.log('워크스페이스 변경 감지:', newWorkspace.workspaceId);
+          if (this.activeTab === 'permission') {
+            this.currentPage = 0;
+            this.loadPermissionGroups();
+          }
+        }
+      },
+      deep: true
     }
   },
   methods: {
@@ -226,7 +255,7 @@ export default {
         this.loading = true;
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId') || 'user123'; // 실제 사용자 ID로 교체 필요
-        const workspaceId = localStorage.getItem('selectedWorkspaceId') || 'ws_1';
+        const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_1';
         
         const response = await axios.get(
           `http://localhost:8080/workspace-service/access/group-list/${workspaceId}`,
@@ -505,6 +534,12 @@ export default {
   margin: 0 auto;
 }
 
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
+}
+
 .permission-groups-header {
   display: flex;
   justify-content: space-between;
@@ -529,6 +564,7 @@ export default {
 .header-right {
   flex: 1;
   text-align: right;
+  padding-right: 60px;
 }
 
 .header-title {
@@ -562,6 +598,22 @@ export default {
   align-items: center;
   padding: 16px 20px;
   cursor: pointer;
+}
+
+.group-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.group-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: brightness(0);
 }
 
 .group-info {
@@ -671,7 +723,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 20px;
+  padding: 8px 24px;
   margin: 8px 0;
   background: #FFE364;
   border-radius: 8px;
@@ -683,6 +735,7 @@ export default {
   line-height: 17px;
   color: #1C0F0F;
   text-align: center;
+  width: 200px;
 }
 
 .create-permission-btn:hover,
