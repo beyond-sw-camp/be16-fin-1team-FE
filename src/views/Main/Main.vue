@@ -40,11 +40,23 @@
               채팅 관련
             </v-card-text>
             <v-card-actions>
-              <v-btn variant="flat" color="primary" :to="'/chat/page'">채팅 화면</v-btn>
+              <v-btn variant="flat" color="primary" :to="'/chat/main'">채팅 메인</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>
-
+        
+        <!-- ChatBot -->
+        <v-col cols="12" md="4">
+          <v-card>
+            <v-card-title>ChatBot</v-card-title>
+            <v-card-text>
+              챗봇 관련
+            </v-card-text>
+            <v-card-actions>
+              <v-btn variant="flat" color="primary" :to="'/chatbot/page'">챗봇 화면</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-col>
 
 
 
