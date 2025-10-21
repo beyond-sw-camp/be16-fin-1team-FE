@@ -64,8 +64,8 @@
         <div class="dropdown-arrow">▼</div>
       </div>
       
-      <!-- 관리자 페이지 -->
-      <div class="nav-item admin-nav-item" :class="{ active: currentRoute === '/admin' }" @click="navigateToAdmin">
+      <!-- 관리자 페이지 (관리자 권한이 있을 때만 표시) -->
+      <div v-if="isAdmin" class="nav-item admin-nav-item" :class="{ active: currentRoute === '/admin' }" @click="navigateToAdmin">
         <img src="@/assets/icons/sidebar/admin.svg" alt="관리자 페이지" class="nav-icon" />
         <div class="nav-text">관리자 페이지</div>
       </div>
@@ -113,6 +113,11 @@ export default {
     },
     currentRoute() {
       return this.$route.path;
+    },
+    isAdmin() {
+      // localStorage에서 직접 role 확인 (더 효율적)
+      const role = localStorage.getItem('selectedWorkspaceRole');
+      return role === 'ADMIN';
     }
   },
   async mounted() {
