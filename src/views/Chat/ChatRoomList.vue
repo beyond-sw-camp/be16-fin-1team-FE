@@ -17,6 +17,8 @@
                                         v-for="chat in roomsWithSummary"
                                         :key="chat.roomId"
                                         @click="selectRoom(chat)"
+                                        @mouseenter="hoveredRoomId = chat.roomId"
+                                        @mouseleave="hoveredRoomId = null"
                                         :class="['room-row', { selected: selectedRoomId === chat.roomId }]"
                                     >
                                         <td class="col-avatar">
@@ -50,14 +52,13 @@
                                             <div class="last-time">{{ formatChatTime(chat.lastSendTime) }}</div>
                                             <div
                                                 v-if="(chat.unreadCount ?? 0) > 0"
-                                                class="badge-unread"
+                                                :class="['badge-unread', { preview: hoveredRoomId === chat.roomId }]"
+                                                @click.stop="hoveredRoomId === chat.roomId && previewSummary(chat)"
                                             >
-                                                {{ chat.unreadCount ?? 0 }}
+                                                {{ hoveredRoomId === chat.roomId ? '요약 미리보기' : (chat.unreadCount ?? 0) }}
                                             </div>
                                         </td>
-                                        <td class="col-actions">
-                                            <v-btn size="x-small" variant="text" @click.stop="previewSummary(chat)">요약 미리보기</v-btn>
-                                        </td>
+                                        
                                     </tr>
                                 </tbody>
                             </v-table>
@@ -116,6 +117,7 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
                 showCreateRoomModal: false,
                 newRoomTitle: "",
                 userDefault,
+                hoveredRoomId: null,
 
             }
         },
@@ -234,5 +236,12 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
     color: #fff; /* 흰 글씨 */
     font-size: 11px;
     font-weight: 700;
+}
+.badge-unread.preview{
+    height: 24px;
+    min-width: 88px;
+    padding: 0 10px;
+    border-radius: 8px;
+    cursor: pointer;
 }
 </style>
