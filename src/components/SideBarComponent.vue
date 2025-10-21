@@ -115,9 +115,9 @@ export default {
       return this.$route.path;
     },
     isAdmin() {
-      // localStorage에서 직접 role 확인 (더 효율적)
-      const role = localStorage.getItem('selectedWorkspaceRole');
-      return role === 'ADMIN';
+      // 스토어의 현재 워크스페이스에서 role 확인 (반응형)
+      const currentWorkspace = this.workspaceStore.getCurrentWorkspace;
+      return currentWorkspace && currentWorkspace.role === 'ADMIN';
     }
   },
   async mounted() {
@@ -189,9 +189,14 @@ export default {
       this.workspaceStore.setCurrentWorkspace(workspace);
       this.showWorkspaceDropdown = false;
       
-      // 다른 워크스페이스로 변경될 때만 홈으로 라우팅
+      // 다른 워크스페이스로 변경될 때만 라우팅
       if (isDifferentWorkspace) {
-        this.$router.push('/');
+        // 관리자 권한이 있으면 관리자 페이지로, 없으면 홈으로
+        if (workspace.role === 'ADMIN') {
+          this.$router.push('/admin');
+        } else {
+          this.$router.push('/');
+        }
       }
     },
     
