@@ -32,6 +32,12 @@ export const useWorkspaceStore = defineStore('workspace', {
       if (previousWorkspace?.workspaceId !== workspace?.workspaceId) {
         this.emitWorkspaceChange(workspace, previousWorkspace);
       }
+      
+      // 워크스페이스명이 변경된 경우에도 이벤트 발생
+      if (previousWorkspace?.workspaceId === workspace?.workspaceId && 
+          previousWorkspace?.workspaceName !== workspace?.workspaceName) {
+        this.emitWorkspaceChange(workspace, previousWorkspace);
+      }
     },
     
     // 워크스페이스 변경 이벤트 발생

@@ -165,9 +165,12 @@
                 <label>템플릿 종류</label>
                 <div class="detail-value">{{ workspaceDetail.workspaceTemplates || 'Enterprise' }}</div>
               </div>
-              <div class="detail-item">
+              <div class="detail-item workspace-name-item">
                 <label>워크스페이스명</label>
-                <div class="detail-value">{{ workspaceDetail.workspaceName || 'Orbit' }}</div>
+                <div class="detail-value">
+                  <span class="workspace-name-text">{{ workspaceDetail.workspaceName || 'Orbit' }}</span>
+                  <button class="change-workspace-btn" @click="changeWorkspaceName">변경</button>
+                </div>
               </div>
               <div class="detail-item">
                 <label>생성시간</label>
@@ -214,6 +217,40 @@
         </div>
       </div>
     </div>
+    
+    <!-- 워크스페이스명 변경 모달 -->
+    <div v-if="showWorkspaceNameModal" class="modal-overlay" @click="closeWorkspaceNameModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">워크스페이스 이름 변경</h3>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">새로운 워크스페이스 이름을 입력하세요</label>
+            <input 
+              v-model="newWorkspaceName" 
+              type="text" 
+              class="form-input" 
+              placeholder="워크스페이스 이름을 입력하세요"
+              @keyup.enter="confirmWorkspaceNameChange"
+            />
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="modal-btn cancel-btn" @click="closeWorkspaceNameModal">취소</button>
+          <button 
+            class="modal-btn confirm-btn" 
+                   :class="{ 'disabled': !newWorkspaceName.trim() }"
+                   :disabled="!newWorkspaceName.trim()"
+                   @click="confirmWorkspaceNameChange"
+            >
+              확인
+            </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -255,7 +292,9 @@ export default {
         storageCount: null,
         taskCount: null
       },
-      loading: false
+      loading: false,
+      showWorkspaceNameModal: false,
+      newWorkspaceName: ''
     };
   },
   setup() {
@@ -528,6 +567,75 @@ export default {
       // 워크스페이스 관리 탭이 활성화되어 있으면 워크스페이스 상세 정보 새로고침
       if (this.activeTab === 'workspace') {
         this.loadWorkspaceDetail();
+      }
+    },
+    
+    // 워크스페이스명 변경 버튼 클릭
+    changeWorkspaceName() {
+      this.newWorkspaceName = this.workspaceDetail.workspaceName || '';
+      this.showWorkspaceNameModal = true;
+    },
+    
+    // 모달 닫기
+    closeWorkspaceNameModal() {
+      this.showWorkspaceNameModal = false;
+      this.newWorkspaceName = '';
+    },
+    
+    // 워크스페이스명 변경 확인
+    confirmWorkspaceNameChange() {
+      if (!this.newWorkspaceName.trim()) return;
+      
+      if (this.newWorkspaceName.trim() === this.workspaceDetail.workspaceName) {
+        this.closeWorkspaceNameModal();
+        return;
+      }
+      
+      this.updateWorkspaceName(this.newWorkspaceName.trim());
+    },
+    
+    // 워크스페이스명 업데이트 API 호출
+    async updateWorkspaceName(newName) {
+      try {
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId') || 'user123';
+        const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_2';
+        
+        const response = await axios.patch(
+          `http://localhost:8080/workspace-service/workspace/${workspaceId}/name`,
+          { workspaceName: newName },
+          {
+            headers: {
+              'X-User-Id': userId,
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.data.statusCode === 200) {
+          alert('워크스페이스명이 성공적으로 변경되었습니다.');
+          
+          // 워크스페이스 스토어 업데이트
+          const currentWorkspace = this.workspaceStore.getCurrentWorkspace;
+          if (currentWorkspace) {
+            const updatedWorkspace = {
+              ...currentWorkspace,
+              workspaceName: newName
+            };
+            this.workspaceStore.setCurrentWorkspace(updatedWorkspace);
+          }
+          
+          // 모달 닫기
+          this.closeWorkspaceNameModal();
+          // 워크스페이스 상세 정보 새로고침
+          await this.loadWorkspaceDetail();
+        } else {
+          alert('워크스페이스명 변경에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('워크스페이스명 변경 실패:', error);
+        alert('워크스페이스명 변경 중 오류가 발생했습니다.');
       }
     }
   }
@@ -990,6 +1098,10 @@ export default {
   min-width: 150px;
 }
 
+.workspace-name-item {
+  flex: 2; /* 워크스페이스명 박스를 2배로 늘림 */
+}
+
 .detail-item label {
   display: block;
   font-family: 'Pretendard', sans-serif;
@@ -998,6 +1110,7 @@ export default {
   line-height: 21px;
   color: #666666;
   margin-bottom: 8px;
+  text-align: left;
 }
 
 .detail-value {
@@ -1011,6 +1124,47 @@ export default {
   line-height: 19px;
   color: #1C0F0F;
   min-height: 19px;
+}
+
+.workspace-name-item .detail-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+
+.workspace-name-text {
+  flex: 1;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  color: #1C0F0F;
+}
+
+.change-workspace-btn {
+  padding: 4px 8px;
+  background: #FFE364;
+  border: none;
+  border-radius: 3px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 13px;
+  color: #1C0F0F;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.change-workspace-btn:hover {
+  background: #FFDD44;
+  transform: translateY(-1px);
+}
+
+.change-workspace-btn:active {
+  transform: translateY(0);
 }
 
 
@@ -1155,6 +1309,22 @@ export default {
   .workspace-info-card {
     padding: 20px;
   }
+  
+  .workspace-name-item .detail-value {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .workspace-name-text {
+    text-align: center;
+  }
+  
+  .change-workspace-btn {
+    width: 100%;
+    text-align: center;
+    margin-left: 0;
+  }
 }
 
 /* 로딩 스타일 */
@@ -1189,5 +1359,161 @@ export default {
   line-height: 17px;
   color: #666666;
   margin: 0;
+}
+
+/* 워크스페이스명 변경 모달 스타일 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  padding: 24px 24px 0 24px;
+  border-bottom: 1px solid #E9ECEF;
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 24px;
+  color: #1C0F0F;
+  margin: 0 0 20px 0;
+}
+
+.modal-body {
+  padding: 0 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  color: #1C0F0F;
+  margin-bottom: 8px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #DDDDDD;
+  border-radius: 4px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  line-height: 19px;
+  color: #1C0F0F;
+  background: #FFFFFF;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #FFDD44;
+  box-shadow: 0 0 0 2px rgba(255, 221, 68, 0.2);
+}
+
+.form-input::placeholder {
+  color: #757575;
+}
+
+
+.modal-footer {
+  padding: 20px 24px 24px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid #E9ECEF;
+  margin-top: 20px;
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.cancel-btn {
+  background: #F8F9FA;
+  color: #666666;
+  border: 1px solid #E9ECEF;
+}
+
+.cancel-btn:hover {
+  background: #E9ECEF;
+}
+
+.confirm-btn {
+  background: #FFDD44;
+  color: #1C0F0F;
+  border: 1px solid #FFDD44;
+}
+
+.confirm-btn:hover:not(.disabled) {
+  background: #FFE364;
+  transform: translateY(-1px);
+}
+
+.confirm-btn.disabled {
+  background: #E9ECEF;
+  color: #ADB5BD;
+  border-color: #E9ECEF;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+  }
+  
+  .modal-btn {
+    width: 100%;
+  }
 }
 </style>
