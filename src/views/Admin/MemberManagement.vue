@@ -175,16 +175,16 @@ export default {
           const result = response.data.result;
           const participants = result.content;
           
-          // 삭제되지 않은 회원만 필터링하고 데이터 변환
+          // 모든 회원을 표시하되 삭제된 사용자는 별도 표시
           this.members = participants
-            .filter(participant => !participant.deleted)
             .map(participant => ({
               id: participant.workspaceParticipantId,
               userId: participant.userId,
               name: participant.userName,
-              role: participant.workspaceRole.toLowerCase(),
+              role: participant.deleted ? 'deleted' : participant.workspaceRole.toLowerCase(),
               joinDate: this.formatDate(new Date()), // API에서 createdAt이 없으므로 현재 날짜 사용
-              userGroup: participant.accessGroupName
+              userGroup: participant.accessGroupName,
+              isDeleted: participant.deleted
             }));
           
           // 페이지네이션 정보 업데이트
@@ -251,7 +251,8 @@ export default {
         'common': '일반 사용자',
         'owner': '소유자',
         'manager': '매니저',
-        'member': '멤버'
+        'member': '멤버',
+        'deleted': '삭제된 사용자'
       };
       return roleMap[role.toLowerCase()] || role.toUpperCase();
     },
@@ -410,6 +411,11 @@ export default {
 
 .role-badge.member {
   background: #3498DB;
+}
+
+.role-badge.deleted {
+  background: #95A5A6;
+  opacity: 0.6;
 }
 
 /* 기본 역할 배지 스타일 */

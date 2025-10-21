@@ -216,21 +216,25 @@ export default {
           const requesterId = localStorage.getItem('id') || 'user123';
           const workspaceId = this.workspaceStore.getCurrentWorkspaceId || localStorage.getItem('selectedWorkspaceId') || 'ws_1';
 
-          // 선택된 회원들을 순차적으로 삭제
-          for (const userId of userIdList) {
-            await axios.delete(
-              `http://localhost:8080/workspace-service/workspace/${workspaceId}/participants/${userId}`,
-              {
-                headers: {
-                  'X-User-Id': requesterId,
-                  ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                }
+          const response = await axios.delete(
+            `http://localhost:8080/workspace-service/workspace/${workspaceId}/participants`,
+            {
+              headers: {
+                'X-User-Id': requesterId,
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+              },
+              data: {
+                userIdList: userIdList
               }
-            );
-          }
+            }
+          );
 
-          alert('선택한 회원들이 성공적으로 삭제되었습니다.');
-          this.goBack();
+          if (response?.data?.statusCode === 200) {
+            alert('선택한 회원들이 성공적으로 삭제되었습니다.');
+            this.goBack();
+          } else {
+            alert(response?.data?.statusMessage || '회원 삭제에 실패했습니다.');
+          }
         } catch (e) {
           console.error('회원 삭제 실패:', e);
           alert(e?.response?.data?.statusMessage || '회원 삭제 중 오류가 발생했습니다.');
