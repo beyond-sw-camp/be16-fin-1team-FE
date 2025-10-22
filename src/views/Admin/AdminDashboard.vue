@@ -88,28 +88,57 @@
       <!-- 사용자 그룹 -->
       <div v-if="activeTab === 'user'" class="tab-content">
         <div class="content-header">
-          <h1 class="main-title">사용자 그룹 관리</h1>
-          <p class="sub-title">사용자 그룹을 관리합니다</p>
+          <h1 class="main-title">사용자 그룹</h1>
+          <p class="sub-title">사용자 그룹을 관리하고 멤버를 조회할 수 있습니다.</p>
         </div>
         
-        <div class="admin-cards">
-          <div class="admin-card">
-            <h3>개발팀</h3>
-            <p>총 멤버: 15명</p>
-            <p>활성 멤버: 12명</p>
+        <!-- 검색 바 -->
+        <div class="search-bar">
+          <input 
+            type="text" 
+            placeholder="그룹명으로 검색" 
+            class="group-search-input"
+            v-model="groupSearchQuery"
+            @input="filterUserGroups"
+          />
+          <span class="search-icon">🔍</span>
+        </div>
+
+        <!-- 사용자 그룹 목록 -->
+        <div class="user-groups-list">
+          <div 
+            v-for="group in filteredUserGroups" 
+            :key="group.id" 
+            class="user-group-item"
+          >
+            <div class="group-info">
+              <div class="user-group-icon"></div>
+              <div class="group-details">
+                <h3 class="group-name" @click="viewGroupDetail(group)">{{ group.name }}</h3>
+                <p class="group-date">생성일: {{ group.createdAt }}</p>
+              </div>
+            </div>
+            <div class="group-actions">
+              <span class="member-count">{{ group.memberCount }}명</span>
+              <button class="action-btn edit-btn" @click="editUserGroup(group)">
+                수정
+              </button>
+              <button class="action-btn delete-btn" @click="deleteUserGroup(group)">
+                삭제
+              </button>
+            </div>
           </div>
-          
-          <div class="admin-card">
-            <h3>디자인팀</h3>
-            <p>총 멤버: 8명</p>
-            <p>활성 멤버: 6명</p>
-          </div>
-          
-          <div class="admin-card">
-            <h3>마케팅팀</h3>
-            <p>총 멤버: 10명</p>
-            <p>활성 멤버: 8명</p>
-          </div>
+        </div>
+
+        <!-- 페이지네이션 -->
+        <div class="pagination">
+          <button class="page-btn prev-btn">← 이전</button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">2</button>
+          <button class="page-btn">3</button>
+          <span class="page-ellipsis">...</span>
+          <button class="page-btn">10</button>
+          <button class="page-btn next-btn">다음 →</button>
         </div>
       </div>
 
@@ -305,7 +334,12 @@ export default {
       loading: false,
       showWorkspaceNameModal: false,
       newWorkspaceName: '',
-      showDeleteWorkspaceModal: false
+      showDeleteWorkspaceModal: false,
+      
+      // 사용자 그룹 관련 데이터
+      groupSearchQuery: '',
+      userGroups: [],
+      filteredUserGroups: []
     };
   },
   setup() {
@@ -361,6 +395,13 @@ export default {
       if (tab === 'workspace') {
         this.loadWorkspaceDetail();
       }
+      
+      // 사용자 그룹 탭이 활성화되면 사용자 그룹 목록 로드
+      if (tab === 'user') {
+        console.log('사용자 그룹 탭 활성화, loadUserGroups 호출');
+        this.loadUserGroups();
+      }
+      
     },
     
     async loadPermissionGroups() {
@@ -717,6 +758,197 @@ export default {
         // 에러 발생 시 메인 페이지로 이동
         this.workspaceStore.setCurrentWorkspace(null);
         this.$router.push('/');
+      }
+    },
+    
+    // 사용자 그룹 목록 로드
+    async loadUserGroups() {
+      try {
+        this.loading = true;
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId') || localStorage.getItem('id');
+        const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_1';
+        
+        console.log('API 호출 시작:', { token, userId, workspaceId });
+        console.log('현재 워크스페이스 정보:', this.workspaceStore.getCurrentWorkspace);
+        
+        const url = `http://localhost:8080/workspace-service/groups?workspaceId=${workspaceId}`;
+        console.log('API 요청 URL:', url);
+        
+        const response = await axios.get(url, {
+          headers: {
+            'X-User-Id': userId,
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.data.statusCode === 200) {
+          console.log('API 응답 데이터:', response.data);
+          console.log('result.content:', response.data.result.content);
+          
+          // API 응답 데이터를 컴포넌트 형식으로 변환
+          this.userGroups = response.data.result.content.map(group => ({
+            id: group.groupId,
+            name: group.groupName,
+            createdAt: group.createdAt.split('T')[0], // 날짜만 추출
+            memberCount: group.participantCount
+          }));
+          
+          console.log('변환된 userGroups:', this.userGroups);
+          
+          this.filteredUserGroups = [...this.userGroups];
+          console.log('filteredUserGroups:', this.filteredUserGroups);
+        }
+      } catch (error) {
+        console.error('사용자 그룹 목록 로드 실패:', error);
+        // 에러 발생 시 더미 데이터 사용
+        this.userGroups = [
+          {
+            id: 1,
+            name: '개발팀',
+            createdAt: '2024-01-15',
+            memberCount: 8
+          },
+          {
+            id: 2,
+            name: '디자인팀',
+            createdAt: '2024-01-20',
+            memberCount: 5
+          },
+          {
+            id: 3,
+            name: '마케팅팀',
+            createdAt: '2024-02-01',
+            memberCount: 6
+          },
+          {
+            id: 4,
+            name: '기획팀',
+            createdAt: '2024-02-10',
+            memberCount: 4
+          },
+          {
+            id: 5,
+            name: 'QA팀',
+            createdAt: '2024-02-15',
+            memberCount: 3
+          }
+        ];
+        this.filteredUserGroups = [...this.userGroups];
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    // 사용자 그룹 필터링
+    filterUserGroups() {
+      const query = this.groupSearchQuery.toLowerCase();
+      this.filteredUserGroups = this.userGroups.filter(group => 
+        group.name.toLowerCase().includes(query)
+      );
+    },
+    
+    // 사용자 그룹 수정
+    async editUserGroup(group) {
+      const newName = prompt('그룹명을 수정하세요:', group.name);
+      if (newName && newName.trim() !== group.name) {
+        try {
+          const token = localStorage.getItem('token');
+          const userId = localStorage.getItem('userId') || localStorage.getItem('id');
+          
+          const response = await axios.put(
+            `http://localhost:8080/workspace-service/groups/${group.id}`,
+            {
+              groupName: newName.trim()
+            },
+            {
+              headers: {
+                'X-User-Id': userId,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          
+          if (response.data.statusCode === 200) {
+            // 로컬 데이터 업데이트
+            group.name = newName.trim();
+            this.filterUserGroups();
+            alert('그룹명이 수정되었습니다.');
+          } else {
+            alert('그룹 수정에 실패했습니다.');
+          }
+        } catch (error) {
+          console.error('사용자 그룹 수정 실패:', error);
+          alert('그룹 수정에 실패했습니다.');
+        }
+      }
+    },
+    
+    // 사용자 그룹 삭제
+    async deleteUserGroup(group) {
+      if (confirm(`"${group.name}" 그룹을 삭제하시겠습니까?`)) {
+        try {
+          const token = localStorage.getItem('token');
+          const userId = localStorage.getItem('userId') || localStorage.getItem('id');
+          
+          const response = await axios.delete(
+            `http://localhost:8080/workspace-service/groups/${group.id}`,
+            {
+              headers: {
+                'X-User-Id': userId,
+                'Authorization': `Bearer ${token}`
+              }
+            }
+          );
+          
+          if (response.data.statusCode === 200) {
+            // 로컬 데이터에서 제거
+            const index = this.userGroups.findIndex(g => g.id === group.id);
+            if (index > -1) {
+              this.userGroups.splice(index, 1);
+              this.filterUserGroups();
+            }
+            alert('그룹이 삭제되었습니다.');
+          } else {
+            alert('그룹 삭제에 실패했습니다.');
+          }
+        } catch (error) {
+          console.error('사용자 그룹 삭제 실패:', error);
+          alert('그룹 삭제에 실패했습니다.');
+        }
+      }
+    },
+    
+    // 사용자 그룹 상세 조회
+    async viewGroupDetail(group) {
+      try {
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId') || localStorage.getItem('id');
+        
+        const response = await axios.get(
+          `http://localhost:8080/workspace-service/groups/${group.id}`,
+          {
+            headers: {
+              'X-User-Id': userId,
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
+        if (response.data.statusCode === 200) {
+          const detail = response.data.result;
+          const memberList = detail.members.content.map(member => 
+            `${member.userName} (${member.userEmail})`
+          ).join('\n');
+          
+          alert(`${detail.groupName} 그룹 상세 정보:\n\n멤버 목록:\n${memberList || '멤버가 없습니다.'}`);
+        } else {
+          alert('그룹 상세 정보를 불러올 수 없습니다.');
+        }
+      } catch (error) {
+        console.error('사용자 그룹 상세 조회 실패:', error);
+        alert('그룹 상세 정보를 불러올 수 없습니다.');
       }
     }
   }
@@ -1596,5 +1828,172 @@ export default {
   .modal-btn {
     width: 100%;
   }
+}
+
+/* 사용자 그룹 관련 스타일 */
+.search-bar {
+  position: relative;
+  margin-bottom: 30px;
+}
+
+.group-search-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 17px;
+  border: 1px solid #DDDDDD;
+  border-radius: 4px;
+  background: #FFFFFF;
+  font-size: 14px;
+  color: #757575;
+  outline: none;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.group-search-input::placeholder {
+  color: #757575;
+}
+
+.search-icon {
+  position: absolute;
+  right: 17px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888888;
+  font-size: 16px;
+}
+
+.user-groups-list {
+  margin-bottom: 30px;
+}
+
+.user-group-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border: 1px solid #E9ECEF;
+  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 10px;
+  transition: background-color 0.2s;
+}
+
+.user-group-item:hover {
+  background: #F8F9FA;
+}
+
+.group-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.user-group-icon {
+  width: 20px;
+  height: 20px;
+  background: #2A2828;
+  border-radius: 2px;
+  margin-right: 15px;
+}
+
+.group-details {
+  flex: 1;
+}
+
+.group-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1C0F0F;
+  margin: 0 0 5px 0;
+  font-family: 'Pretendard', sans-serif;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.group-name:hover {
+  color: #007bff;
+  text-decoration: underline;
+}
+
+.group-date {
+  font-size: 12px;
+  color: #999999;
+  margin: 0;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.group-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.member-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1C0F0F;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.action-btn {
+  padding: 6px 12px;
+  border: 1px solid #DDDDDD;
+  border-radius: 4px;
+  background: #F5F5F5;
+  color: #666666;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.action-btn:hover {
+  background: #E9ECEF;
+}
+
+.delete-btn:hover {
+  background: #ffebee;
+  color: #d32f2f;
+  border-color: #ffcdd2;
+}
+
+/* 페이지네이션 */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #F8F9FA;
+  border: 1px solid #E9ECEF;
+  border-radius: 4px;
+  padding: 15px;
+}
+
+.page-btn {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: #666666;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.page-btn:hover {
+  background: #E9ECEF;
+}
+
+.page-btn.active {
+  background: #FFFFFF;
+  color: #1C0F0F;
+  font-weight: 700;
+}
+
+.page-ellipsis {
+  color: #666666;
+  font-size: 14px;
+  font-family: 'Pretendard', sans-serif;
 }
 </style>
