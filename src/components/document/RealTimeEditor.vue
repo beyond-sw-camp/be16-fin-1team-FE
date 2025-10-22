@@ -48,6 +48,56 @@
           </v-btn>
         </v-btn-toggle>
 
+        <v-divider vertical class="mx-2"></v-divider>
+
+        <v-btn-toggle v-model="toggleColor" variant="outlined" divided>
+          <v-menu>
+            <template v-slot:activator="{ props }">
+              <v-btn v-bind="props" :class="{ 'is-active': editor.isActive('textStyle') || editor.isActive('highlight') }">
+                <v-icon>mdi-format-color-text</v-icon>
+              </v-btn>
+            </template>
+            <v-card>
+              <v-card-text>
+                <div class="color-picker-container">
+                  <h4>텍스트 색상</h4>
+                  <div class="color-grid">
+                    <div 
+                      v-for="color in textColors" 
+                      :key="color"
+                      class="color-option"
+                      :style="{ backgroundColor: color }"
+                      @click="setTextColor(color)"
+                      :class="{ 'selected': editor.getAttributes('textStyle').color === color }"
+                    ></div>
+                  </div>
+                  
+                  <h4>배경 색상</h4>
+                  <div class="color-grid">
+                    <div 
+                      v-for="color in backgroundColors" 
+                      :key="color"
+                      class="color-option"
+                      :style="{ backgroundColor: color }"
+                      @click="setBackgroundColor(color)"
+                      :class="{ 'selected': editor.getAttributes('highlight').color === color }"
+                    ></div>
+                  </div>
+                  
+                  <v-btn 
+                    variant="outlined" 
+                    size="small" 
+                    @click="clearColors"
+                    class="mt-2"
+                  >
+                    색상 제거
+                  </v-btn>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-menu>
+        </v-btn-toggle>
+
         <v-spacer></v-spacer>
 
         <div class="online-users-container">
@@ -116,6 +166,9 @@ import { DOMSerializer } from 'prosemirror-model';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
 import axios from 'axios';
 import { connectStomp, sendStompMessage, disconnectStomp } from '../../services/editorStompService';
 
@@ -339,6 +392,18 @@ const onlineUsers = ref([]); // 온라인 사용자 목록
 const toggleBold = ref(null);
 const toggleHeading = ref(null);
 const toggleAlign = ref(null);
+const toggleColor = ref(null);
+
+// 색상 옵션들
+const textColors = [
+  '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF',
+  '#FFA500', '#800080', '#008000', '#FFC0CB', '#A52A2A', '#808080', '#FFFFFF'
+];
+
+const backgroundColors = [
+  '#FFFFFF', '#FFFF00', '#FFA500', '#FF0000', '#00FF00', '#0000FF', '#800080',
+  '#FFC0CB', '#A52A2A', '#808080', '#000000', '#F0F0F0', '#E6E6FA', '#FFE4E1'
+];
 
 
 const user = {
@@ -564,6 +629,25 @@ const sendBatchChanges = () => {
   changesQueue.value = [];
 };
 
+// 색상 관련 함수들
+const setTextColor = (color) => {
+  if (editor.value) {
+    editor.value.chain().focus().setColor(color).run();
+  }
+};
+
+const setBackgroundColor = (color) => {
+  if (editor.value) {
+    editor.value.chain().focus().setHighlight({ color: color }).run();
+  }
+};
+
+const clearColors = () => {
+  if (editor.value) {
+    editor.value.chain().focus().unsetColor().unsetHighlight().run();
+  }
+};
+
 // 라이프사이클 훅
 onMounted(async () => {
   // 온라인 사용자 목록을 먼저 가져옵니다.
@@ -589,6 +673,13 @@ onMounted(async () => {
       TextAlign.configure({
         types: ['heading', 'paragraph'],
         defaultAlignment: 'left',
+      }),
+      TextStyle,
+      Color.configure({
+        types: ['textStyle'],
+      }),
+      Highlight.configure({
+        multicolor: true,
       }),
       LineLockingExtension,
     ],
@@ -1175,6 +1266,36 @@ const handleIncomingMessage = (message) => {
 
 .user-avatar:hover {
   transform: scale(1.1);
+}
+
+.color-picker-container {
+  min-width: 200px;
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.color-option {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.color-option:hover {
+  transform: scale(1.1);
+  border-color: #333;
+}
+
+.color-option.selected {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.3);
 }
 
 .v-btn.is-active {
