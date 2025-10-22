@@ -675,19 +675,19 @@ onMounted(() => {
       // 5. 현재 상태를 "이전 상태"로 갱신
       previousNodesById.value = currentNodesById;
 
-      // 변경사항을 '생성'과 '그 외'로 분리
+      // 변경사항을 '즉시 전송'과 '지연 전송'으로 분리
       const immediateChanges = [];
       const debouncedChanges = [];
 
       allChanges.forEach(change => {
-        if (change.type === 'CREATE') {
+        if (change.type === 'CREATE' || change.type === 'DELETE') {
           immediateChanges.push(change);
         } else {
           debouncedChanges.push(change);
         }
       });
 
-      // '생성' 변경사항은 즉시 전송
+      // '생성', '삭제' 변경사항은 즉시 전송
       if (immediateChanges.length > 0) {
         const payload = {
           messageType: 'EDITOR_BATCH_MESSAGE',
@@ -702,7 +702,7 @@ onMounted(() => {
         });
       }
 
-      // '수정', '삭제' 변경사항은 지능적으로 디바운싱하여 전송
+      // '수정' 변경사항은 지능적으로 디바운싱하여 전송
       if (debouncedChanges.length > 0) {
         // 큐에 추가하기 전, 같은 lineId를 가진 기존 UPDATE 작업을 제거하고 최신으로 덮어씀
         debouncedChanges.forEach(change => {
