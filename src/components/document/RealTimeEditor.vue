@@ -285,6 +285,14 @@ const props = defineProps({
   documentId: {
     type: String,
     required: true,
+  },
+  initialLockedLines: {
+    type: Object, // Map is passed as an object
+    default: () => new Map(),
+  },
+  userId: {
+    type: String,
+    required: true,
   }
 });
 
@@ -301,7 +309,7 @@ const lastCursorUpdate = ref(0); // 커서 업데이트 throttle용
 const previousNodesById = ref(new Map()); // "이전 상태"를 저장
 const changesQueue = ref([]);
 const typingTimer = ref(null); // 타이핑 감지 타이머
-const locallyLockedIds = ref(new Set()); // 현재 내가 잠근 라인 ID 목록
+const currentSelectionIds = ref(new Set()); // 현재 내가 선택한 라인 ID 목록
 const lockedLines = ref(new Map()); // 잠긴 라인 목록 {lineId: userId}
 
 const toggleBold = ref(null);
@@ -310,8 +318,8 @@ const toggleAlign = ref(null);
 
 
 const user = {
-  name: 'User ' + Math.floor(Math.random() * 100),
-  color: '#' + Math.floor(Math.random()*16777215).toString(16),
+  name: props.userId,
+  color: '#' + Math.floor(Math.random() * 16777215).toString(16),
 };
 
 const connectionStatusType = computed(() => {
@@ -413,7 +421,7 @@ const remoteCursors = computed(() => {
         height: cursorHeight,
       });
     } catch (error) {
-      console.warn('Error calculating remote cursor position:', error);
+      // console.warn('Error calculating remote cursor position:', error);
     }
   }
 
@@ -477,7 +485,7 @@ const remoteSelectionHighlights = computed(() => {
           });
         }
       } catch (error) {
-        console.warn('Could not calculate selection highlight rects', error);
+        // console.warn('Could not calculate selection highlight rects', error);
       }
     });
   }
@@ -507,6 +515,11 @@ const sendBatchChanges = () => {
 
 // 라이프사이클 훅
 onMounted(() => {
+  // 전달받은 prop으로 초기 잠금 상태를 설정합니다.
+  if (props.initialLockedLines) {
+    lockedLines.value = new Map(props.initialLockedLines);
+  }
+
   editor.value = new Editor({
     extensions: [
       StarterKit,
@@ -713,66 +726,65 @@ onMounted(() => {
     onSelectionUpdate: ({ editor }) => {
       if (isUpdatingFromRemote.value || connectionStatus.value !== 'connected') return;
 
-      // --- 잠금 로직 (지연 시간 없음) ---
+      // --- 잠금 로직 (서버 중재 모델) ---
       const { from, to } = editor.state.selection;
       
       // 1. 현재 선택된 모든 라인의 ID를 수집
-      const currentLineIds = new Set();
+      const newSelectionIds = new Set();
       editor.state.doc.nodesBetween(from, to, (node) => {
         if (node.isBlock && node.attrs.id) {
-          currentLineIds.add(node.attrs.id);
+          newSelectionIds.add(node.attrs.id);
         }
       });
       
-      // 2. 변경사항(잠금/해제할 라인) 식별
-      const oldLockedIds = locallyLockedIds.value;
-      const linesToUnlock = [...oldLockedIds].filter(id => !currentLineIds.has(id));
-      const linesToLock = [...currentLineIds].filter(id => !oldLockedIds.has(id));
+      // 2. 이전에 선택했던 라인과 비교하여 잠금 해제/요청할 라인 식별
+      const oldSelectionIds = currentSelectionIds.value;
+      const linesToRelease = [...oldSelectionIds].filter(id => !newSelectionIds.has(id));
+      const linesToRequest = [...newSelectionIds].filter(id => !oldSelectionIds.has(id));
 
-      // 3. 식별된 라인들에 대해 잠금 해제 메시지 전송
-      if (linesToUnlock.length > 0) {
-        linesToUnlock.forEach(lineId => {
-          // Optimistically unlock for the current user
+      // 3. 잠금 해제 요청 전송
+      if (linesToRelease.length > 0) {
+        // UI 반응성을 위해 내가 잠근 라인은 로컬에서 먼저 해제 (Optimistic Unlock)
+        linesToRelease.forEach(lineId => {
           if (lockedLines.value.get(lineId) === user.name) {
             lockedLines.value.delete(lineId);
           }
+        });
+
+        const changesList = linesToRelease.map(lineId => ({ lineId }));
+        sendStompMessage({
+          destination: '/publish/editor/unlock-line',
+          body: {
+            messageType: 'UNLOCK_LINE',
+            documentId: props.documentId,
+            senderId: user.name,
+            changesList: changesList,
+            content: '',
+          },
+        });
+      }
+
+      // 4. 잠금 요청 전송 (개별 메시지 유지)
+      if (linesToRequest.length > 0) {
+        linesToRequest.forEach(lineId => {
           sendStompMessage({
-            destination: '/publish/editor/lock',
+            destination: '/publish/editor/lock-line',
             body: {
-              messageType: 'UNLOCK_LINE',
+              messageType: 'LOCK_LINE',
               documentId: props.documentId,
               senderId: user.name,
-              content: JSON.stringify({ lineId: lineId }),
+              content: JSON.stringify({ lineId }),
             },
           });
         });
       }
-
-      // 4. 식별된 라인들에 대해 잠금 메시지 전송
-      if (linesToLock.length > 0) {
-        linesToLock.forEach(lineId => {
-          // Lock locally only if the line is not already locked by someone else.
-          if (!lockedLines.value.has(lineId)) {
-            lockedLines.value.set(lineId, user.name);
-            sendStompMessage({
-              destination: '/publish/editor/lock',
-              body: {
-                messageType: 'LOCK_LINE',
-                documentId: props.documentId,
-                senderId: user.name,
-                content: JSON.stringify({ lineId: lineId }),
-              },
-            });
-          }
-        });
-      }
       
-      // 5. 로컬 잠금 상태 업데이트 및 UI 갱신
-      if (linesToLock.length > 0 || linesToUnlock.length > 0) {
-        locallyLockedIds.value = currentLineIds;
-        lockedLines.value = new Map(lockedLines.value); // reactivity
+      // 5. 현재 선택 상태를 업데이트하고, UI 갱신
+      if (linesToRelease.length > 0 || linesToRequest.length > 0) {
+        currentSelectionIds.value = newSelectionIds;
+        lockedLines.value = new Map(lockedLines.value); // reactivity for optimistic unlock
         if (editor.value) {
-          editor.value.view.dispatch(editor.value.state.tr); // force decoration update
+          editor.value.view.dispatch(editor.value.state.tr);
         }
       }
 
@@ -831,6 +843,7 @@ onMounted(() => {
 
   connectStomp(
     props.documentId,
+    user.name,
     handleIncomingMessage, // 메시지 수신 콜백
     () => { // 연결 성공 콜백
       connectionStatus.value = 'connected';
@@ -851,7 +864,7 @@ onBeforeUnmount(() => {
     clearTimeout(typingTimer.value);
   }
   sendBatchChanges(); // 컴포넌트 파괴 전 마지막으로 변경사항 전송
-  disconnectStomp();
+  // disconnectStomp(props.documentId, user.name);
   if (editor.value) {
     editor.value.destroy();
   }
@@ -980,27 +993,36 @@ const handleIncomingMessage = (message) => {
     const lockData = JSON.parse(message.content);
     const { lineId } = lockData;
     const { senderId } = message;
-
-    // A lock request is only granted if the line is not already locked.
-    // This creates a "first come, first served" system based on a combination
-    // of optimistic local locking and message arrival time.
-    if (!lockedLines.value.has(lineId)) {
-      lockedLines.value.set(lineId, senderId);
-      lockedLines.value = new Map(lockedLines.value);
-      if (editor.value) {
-        editor.value.view.dispatch(editor.value.state.tr);
-      }
+    
+    // 서버가 브로드캐스트한 메시지를 수신하여 잠금 상태를 업데이트합니다.
+    // 서버가 이미 중재했으므로, 클라이언트는 이 메시지를 신뢰합니다.
+    lockedLines.value.set(lineId, senderId);
+    lockedLines.value = new Map(lockedLines.value); // reactivity
+    if (editor.value) {
+      editor.value.view.dispatch(editor.value.state.tr);
     }
   } else if (message.messageType === 'UNLOCK_LINE') {
-    const lockData = JSON.parse(message.content);
-    if (lockedLines.value.get(lockData.lineId) === message.senderId) {
-      lockedLines.value.delete(lockData.lineId);
+    const { changesList } = message;
+    let changed = false;
+    if (changesList && Array.isArray(changesList)) {
+      changesList.forEach(change => {
+        const { lineId } = change;
+        if (lineId && lockedLines.value.has(lineId)) {
+          lockedLines.value.delete(lineId);
+          changed = true;
+        }
+      });
+    }
+    if (changed) {
       lockedLines.value = new Map(lockedLines.value);
-      // ProseMirror의 데코레이션을 강제로 다시 그리도록 뷰를 업데이트
       if (editor.value) {
         editor.value.view.dispatch(editor.value.state.tr);
       }
     }
+  } else if (message.messageType === 'LOCK_DENIED') {
+      // (Optional) Handle lock denial, e.g., show a temporary visual cue
+      // For now, we do nothing, the line simply won't appear locked for the user.
+      // console.log(`Lock denied for line: ${JSON.parse(message.content).lineId}`);
   }
 
   // 3. "상대 위치"를 기반으로 커서 위치 복원

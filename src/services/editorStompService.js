@@ -7,10 +7,11 @@ let subscription = null;
 /**
  * STOMP 클라이언트 연결
  * @param {string} documentId - 문서 ID
+ * @param {string} userId - 현재 사용자 ID
  * @param {function} onMessageCallback - 메시지 수신 콜백
  * @param {function} onConnectCallback - 연결 성공 콜백
  */
-export const connectStomp = (documentId, onMessageCallback, onConnectCallback) => {
+export const connectStomp = (documentId, userId, onMessageCallback, onConnectCallback) => {
   // 이미 연결되어 있으면 재연결 시도 안함
   if (client && client.active) {
     console.log('STOMP is already connected');
@@ -31,8 +32,6 @@ export const connectStomp = (documentId, onMessageCallback, onConnectCallback) =
       return new SockJS('http://localhost:8080/drive-service/ws/editor');
     },
     reconnectDelay: 5000,
-    heartbeatIncoming: 4000,
-    heartbeatOutgoing: 4000,
     debug: (str) => {
       // 개발 모드에서만 디버그 로그 출력
       if (import.meta.env.DEV) {
@@ -53,7 +52,7 @@ export const connectStomp = (documentId, onMessageCallback, onConnectCallback) =
       }
     }
     
-    // 서버로부터 메시지를 수신하기 위해 토픽 구독
+    // 서버로부터 메시지를 수신하기 위해 토픽 구독 (헤더 없이)
     subscription = client.subscribe(`/topic/document/${documentId}`, (message) => {
       try {
         const parsedMessage = JSON.parse(message.body);
@@ -66,6 +65,15 @@ export const connectStomp = (documentId, onMessageCallback, onConnectCallback) =
     });
     
     console.log(`📡 구독 완료: /topic/document/${documentId}`);
+
+    // 연결 성공 후 입장 메시지 전송
+    sendStompMessage({
+      destination: '/publish/editor/join',
+      body: {
+        documentId: documentId,
+        senderId: userId,
+      }
+    });
     
     // 연결 성공 콜백 실행
     if (onConnectCallback) {
@@ -122,29 +130,44 @@ export const sendStompMessage = ({ destination, body }) => {
 
 /**
  * STOMP 연결 해제
+ * @param {string} documentId - 현재 문서 ID
+ * @param {string} userId - 현재 사용자 ID
  */
-export const disconnectStomp = () => {
-  // 마지막 메시지가 전송될 수 있도록 짧은 지연 시간을 줌
-  setTimeout(() => {
+export const disconnectStomp = (documentId, userId) => {
+  if (client && client.active) {
+    console.log(`STOMP: Attempting to disconnect for user ${userId}...`);
+
+    // 구독이 활성화되어 있으면 퇴장 메시지를 보내고 구독을 취소합니다.
     if (subscription) {
+      // 퇴장 메시지를 전송합니다.
+      client.publish({
+        destination: '/publish/editor/leave',
+        body: JSON.stringify({
+          documentId: documentId,
+          senderId: userId,
+        }),
+      });
+
       try {
         subscription.unsubscribe();
-        subscription = null;
+        console.log('STOMP subscription unsubscribed.');
+        subscription = null; // 구독 객체를 null로 설정
       } catch (error) {
         console.warn('Error unsubscribing:', error);
       }
     }
 
-    if (client) {
-      try {
+    // publish 메시지가 전송될 시간을 확보하기 위해 짧은 지연 후 deactivate를 호출합니다.
+    setTimeout(() => {
+      if (client && client.active) {
         client.deactivate();
-        console.log('🔌 STOMP 연결 해제 완료');
-      } catch (error) {
-        console.error('Error disconnecting STOMP:', error);
+        console.log('STOMP client deactivated after a short delay.');
       }
-      client = null;
-    }
-  }, 100);
+    }, 100);
+
+  } else {
+    console.log('STOMP: Client not active or not initialized, cannot disconnect.');
+  }
 };
 
 /**
