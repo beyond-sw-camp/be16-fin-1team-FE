@@ -7,6 +7,7 @@ import UserCreate_InputInfo from "../views/User/UserCreate_InputInfo.vue";
 import ForgotPassword_InputEmail from "../views/User/ForgotPassword_InputEmail.vue";
 import ForgotPassword_ValidateEmail from "../views/User/ForgotPassword_ValidateEmail.vue";
 import ForgotPassword_InputInfo from "../views/User/ForgotPassword_InputInfo.vue";
+import UserMyInfo from "../views/User/UserMyInfo.vue";
 
 
 export const userRouter = [
@@ -62,5 +63,10 @@ export const userRouter = [
         name: "ForgotPassword_InputInfo",
         component: ForgotPassword_InputInfo,
         meta: { hideLayout: true }
+    },
+    {
+        path: "/my-info",
+        name: "UserMyInfo",
+        component: UserMyInfo,
     },
 ]

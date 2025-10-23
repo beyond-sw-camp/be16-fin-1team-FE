@@ -28,6 +28,7 @@
             <v-card-actions>
               <v-btn variant="flat" color="primary" :to="'/new-user/input-email'">회원가입</v-btn>
               <v-btn variant="flat" color="primary" :to="'/login'">로그인</v-btn>
+              <v-btn variant="flat" color="primary" :to="'/my-info'">마이페이지</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>
