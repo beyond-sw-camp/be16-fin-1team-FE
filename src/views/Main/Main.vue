@@ -26,7 +26,7 @@
               회원 관련
             </v-card-text>
             <v-card-actions>
-              <v-btn variant="flat" color="primary" :to="'/'">회원가입</v-btn>
+              <v-btn variant="flat" color="primary" :to="'/new-user/input-email'">회원가입</v-btn>
               <v-btn variant="flat" color="primary" :to="'/login'">로그인</v-btn>
             </v-card-actions>
           </v-card>
