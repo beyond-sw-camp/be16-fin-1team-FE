@@ -12,7 +12,7 @@
                     <span class="orbit-title">ORBIT</span>
                   </div>
 
-                  <div class="helper">계정으로 로그인해 주세요</div>
+                  <div class="helper">계속하려면 가입하세요</div>
 
                   <div class="controls-group">
                     <div class="field">
@@ -20,26 +20,26 @@
                       <v-text-field v-model="email" variant="outlined" density="comfortable" hide-details class="text-bg" placeholder="이메일을 입력하세요" />
                     </div>
 
-                    <div class="field">
-                      <div class="label">비밀번호</div>
-                      <v-text-field v-model="password" type="password" variant="outlined" density="comfortable" hide-details class="text-bg" placeholder="비밀번호를 입력하세요" />
-                    </div>
-
                     <div class="row-between">
                       <label class="keep-login-label">
-                        <input type="checkbox" class="keep-login-checkbox" />
-                        <span>로그인 상태 유지</span>
+                        <input type="checkbox" class="keep-login-checkbox" v-model="agreeTerms" />
+                        <span><router-link to="/terms" class="text-link">이용약관</router-link>에 동의합니다.</span>
                       </label>
-                      <router-link to="/forgot-password" class="text-link">비밀번호 찾기</router-link>
+                    </div>
+                    <div class="row-between">
+                      <label class="keep-login-label">
+                        <input type="checkbox" class="keep-login-checkbox" v-model="agreePrivacy" />
+                        <span><router-link to="/privacy" class="text-link">개인정보 보호 정책</router-link>에 동의합니다.</span>
+                      </label>
                     </div>
 
                   <div class="btn-wrap">
-                    <v-btn class="login-btn" height="45" rounded="lg" :loading="isLoading" @click="handleLogin">로그인</v-btn>
+                    <v-btn class="login-btn" height="45" rounded="lg" :loading="isLoading" @click="handleLogin">회원가입</v-btn>
                   </div>
 
                   <div class="signup">
-                    <span class="text">계정이 없으신가요?</span>
-                    <router-link to="/signup" class="text-link">회원가입</router-link>
+                    <span class="text">이미 계정이 있으신가요?</span>
+                    <router-link to="/login" class="text-link">로그인</router-link>
                   </div>
                   </div>
                 </div>
@@ -78,11 +78,12 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
 export default {
-  name: "UserLogin",
+  name: "UserCreate_InputEmail",
   data() {
     return {
       email: "",
-      password: "",
+      agreeTerms: false,
+      agreePrivacy: false,
       isLoading: false,
       kakaoUrl: "https://kauth.kakao.com/oauth/authorize",
       kakaoClientId: "f04e0b2f9773e2e421e24a448dc478a0",
@@ -96,30 +97,25 @@ export default {
   },
   methods: {
     async handleLogin() {
-      if (!this.email || !this.password) {
-        alert('이메일과 비밀번호를 입력하세요.');
+      if (!this.email) {
+        alert('이메일을 입력하세요.');
+        return;
+      }
+      if (!this.agreeTerms || !this.agreePrivacy) {
+        alert('이용약관과 개인정보 보호 정책에 모두 동의해 주세요.');
         return;
       }
       try {
         this.isLoading = true;
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-        const { data } = await axios.post(`${baseURL}/user-service/user/auth/login`, {
-          email: this.email,
-          password: this.password,
-        }, { headers: { 'Content-Type': 'application/json' }});
-        const accessToken = data?.result?.accessToken;
-        const refreshToken = data?.result?.refreshToken;
-        const id = jwtDecode(accessToken).sub;
-        if (accessToken && refreshToken) {
-          localStorage.setItem('accessToken', accessToken);
-          localStorage.setItem('refreshToken', refreshToken);
-          localStorage.setItem('id', id);
-          alert('로그인 성공');
-        } else {
-          throw new Error('토큰 없음');
-        }
-      } catch (e) {
-        alert('로그인에 실패했습니다.');
+        const url = 'http://localhost:8080/user-service/user/email';
+        const response = await axios.post(url, { email: this.email }, { headers: { 'Content-Type': 'application/json' } });
+        console.log('회원가입 이메일 전송 결과:', response.data);
+        this.$router.push('/new-user/validate-email');
+      } catch (error) {
+        const data = error?.response?.data;
+        const message = data?.statusMessage || data?.message || error?.message || '요청 처리 중 오류가 발생했습니다.';
+        console.error('회원가입 이메일 전송 실패:', error);
+        alert(message);
       } finally {
         this.isLoading = false;
       }
@@ -150,7 +146,7 @@ export default {
   background: #2A2828;
   border-radius: 15px;
   color: #FFFFFF;
-  min-height: 720px;
+  min-height: 620px;
   max-width: 420px;
   margin: 0 auto;
 }
@@ -167,7 +163,7 @@ export default {
 .orbit-logo { width: 36px; height: 36px; }
 .orbit-title { font-weight: 800; font-size: 32px; color: #FFFFFF; }
 .helper { color: #DEDEDE; font-weight: 700; font-size: 16px; text-align: center; margin-bottom: 16px; }
-.field { margin-bottom: 16px; }
+.field { margin-bottom: 8px; }
 .label { color: #979797; font-weight: 500; font-size: 14px; margin-bottom: 6px; }
 .text-bg :deep(.v-field) { background: #FFFFFF; border-radius: 15px; }
 .controls-group { margin-top: 40px; }
@@ -176,7 +172,8 @@ export default {
 .text-bg :deep(input::placeholder) { color: #9E9E9E; opacity: 1; }
 .row-between { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 16px; }
 /* limit checkbox row to same width as inputs/buttons */
-.controls-group .row-between { max-width: 350px; margin-left: auto; margin-right: auto; margin-top: 32px; margin-bottom: 8px; }
+.controls-group .row-between { max-width: 350px; margin-left: auto; margin-right: auto; margin-top: 6px; margin-bottom: 6px; }
+.controls-group .field + .row-between { margin-top: 20px; }
 .controls-group .login-btn { margin-top: 8px; }
 .keep-login-label { display: inline-flex; align-items: center; gap: 8px; color: #FFFFFF; font-size: 12px; }
 .keep-login-checkbox { width: 16px; height: 16px; appearance: none; background: #FFFFFF; border: 1px solid #5F5F5F; border-radius: 4px; display: inline-block; position: relative; }
@@ -198,6 +195,7 @@ export default {
 .controls-group .field { max-width: 350px; width: 100%; margin-left: auto; margin-right: auto; }
 .btn-wrap { max-width: 350px; margin: 0 auto 12px; display: flex; justify-content: center; }
 .btn-wrap :deep(.v-btn) { width: 100%; }
+.controls-group .btn-wrap { margin-top: 80px; }
 .bottom-group .divider + .btn-wrap { margin-top: 24px; }
 /* remove focus ring on buttons within login view */
 :deep(.v-btn:focus),
