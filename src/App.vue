@@ -4,6 +4,7 @@
     <HeaderComponent v-if="!hideLayout" />
     <v-main :class="hideLayout ? 'no-offset' : 'with-offset'">
       <router-view />
+      <GlobalSnackbar />
     </v-main>
   </v-app>
 </template>
@@ -11,12 +12,14 @@
 <script>
 import HeaderComponent from './components/HeaderComponent.vue';
 import SideBarComponent from './components/SideBarComponent.vue';
+import GlobalSnackbar from './components/GlobalSnackbar.vue';
 
 export default {
   name: "App",
   components: {
     SideBarComponent,
     HeaderComponent,
+    GlobalSnackbar,
   },
   computed: {
     hideLayout() {
