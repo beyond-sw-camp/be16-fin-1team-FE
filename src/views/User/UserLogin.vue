@@ -76,6 +76,7 @@
 <script>
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { showSnackbar } from '../../services/snackbar.js';
 
 export default {
   name: "UserLogin",
@@ -97,7 +98,7 @@ export default {
   methods: {
     async handleLogin() {
       if (!this.email || !this.password) {
-        alert('이메일과 비밀번호를 입력하세요.');
+        showSnackbar('이메일과 비밀번호를 입력하세요.', { color: 'error' });
         return;
       }
       try {
@@ -114,12 +115,14 @@ export default {
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', refreshToken);
           localStorage.setItem('id', id);
-          alert('로그인 성공');
+          showSnackbar('로그인 성공', { color: 'success' });
+          this.$router.push('/');
         } else {
           throw new Error('토큰 없음');
         }
       } catch (e) {
-        alert('로그인에 실패했습니다.');
+        const msg = e?.response?.data?.statusMessage || e?.response?.data?.message || '로그인에 실패했습니다.';
+        showSnackbar(msg, { color: 'error' });
       } finally {
         this.isLoading = false;
       }
