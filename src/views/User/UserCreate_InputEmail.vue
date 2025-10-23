@@ -23,13 +23,13 @@
                     <div class="row-between">
                       <label class="keep-login-label">
                         <input type="checkbox" class="keep-login-checkbox" v-model="agreeTerms" />
-                        <span><router-link to="/terms" class="text-link">이용약관</router-link>에 동의합니다.</span>
+                        <span><a href="#" class="text-link" @click.prevent="showTerms = true">이용약관</a>에 동의합니다.</span>
                       </label>
                     </div>
                     <div class="row-between">
                       <label class="keep-login-label">
                         <input type="checkbox" class="keep-login-checkbox" v-model="agreePrivacy" />
-                        <span><router-link to="/privacy" class="text-link">개인정보 보호 정책</router-link>에 동의합니다.</span>
+                        <span><a href="#" class="text-link" @click.prevent="showPrivacy = true">개인정보 보호 정책</a>에 동의합니다.</span>
                       </label>
                     </div>
 
@@ -65,6 +65,8 @@
                   </div>
                 </div>
               </div>
+              <UserTermsModal v-model="showTerms" />
+              <UserPrivacyModal v-model="showPrivacy" />
             </v-card-text>
           </v-card>
         </v-col>
@@ -76,16 +78,21 @@
 <script>
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import UserTermsModal from './UserTermsModal.vue';
+import UserPrivacyModal from './UserPrivacyModal.vue';
 import { showSnackbar } from '../../services/snackbar.js';
 
 export default {
   name: "UserCreate_InputEmail",
+  components: { UserTermsModal, UserPrivacyModal },
   data() {
     return {
       email: "",
       agreeTerms: false,
       agreePrivacy: false,
       isLoading: false,
+      showTerms: false,
+      showPrivacy: false,
       kakaoUrl: "https://kauth.kakao.com/oauth/authorize",
       kakaoClientId: "f04e0b2f9773e2e421e24a448dc478a0",
       kakaoRedirectUrl: "http://localhost:5173/oauth/kakao/redirect",

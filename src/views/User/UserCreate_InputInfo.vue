@@ -75,7 +75,7 @@
                     </div>
 
                     <div class="tos">
-                      가입 시 Orbit <router-link to="/terms" class="text-link">이용 약관</router-link>과 <router-link to="/privacy" class="text-link">개인 정보 보호 정책</router-link>에 동의한 것으로 간주됩니다.
+                      가입 시 Orbit <a href="#" class="text-link" @click.prevent="showTerms = true">이용 약관</a>과 <a href="#" class="text-link" @click.prevent="showPrivacy = true">개인 정보 보호 정책</a>에 동의한 것으로 간주됩니다.
                     </div>
 
                     <div class="btn-wrap">
@@ -85,6 +85,8 @@
                 </div>
 
               </div>
+              <UserTermsModal v-model="showTerms" />
+              <UserPrivacyModal v-model="showPrivacy" />
             </v-card-text>
           </v-card>
         </v-col>
@@ -95,10 +97,13 @@
 
 <script>
 import axios from 'axios';
+import UserTermsModal from './UserTermsModal.vue';
+import UserPrivacyModal from './UserPrivacyModal.vue';
 import { showSnackbar } from '../../services/snackbar.js';
 
 export default {
   name: "UserCreate_InputInfo",
+  components: { UserTermsModal, UserPrivacyModal },
   data() {
     return {
       email: "",
@@ -110,6 +115,8 @@ export default {
       isLoading: false,
       avatarUrl: "",
       avatarFile: null,
+      showTerms: false,
+      showPrivacy: false,
     };
   },
   created() {
@@ -263,7 +270,7 @@ export default {
 .keep-login-checkbox:checked { background: #FFE364; border-color: #FFE364; }
 .keep-login-checkbox:checked::after { content: ""; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px; border: solid #2A2828; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .link { color: #2276FF; text-transform: none; padding: 0; min-width: auto; }
-.text-link { color: #2276FF; text-decoration: none; font-size: 12px; }
+.text-link { color: #2276FF; text-decoration: none; font-size: 11px; }
 .text-link:hover { text-decoration: underline; }
 .login-btn { background: #FFE364; color: #2A2828; border-radius: 15px; margin: 16px 0; font-weight: 700; }
 .avatar-wrap { position: relative; width: 100px; height: 100px; margin: 0 auto 12px; cursor: pointer; }
