@@ -781,13 +781,14 @@ export default {
     async loadUserGroups() {
       try {
         this.loading = true;
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         const userId = localStorage.getItem('userId') || localStorage.getItem('id');
-        const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_1';
+        const workspaceId = this.workspaceStore.getCurrentWorkspaceId;
         
         console.log('API 호출 시작:', { token, userId, workspaceId });
         console.log('현재 워크스페이스 정보:', this.workspaceStore.getCurrentWorkspace);
         
+        // GET 방식으로 사용자 그룹 목록 조회
         const url = `http://localhost:8080/workspace-service/groups?workspaceId=${workspaceId}`;
         console.log('API 요청 URL:', url);
         
@@ -800,14 +801,37 @@ export default {
         
         if (response.data.statusCode === 200) {
           console.log('API 응답 데이터:', response.data);
-          console.log('result.content:', response.data.result.content);
+          console.log('result:', response.data.result);
+          console.log('result 타입:', typeof response.data.result);
+          console.log('result가 배열인가?', Array.isArray(response.data.result));
           
-          // API 응답 데이터를 컴포넌트 형식으로 변환
-          this.userGroups = response.data.result.content.map(group => ({
-            id: group.groupId,
-            name: group.groupName,
-            createdAt: group.createdAt.split('T')[0], // 날짜만 추출
-            memberCount: group.participantCount
+          // API 응답 데이터 구조 확인 및 변환
+          let groups = [];
+          
+          // result가 배열인 경우
+          if (Array.isArray(response.data.result)) {
+            groups = response.data.result;
+          }
+          // result가 객체이고 content 속성이 있는 경우 (페이지네이션)
+          else if (response.data.result && Array.isArray(response.data.result.content)) {
+            groups = response.data.result.content;
+          }
+          // result가 객체이고 다른 배열 속성이 있는 경우
+          else if (response.data.result && response.data.result.userGroups) {
+            groups = response.data.result.userGroups;
+          }
+          // result가 객체이고 직접 그룹 배열이 있는 경우
+          else if (response.data.result && response.data.result.groups) {
+            groups = response.data.result.groups;
+          }
+          
+          console.log('추출된 groups:', groups);
+          
+          this.userGroups = groups.map(group => ({
+            id: group.userGroupId || group.groupId,
+            name: group.userGroupName || group.groupName,
+            createdAt: group.createdAt ? group.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+            memberCount: group.userGroupParticipantsCount || group.participantCount || 0
           }));
           
           console.log('변환된 userGroups:', this.userGroups);
@@ -817,40 +841,18 @@ export default {
         }
       } catch (error) {
         console.error('사용자 그룹 목록 로드 실패:', error);
-        // 에러 발생 시 더미 데이터 사용
-        this.userGroups = [
-          {
-            id: 1,
-            name: '개발팀',
-            createdAt: '2024-01-15',
-            memberCount: 8
-          },
-          {
-            id: 2,
-            name: '디자인팀',
-            createdAt: '2024-01-20',
-            memberCount: 5
-          },
-          {
-            id: 3,
-            name: '마케팅팀',
-            createdAt: '2024-02-01',
-            memberCount: 6
-          },
-          {
-            id: 4,
-            name: '기획팀',
-            createdAt: '2024-02-10',
-            memberCount: 4
-          },
-          {
-            id: 5,
-            name: 'QA팀',
-            createdAt: '2024-02-15',
-            memberCount: 3
-          }
-        ];
-        this.filteredUserGroups = [...this.userGroups];
+        console.error('에러 상세:', error.response?.data);
+        
+        // 에러 발생 시 빈 배열로 설정
+        this.userGroups = [];
+        this.filteredUserGroups = [];
+        
+        // 사용자에게 에러 메시지 표시
+        if (error.response?.data?.statusMessage) {
+          alert(`사용자 그룹 목록을 불러오는데 실패했습니다: ${error.response.data.statusMessage}`);
+        } else {
+          alert('사용자 그룹 목록을 불러오는데 실패했습니다. 네트워크 연결을 확인해주세요.');
+        }
       } finally {
         this.loading = false;
       }
@@ -866,9 +868,9 @@ export default {
 
       try {
         this.loading = true;
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         const userId = localStorage.getItem('userId') || localStorage.getItem('id');
-        const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_1';
+        const workspaceId = this.workspaceStore.getCurrentWorkspaceId;
         
         const response = await axios.post(
           'http://localhost:8080/workspace-service/groups/search',
@@ -887,11 +889,12 @@ export default {
         
         if (response.data.statusCode === 200) {
           // API 응답 데이터를 컴포넌트 형식으로 변환
-          this.userGroups = response.data.result.content.map(group => ({
-            id: group.userGroupName, // 임시로 userGroupName을 id로 사용
-            name: group.userGroupName,
-            createdAt: group.createdAt.split('T')[0], // 날짜만 추출
-            memberCount: group.userGroupParticipantsCount
+          const groups = response.data.result || [];
+          this.userGroups = groups.map(group => ({
+            id: group.userGroupId || group.groupId,
+            name: group.userGroupName || group.groupName,
+            createdAt: group.createdAt ? group.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+            memberCount: group.userGroupParticipantsCount || group.participantCount || 0
           }));
           
           this.filteredUserGroups = [...this.userGroups];
@@ -1012,6 +1015,11 @@ export default {
     // 사용자 그룹 생성
     createUserGroup() {
       this.$router.push('/admin/create-group');
+    },
+    
+    // 사용자 그룹 수정
+    editUserGroup(group) {
+      this.$router.push(`/admin/edit-group/${group.id}`);
     },
     
     // 사용자 그룹에 멤버 추가

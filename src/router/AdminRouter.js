@@ -5,6 +5,7 @@ import MemberManagement from '@/views/Admin/MemberManagement.vue';
 import InviteMember from '@/views/Admin/InviteMember.vue';
 import DeleteMembers from '@/views/Admin/DeleteMembers.vue';
 import CreateUserGroup from '@/views/Admin/CreateUserGroup.vue';
+import EditUserGroup from '@/views/Admin/EditUserGroup.vue';
 
 export const adminRouter = [
     {
@@ -65,6 +66,15 @@ export const adminRouter = [
         path: '/admin/create-group',
         name: 'CreateUserGroup',
         component: CreateUserGroup,
+        meta: {
+            requiresAuth: true,
+            isAdmin: true
+        }
+    },
+    {
+        path: '/admin/edit-group/:groupId',
+        name: 'EditUserGroup',
+        component: EditUserGroup,
         meta: {
             requiresAuth: true,
             isAdmin: true
