@@ -1012,6 +1012,42 @@ export default {
     // 사용자 그룹 생성
     createUserGroup() {
       this.$router.push('/admin/create-group');
+    },
+    
+    // 사용자 그룹에 멤버 추가
+    async addUsersToGroup(groupId, userIdList) {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const userId = localStorage.getItem('userId');
+        
+        const response = await axios.post(
+          `http://localhost:8080/workspace-service/groups/${groupId}/grouping`,
+          {
+            userIdList: userIdList
+          },
+          {
+            headers: {
+              'X-User-Id': userId,
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.data.statusCode === 201) {
+          alert('사용자 그룹에 멤버가 성공적으로 추가되었습니다.');
+          // 사용자 그룹 목록 새로고침
+          await this.loadUserGroups();
+          return true;
+        } else {
+          alert('멤버 추가에 실패했습니다.');
+          return false;
+        }
+      } catch (error) {
+        console.error('사용자 그룹 멤버 추가 실패:', error);
+        alert('멤버 추가 중 오류가 발생했습니다.');
+        return false;
+      }
     }
   }
 };

@@ -135,17 +135,17 @@ export default {
     return { workspaceStore };
   },
   mounted() {
-    this.loadAvailableUsers();
+    // 초기 로드 시에는 사용자 목록을 자동으로 로드하지 않음
   },
   methods: {
     goBack() {
       this.$router.go(-1);
     },
     
-    // 사용 가능한 사용자 목록 로드 (전체 참여자 조회)
+    // 사용 가능한 사용자 목록 로드 (그룹에 속하지 않은 참여자 조회)
     async loadAvailableUsers() {
       try {
-        const response = await axios.post('http://localhost:8080/workspace-service/workspace/participants/search', {
+        const response = await axios.post('http://localhost:8080/workspace-service/workspace/participants/not-in-groups/search', {
           workspaceId: this.workspaceStore.getCurrentWorkspaceId,
           searchKeyword: ""
         }, {
@@ -157,7 +157,7 @@ export default {
         
         if (response.data.statusCode === 200) {
           this.availableUsers = response.data.result.userInfoList || [];
-          console.log('워크스페이스 참여자 목록:', this.availableUsers);
+          console.log('그룹에 속하지 않은 참여자 목록:', this.availableUsers);
         }
       } catch (error) {
         console.error('사용자 목록 로드 실패:', error);
@@ -173,7 +173,7 @@ export default {
       }
       
       try {
-        const response = await axios.post('http://localhost:8080/workspace-service/workspace/participants/search', {
+        const response = await axios.post('http://localhost:8080/workspace-service/workspace/participants/not-in-groups/search', {
           workspaceId: this.workspaceStore.getCurrentWorkspaceId,
           searchKeyword: this.userSearchQuery.trim()
         }, {
@@ -220,8 +220,8 @@ export default {
       try {
         const response = await axios.post('http://localhost:8080/workspace-service/groups', {
           workspaceId: this.workspaceStore.getCurrentWorkspaceId,
-          groupName: this.newGroupName,
-          memberIds: this.selectedUsers.map(user => user.id)
+          userGroupName: this.newGroupName,
+          userIdList: this.selectedUsers.map(user => user.userId)
         }, {
           headers: {
             'X-User-Id': localStorage.getItem('userId'),
@@ -229,13 +229,17 @@ export default {
           }
         });
         
-        if (response.data.statusCode === 200) {
+        if (response.data.statusCode === 201) {
           alert('그룹이 성공적으로 생성되었습니다.');
           this.$router.push('/admin');
         }
       } catch (error) {
         console.error('그룹 생성 실패:', error);
-        alert('그룹 생성에 실패했습니다.');
+        if (error.response && error.response.data && error.response.data.statusMessage) {
+          alert(error.response.data.statusMessage);
+        } else {
+          alert('그룹 생성에 실패했습니다.');
+        }
       }
     }
   }
