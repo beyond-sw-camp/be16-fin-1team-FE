@@ -794,19 +794,24 @@ onMounted(async () => {
         }
       }
 
-      // 3. "삭제"된 라인 찾아 큐에 추가
+      // 3. "삭제"된 라인 찾아 큐에 추가 (앞에서부터 순서대로)
       const previousIds = Array.from(previousNodesById.value.keys());
+      const deletedChanges = [];
+      
       for (let i = 0; i < previousIds.length; i++) {
         const oldId = previousIds[i];
         if (!currentNodesById.has(oldId)) {
           const prevLineId = i > 0 ? previousIds[i - 1] : null;
-          allChanges.push({
+          deletedChanges.push({
             type: 'DELETE',
             lineId: oldId,
             prevLineId: prevLineId,
           });
         }
       }
+      
+      // 삭제된 변경사항을 앞에서부터 순서대로 추가
+      allChanges.push(...deletedChanges);
 
       // 4. "생성"된 라인 찾아 큐에 추가
       const currentNodes = Array.from(currentNodesById.values());
@@ -1067,10 +1072,15 @@ const applyUpdate = (change) => {
 const applyDelete = (change) => {
   let nodeToDelete = null;
   let nodeToDeletePos = -1;
+  
+  // 문서 순서대로 앞에서부터 찾기
   editor.value.state.doc.descendants((node, pos) => {
     if (node.isBlock && node.attrs.id === change.lineId) {
-      nodeToDelete = node;
-      nodeToDeletePos = pos;
+      // 첫 번째로 찾은 노드만 삭제 (앞에서부터)
+      if (nodeToDelete === null) {
+        nodeToDelete = node;
+        nodeToDeletePos = pos;
+      }
     }
   });
 
