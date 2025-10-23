@@ -211,7 +211,10 @@ import axios from 'axios';
                 this._reconnectTimer = setInterval(async () => {
                     try {
                         await stompManager.connect();
-                        // if connect succeeds, resubscribe room and stop loop
+                        // On successful reconnect: refresh history and resubscribe
+                        this.teardownRoomSubscription();
+                        this.messages = [];
+                        await this.loadHistory();
                         await this.connectWebsocket();
                         this.reconnecting = false;
                         clearInterval(this._reconnectTimer);
