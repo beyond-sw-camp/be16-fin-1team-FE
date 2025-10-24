@@ -2,15 +2,18 @@
     <div :class="embedded ? '' : 'main-fill'">
         <v-container fluid>
             <v-row justify="center">
-                <v-col cols="12" md="8">
-                    <v-card>
-                        <v-card-title class="text-h5 chat-header">
-                            <v-btn class="back-btn-top" variant="text" size="small" @click="refreshPage" icon>
+                <v-col cols="12" md="16" lg="16" xl="12">
+                    <v-card class="chat-card">
+                        <div class="chat-banner">
+                            <v-btn class="banner-btn back" variant="text" size="small" @click="refreshPage" icon>
                                 <v-icon icon="mdi-chevron-left"></v-icon>
                             </v-btn>
-                            <span class="title-text">{{ computedTitle }}</span>
-                        </v-card-title>
-                        <v-card-text>
+                            <div class="banner-title">{{ computedTitle }}</div>
+                            <v-btn class="banner-btn menu" variant="text" size="small" icon>
+                                <img src="@/assets/icons/chat/menu.svg" alt="menu" class="menu-icon" />
+                            </v-btn>
+                        </div>
+                        <v-card-text class="chat-body">
                             <div class="chat-box">
                                 <div
                                     v-for="(msg, index) in messages"
@@ -45,21 +48,34 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="send-row">
-                                <v-text-field
-                                    v-model="newMessage"
-                                    label="메시지 입력"
-                                    @keyup.enter="sendMessage"
-                                    class="send-input"
-                                />
-                                <v-btn color="#FFE364" class="send-btn" @click="sendMessage">전송</v-btn>
-                            </div>
-                            <div class="attach-row">
-                                <input ref="fileInput" type="file" multiple @change="onFilesSelected" style="display:none" />
-                                <v-btn class="attach-btn" variant="text" size="small" @click="openFilePicker">
-                                    <v-icon icon="mdi-plus"></v-icon>
-                                </v-btn>
-                                <span v-if="selectedFiles && selectedFiles.length" class="attach-count">{{ selectedFiles.length }}개 선택됨</span>
+                            <div class="chat-footer">
+                                <div class="composer">
+                                    <input ref="fileInput" type="file" multiple @change="onFilesSelected" style="display:none" />
+                                    <button class="icon-btn left" @click="openFilePicker" aria-label="파일 추가">
+                                        <v-icon icon="mdi-plus"></v-icon>
+                                    </button>
+                                    <v-text-field
+                                        ref="composerInput"
+                                        v-model="newMessage"
+                                        placeholder="메시지 입력..."
+                                        @keyup.enter="sendMessage"
+                                        class="composer-input"
+                                        hide-details
+                                        variant="plain"
+                                        density="compact"
+                                    />
+                                    <v-menu v-model="isEmojiOpen" :close-on-content-click="false" offset-y>
+                                        <template #activator="{ props }">
+                                            <button class="icon-btn right" v-bind="props" aria-label="이모지">
+                                                <v-icon icon="mdi-emoticon-outline"></v-icon>
+                                            </button>
+                                        </template>
+                                        <div class="emoji-panel">
+                                            <button v-for="e in emojiList" :key="e" class="emoji-btn" @click="insertEmoji(e)">{{ e }}</button>
+                                        </div>
+                                    </v-menu>
+                                </div>
+                                <v-btn class="send-btn" variant="flat" elevation="0" rounded="xl" height="48" @click="sendMessage">전송</v-btn>
                             </div>
                             <v-overlay :model-value="uploading" class="align-center justify-center" scrim="rgba(0,0,0,0.12)" persistent>
                                 <v-progress-circular indeterminate :size="42" :width="4" color="#FFE364" />
@@ -114,6 +130,11 @@ import axios from 'axios';
                 uploading: false,
                 reconnecting: false,
                 _reconnectTimer: null,
+                isEmojiOpen: false,
+                emojiList: [
+                    "😀","😁","😂","🤣","😊","😍","😘","😎","🤔","😢",
+                    "👍","👏","🙏","🔥","🎉","💡","✅","⚠️","❗","❓"
+                ],
             }
         },
         created() {
@@ -270,6 +291,15 @@ import axios from 'axios';
             openFilePicker() {
                 this.$refs.fileInput && this.$refs.fileInput.click();
             },
+            insertEmoji(e) {
+                const start = this.newMessage?.length ? this.newMessage.length : 0;
+                // 단순히 끝에 추가; 필요시 커서 위치 처리는 ref로 확장 가능
+                this.newMessage = (this.newMessage || "") + e;
+                this.isEmojiOpen = false;
+                this.$nextTick(() => {
+                    try { this.$refs.composerInput?.focus(); } catch(_) {}
+                });
+            },
             onFilesSelected(event) {
                 const files = Array.from(event.target.files || []);
                 this.selectedFiles = files;
@@ -336,11 +366,29 @@ import axios from 'axios';
   bottom: 0;
   background-color: #F5F5F5;
 }
+.chat-card{ --v-card-border-radius: 15px; border-radius: 15px !important; overflow: hidden; margin: 24px 0; border: 1px solid #E5E5E5; --chat-accent: #FFE364; }
+.chat-banner{ height: 56px; background: var(--chat-accent); display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; }
+.banner-title{ color: #1C0F0F; font-weight: 700; font-size: 18px; line-height: 22px; text-align: center; }
+.banner-btn{ min-width: 32px; height: 32px; padding: 0; }
+.banner-btn.back{ justify-self: start; }
+.banner-btn.menu{ justify-self: end; }
+.menu-icon{ width: 24px; height: 24px; display: block; }
+
+/* 헤더 좌우 버튼 포커스 테두리 제거 */
+.banner-btn:focus,
+.banner-btn:focus-visible,
+.banner-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.chat-body{ display: flex; flex-direction: column; padding: 0; height: calc(100vh - 64px - 80px - 56px); }
+/* v-card-text 기본 좌우 패딩 제거 (배너와 동일 폭 맞춤) */
+.chat-card > .v-card-text.chat-body{ padding: 0 !important; }
 .chat-box{
-    height: 300px;
+    flex: 1 1 auto;
     overflow-y: auto;
-    border: 1px solid #ddd;
-    margin-bottom: 10px;
+    border-bottom: 1px solid #ddd;
     padding: 8px 12px;
     position: relative;
 }
@@ -358,17 +406,29 @@ import axios from 'axios';
 .chat-row .bubble{ background: #F5F5F5; padding: 8px 10px; border-radius: 10px; font-size: 14px; color: #212121; }
 .chat-row .time{ font-size: 11px; color: #9E9E9E; }
 .chat-row .line-sent{ flex-direction: row-reverse; }
-.chat-row .line-sent .bubble{ background: #FFE364; }
+.chat-row .line-sent .bubble{ background: var(--chat-accent); }
 .chat-row .line-sent .time{ margin-right: 0; }
 .chat-row .line-received .time{ margin-left: 0; }
 .content-sent{ align-items: flex-end; }
 
-.send-row{ display: flex; gap: 8px; }
-.send-input{ flex: 1 1 auto; }
-.send-btn{ flex: 0 0 104px; height: 56px; align-self: stretch; background-color: #FFE364 !important; border-color: #FFE364 !important; color: #212121 !important; }
-.attach-row{ display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-.attach-btn{ min-width: 28px; height: 28px; padding: 0; }
-.attach-count{ font-size: 12px; color: #757575; }
+.chat-footer{ background: #2A2828; border-radius: 0 0 15px 15px; padding: 16px; display: flex; align-items: center; gap: 12px; width: 100%; align-self: stretch; box-sizing: border-box; margin-left: 0; margin-right: 0; --composer-height: 36px; }
+.composer{ flex: 1 1 auto; display: grid; grid-template-columns: var(--composer-height) 1fr var(--composer-height); align-items: center; background: #FFFFFF; border: 1px solid #DDDDDD; border-radius: calc(var(--composer-height) / 2); padding: 0 10px; height: var(--composer-height); box-sizing: border-box; }
+.icon-btn{ width: var(--composer-height); height: var(--composer-height); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; }
+.icon-btn:focus{ outline: none; }
+.icon-btn.left v-icon{ color: #000000; }
+.icon-btn.right v-icon{ color: #FFDD44; }
+.icon-btn .v-icon{ font-size: 18px; }
+.composer-input{ padding: 0 8px; height: 100%; }
+.composer-input .v-field{ background: transparent; height: 100% !important; min-height: 0 !important; padding: 0 !important; align-items: center; border-radius: calc(var(--composer-height) / 2); display: flex; }
+.composer-input .v-field__overlay{ height: 100% !important; }
+.composer-input .v-field__loader{ height: 100% !important; }
+.composer-input .v-field__input{ padding: 0 !important; height: 100% !important; min-height: 0 !important; display: flex; align-items: center; font-size: 12px; }
+.composer-input input{ height: 100%; line-height: 1; font-size: 12px; display: flex; align-items: center; }
+.composer-input input::placeholder{ color: #9E9E9E; font-size: 12px; }
+.emoji-panel{ display: grid; grid-template-columns: repeat(8, 28px); gap: 6px; padding: 8px; }
+.emoji-btn{ width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; font-size: 18px; }
+.emoji-btn:focus{ outline: none; }
+.send-btn{ flex: 0 0 112px; height: var(--composer-height) !important; border-radius: calc(var(--composer-height) / 2) !important; background-color: var(--chat-accent) !important; border-color: var(--chat-accent) !important; color: #000000 !important; font-weight: 400 !important; font-size: 12px !important; line-height: 15px !important; text-transform: none; letter-spacing: 0; }
 
 .files{ display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
 .files .file-item{ max-width: 160px; }

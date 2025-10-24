@@ -207,7 +207,7 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
   bottom: 0;
   background-color: #F5F5F5;
 }
-.chatlist-wrapper{ display: flex; justify-content: center; padding: 24px; min-height: calc(100vh - 64px - 72px); }
+.chatlist-wrapper{ display: flex; justify-content: center; padding: 24px 12px 24px 24px; min-height: calc(100vh - 64px - 72px); }
 .chatlist-card{ border-radius: 15px; overflow: hidden; border: 1px solid #E5E5E5; width: 384px; display: flex; flex-direction: column; min-height: calc(100vh - 64px - 80px); }
 .chatlist-card{ border-radius: 15px; overflow: hidden; border: 1px solid #E5E5E5; }
 .chatlist-banner{ height: 56px; background: #FFE364; display: flex; align-items: center; padding: 0 25px; }
@@ -309,6 +309,8 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
     padding: 0 10px;
     border-radius: 8px;
     cursor: pointer;
+    background: #FFE364; /* 프리뷰 버튼 노란색 */
+    color: #2A2828; /* 가독성 있는 어두운 텍스트 */
 }
 
 /* Vuetify v-table 기본 셀 패딩 오버라이드 (간격 축소) */

@@ -21,16 +21,16 @@
 
     <!-- 요약 미리보기 다이얼로그 -->
     <v-dialog v-model="isSummaryDialogOpen" max-width="520px">
-        <v-card>
-            <v-card-title class="text-h6">요약 미리보기</v-card-title>
-            <v-card-text :key="summaryDialogVersion">
+        <v-card class="summary-card">
+            <v-card-title class="text-h6 summary-title">요약 미리보기</v-card-title>
+            <v-card-text class="summary-body" :key="summaryDialogVersion">
                 <div v-if="summaryDialogLoading" class="d-flex align-center justify-center" style="min-height:120px">
                     <v-progress-circular indeterminate :size="42" :width="4" color="#FFE364" />
                 </div>
                 <div v-else v-html="formatMultiline(summaryDialogText)" style="white-space: normal; line-height: 1.5;"></div>
             </v-card-text>
-            <v-card-actions class="justify-end">
-                <v-btn color="primary" variant="text" @click="isSummaryDialogOpen = false">닫기</v-btn>
+            <v-card-actions class="justify-end summary-actions">
+                <v-btn class="summary-btn" variant="flat" @click="isSummaryDialogOpen = false">닫기</v-btn>
             </v-card-actions>
         </v-card>
     </v-dialog>
@@ -217,4 +217,11 @@ export default {
   background: #FFE364;
   color: #2A2828;
 }
+
+/* Summary dialog styling */
+.summary-card{ --v-card-border-radius: 15px; border-radius: 15px !important; overflow: hidden; }
+.summary-title{ background: #FFE364; color: #1C0F0F; font-weight: 700; }
+.summary-body{ padding-top: 16px; }
+.summary-actions{ padding: 12px 16px; }
+.summary-btn{ background: #FFE364 !important; color: #2A2828 !important; font-weight: 600; }
 </style>
