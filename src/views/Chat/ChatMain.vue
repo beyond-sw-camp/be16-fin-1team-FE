@@ -195,7 +195,7 @@ export default {
 .room-list-panel {
   flex: 0 0 30%;
   min-width: 240px; /* 너무 좁아지지 않도록 하한 */
-  border-right: 1px solid #E0E0E0;
+  border-right: none;
   overflow: auto;
 }
 .chat-panel {

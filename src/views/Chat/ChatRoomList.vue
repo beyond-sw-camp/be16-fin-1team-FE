@@ -3,14 +3,12 @@
         <v-container fluid>
             <v-row>
                 <v-col>
-                    <v-card>
-                        <v-card-title class="text-center text-h5">
-                            채팅방목록
-                            <div class="d-flex justify-end">
-                                <!-- <v-btn color="secondary" @click="showCreateRoomModal=true">채팅방 생성</v-btn> -->
-                            </div>
-                        </v-card-title>
-                        <v-card-text>
+                        <div class="chatlist-wrapper">
+                        <v-card class="chatlist-card">
+                        <div class="chatlist-banner">
+                            <span class="chatlist-banner-title">내 채팅 목록</span>
+                        </div>
+                        <v-card-text class="chatlist-body">
                             <v-table>
                                 <tbody>
                                     <tr
@@ -31,8 +29,8 @@
                                                 >
                                                     <img :src="url || userDefault" alt="user" @error="onAvatarError($event)" />
                                                 </div>
-                                                <div v-if="Number(chat.participantCount) > 4" class="avatar-item more" :style="{ zIndex: 6 }">
-                                                    +{{ Number(chat.participantCount) - 4 }}
+                                                <div v-if="hiddenOthersCount(chat) > 0" class="avatar-item more" :style="{ zIndex: 6 }">
+                                                    +{{ hiddenOthersCount(chat) }}
                                                 </div>
                                             </div>
                                             <img v-else :src="userDefault" alt="user" class="avatar-img" />
@@ -64,6 +62,7 @@
                             </v-table>
                         </v-card-text>
                     </v-card>
+                    </div>
                 </v-col>
             </v-row>
             <v-dialog v-model="showCreateRoomModal" max-width="500px">
@@ -133,12 +132,20 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
             },
             visibleAvatars(list, participantCount) {
                 const filtered = Array.isArray(list) ? list.filter((u) => !!u) : [];
-                const count = Math.max(0, Math.min(4, Number(participantCount) || filtered.length));
+                const totalParticipants = Number(participantCount) || 0;
+                const othersMax = Math.max(0, totalParticipants - 1); // 본인 제외한 표시 가능 최대 수
+                const slots = Math.max(0, Math.min(4, othersMax)); // 항상 슬롯 개수 보장
                 const out = [];
-                for (let i = 0; i < count; i++) {
-                    out.push(filtered[i] || null);
+                for (let i = 0; i < slots; i++) {
+                    out.push(filtered[i] || null); // 없으면 기본 아이콘으로 대체
                 }
                 return out;
+            },
+            hiddenOthersCount(chat) {
+                const totalParticipants = Number(chat?.participantCount) || 0;
+                const othersMax = Math.max(0, totalParticipants - 1);
+                const slots = Math.max(0, Math.min(4, othersMax));
+                return Math.max(0, othersMax - slots); // 슬롯을 초과한 나머지를 +N으로 표시
             },
             onAvatarError(e) {
                 e.target.src = this.userDefault;
@@ -193,6 +200,14 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
   bottom: 0;
   background-color: #F5F5F5;
 }
+.chatlist-wrapper{ display: flex; justify-content: center; padding: 24px; min-height: calc(100vh - 64px - 72px); }
+.chatlist-card{ border-radius: 15px; overflow: hidden; border: 1px solid #E5E5E5; width: 384px; display: flex; flex-direction: column; min-height: calc(100vh - 64px - 80px); }
+.chatlist-card{ border-radius: 15px; overflow: hidden; border: 1px solid #E5E5E5; }
+.chatlist-banner{ height: 56px; background: #FFE364; display: flex; align-items: center; padding: 0 25px; }
+.chatlist-banner-title{ color: #1C0F0F; font-weight: 700; font-size: 18px; line-height: 22px; }
+.chatlist-body{ flex: 1 1 auto; display: flex; padding: 0; }
+.chatlist-body .v-table{ width: 100%; }
+.chatlist-body .v-table .v-table__wrapper{ max-height: none; }
 .room-row{
     cursor: pointer;
 }
@@ -204,6 +219,7 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
     font-weight: 600;
 }
 .v-table .v-table__wrapper table{ table-layout: fixed; width: 100%; }
+.v-table tbody tr:not(:last-child) td{ border-bottom: 1px solid #E5E5E5; }
 .room-row > td{ vertical-align: top; }
 .col-avatar{ width: 56px; }
 .avatar-img{ width: 28px; height: 28px; display: block; border-radius: 50%; object-fit: cover; }
@@ -217,25 +233,24 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
 .avatar-stack .avatar-item.more{ background: #ECEFF1; color: #546E7A; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
 .col-main{ width: 100%; display: flex; flex-direction: column; row-gap: 4px; overflow: hidden; }
 .row-title{ display: flex; align-items: center; gap: 6px; line-height: 1.3; }
-.row-title .title{ font-size: 14px; color: #212121; display: block; }
-.row-title .member-count{ font-size: 12px; color: #9E9E9E; }
-.row-subtitle{ font-size: 12px; color: #757575; line-height: 1.5; margin: 0; }
+.row-title .title{ font-size: 12px; color: #212121; display: block; }
+.row-title .member-count{ font-size: 10px; color: #9E9E9E; }
+.row-subtitle{ font-size: 10px; color: #484646; line-height: 1.5; margin: 0; }
 .text-ellipsis{ overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .row-subtitle-wrap{ display: flex; align-items: baseline; }
 .col-meta{ width: 96px; text-align: right; }
-.last-time{ font-size: 11px; color: #9E9E9E; margin-bottom: 6px; white-space: nowrap; }
+.last-time{ font-size: 10px; color: #484646; margin-bottom: 6px; white-space: nowrap; }
 .badge-unread{
     display: inline-flex;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
+    width: 14px;
+    height: 14px;
     align-items: center;
     justify-content: center;
-    border-radius: 9999px;
-    background: #EF5350; /* 빨간색 */
-    color: #fff; /* 흰 글씨 */
-    font-size: 11px;
-    font-weight: 700;
+    border-radius: 50%;
+    background: #EF5350;
+    color: #FFFFFF;
+    font-size: 9px;
+    font-weight: 500;
 }
 .badge-unread.preview{
     height: 24px;
