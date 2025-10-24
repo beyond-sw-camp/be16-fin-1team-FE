@@ -218,13 +218,16 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
 .room-row{
     cursor: pointer;
     height: 68px;
+    --stack-gap-color: #FFFFFF; /* 아바타 겹침 경계선 색(행 배경과 동일) */
 }
 .room-row:hover{
     background: #F0F7FF;
+    --stack-gap-color: #F0F7FF;
 }
 .room-row.selected{
     background: #E3F2FD;
     font-weight: 600;
+    --stack-gap-color: #E3F2FD;
 }
 .v-table .v-table__wrapper table{ table-layout: fixed; width: 100%; }
 .v-table tbody tr.room-row{ display: table-row !important; }
@@ -233,7 +236,7 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
 .col-avatar{ width: 48px; padding-right: 4px; }
 .avatar-img{ width: 36px; height: 36px; display: block; border-radius: 50%; object-fit: cover; }
 .avatar-stack{ position: relative; height: 28px; }
-.avatar-stack .avatar-item{ position: absolute; border-radius: 50%; overflow: hidden; border: 1px solid rgba(0,0,0,0.25); box-shadow: none; }
+.avatar-stack .avatar-item{ position: absolute; border-radius: 50%; overflow: hidden; border: 0; box-shadow: none; }
 .avatar-stack .avatar-item img{ width: 100%; height: 100%; object-fit: cover; display: block; }
 .avatar-stack .avatar-item.more{ background: #ECEFF1; color: #546E7A; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
 .avatar-stack.count-1{ height: 40px; width: 40px; }
@@ -243,19 +246,26 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
 .avatar-stack.count-2{ height: 32px; width: 48px; position: relative; }
 .avatar-stack.count-2 .av-1{ width: 32px; height: 32px; left: 0; top: -5px; }
 .avatar-stack.count-2 .av-2{ width: 32px; height: 32px; left: 18px; top:10px; }
+/* 겹침 경계 라인 (좌우 + 상하) */
+.avatar-stack.count-2 .av-1{ box-shadow: 2px 0 0 0 var(--stack-gap-color), 0 2px 0 0 var(--stack-gap-color); }
+.avatar-stack.count-2 .av-2{ box-shadow: -2px 0 0 0 var(--stack-gap-color), 0 -2px 0 0 var(--stack-gap-color); }
 
 /* 3개: 상단 두 개(0,0)(0,1), 가운데 아래 하나가 끼어드는 형태 */
 .avatar-stack.count-3{ height: 34px; width: 48px; position: relative; }
 .avatar-stack.count-3 .av-1{ width: 30px; height: 30px; left: 0; top: -5px; }
 .avatar-stack.count-3 .av-2{ width: 30px; height: 30px; left: 22px; top: -5px; }
 .avatar-stack.count-3 .av-3{ width: 30px; height: 30px; left: 11px; top: 13px; z-index: 12; }
+/* 겹침 경계 라인 (상/하/좌/우) */
+.avatar-stack.count-3 .av-1{ box-shadow: 2px 0 0 0 var(--stack-gap-color), 0 2px 0 0 var(--stack-gap-color); }
+.avatar-stack.count-3 .av-2{ box-shadow: -2px 0 0 0 var(--stack-gap-color), 0 2px 0 0 var(--stack-gap-color); }
+.avatar-stack.count-3 .av-3{ box-shadow: 0 -2px 0 0 var(--stack-gap-color); }
 
 /* 4개: 2x2 그리드 배치 */
 .avatar-stack.count-4{ height: 34px; width: 48px; position: relative; }
-.avatar-stack.count-4 .av-1{ width: 22px; height: 22px; left: 0; top: -5px; }
-.avatar-stack.count-4 .av-2{ width: 22px; height: 22px; left: 22px; top: -5px; }
-.avatar-stack.count-4 .av-3{ width: 22px; height: 22px; left: 0; top: 17px; }
-.avatar-stack.count-4 .av-4{ width: 22px; height: 22px; left: 22px; top: 17px; }
+.avatar-stack.count-4 .av-1{ width: 22px; height: 22px; left: 0; top: -5px; box-shadow: 2px 0 0 0 var(--stack-gap-color), 0 2px 0 0 var(--stack-gap-color); }
+.avatar-stack.count-4 .av-2{ width: 22px; height: 22px; left: 22px; top: -5px; box-shadow: -2px 0 0 0 var(--stack-gap-color), 0 2px 0 0 var(--stack-gap-color); }
+.avatar-stack.count-4 .av-3{ width: 22px; height: 22px; left: 0; top: 17px; box-shadow: 2px 0 0 0 var(--stack-gap-color), 0 -2px 0 0 var(--stack-gap-color); }
+.avatar-stack.count-4 .av-4{ width: 22px; height: 22px; left: 22px; top: 17px; box-shadow: -2px 0 0 0 var(--stack-gap-color), 0 -2px 0 0 var(--stack-gap-color); }
 
 /* +N indicator position */
 .avatar-stack .avatar-item.more{ width: 18px; height: 18px; right: -6px; bottom: -6px; left: auto; top: auto; font-size: 10px; }
