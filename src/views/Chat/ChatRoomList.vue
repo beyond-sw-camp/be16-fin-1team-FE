@@ -44,7 +44,7 @@
                                                 <span class="member-count">({{ chat.participantCount }})</span>
                                             </div>
                                             <div class="row-subtitle-wrap">
-                                                <span class="row-subtitle text-ellipsis">
+                                                <span class="row-subtitle text-ellipsis-2">
                                                     {{ chat.lastMessage || '메시지가 없습니다' }}
                                                 </span>
                                             </div>
@@ -263,7 +263,17 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
 .row-title{ display: flex; align-items: baseline; gap: 4px; line-height: 1.3; margin-bottom: 4px; }
 .row-title .title{ font-size: 13px; font-weight: 500; color: #212121; display: block; }
 .row-title .member-count{ font-size: 11px; color: #9E9E9E; }
-.row-subtitle{ font-size: 11px; color: #555; line-height: 1.5; margin: 0; }
+.row-subtitle{ font-size: 11px; color: #555; line-height: 1.3; margin: 0; }
+.text-ellipsis-2{
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 최대 2줄 */
+  -webkit-box-orient: vertical;
+  line-clamp: 2; /* 표준 속성 (지원 브라우저 한정) */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: calc(1.2em * 2); /* line-height * 2줄 */
+  word-break: break-word;
+}
 .text-ellipsis{ overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .row-subtitle-wrap{ display: flex; align-items: baseline; }
 .col-meta{ width: 80px; text-align: right; white-space: nowrap; position: relative; padding-bottom: 20px; --last-time-top: 10px; --last-time-right: 12px; --badge-right: 18px; --badge-bottom: 18px; }
