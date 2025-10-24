@@ -18,16 +18,20 @@
                                 <div
                                     v-for="(msg, index) in messages"
                                     :key="index"
-                                    :class="['chat-row', msg.senderId === senderId ? 'sent' : 'received']"
+                                    :class="[
+                                        'chat-row',
+                                        msg.senderId === senderId ? 'sent' : 'received',
+                                        isGroupStart(index) ? 'group-start' : 'group-cont'
+                                    ]"
                                 >
-                                    <div v-if="msg.senderId !== senderId" class="avatar">
-                                        <img :src="msg.userProfileImageUrl || userDefault" alt="user" @error="onAvatarError($event)" />
+                                    <div v-if="msg.senderId !== senderId" :class="['avatar', { 'avatar-spacer': !isGroupStart(index) }]"><!---->
+                                        <img v-if="isGroupStart(index)" :src="msg.userProfileImageUrl || userDefault" alt="user" @error="onAvatarError($event)" />
                                     </div>
                                     <div :class="['content', msg.senderId === senderId ? 'content-sent' : 'content-received']">
-                                        <div v-if="msg.senderId !== senderId" class="name">{{ msg.senderName || msg.senderId }}</div>
+                                        <div v-if="msg.senderId !== senderId && isGroupStart(index)" class="name">{{ msg.senderName || msg.senderId }}</div>
                                         <div v-if="msg.message && msg.message.length" :class="['line', msg.senderId === senderId ? 'line-sent' : 'line-received']">
                                             <div class="bubble">{{ msg.message }}</div>
-                                            <div class="time">{{ formatChatTime(msg.lastSendTime) }}</div>
+                                            <div v-if="isTimeGroupEnd(index)" class="time">{{ formatChatTime(msg.lastSendTime) }}</div>
                                         </div>
                                         <div v-if="showFiles(msg)" :class="['files', msg.senderId === senderId ? 'files-sent' : 'files-received']">
                                             <div v-for="(file, fIdx) in (msg.chatFileListDtoList || [])" :key="fIdx" class="file-item">
@@ -43,7 +47,7 @@
                                             </div>
                                         </div>
                                         <div v-if="showFiles(msg) && !(msg.message && msg.message.length)" :class="['line', msg.senderId === senderId ? 'line-sent' : 'line-received']">
-                                            <div class="time">{{ formatChatTime(msg.lastSendTime) }}</div>
+                                            <div v-if="isTimeGroupEnd(index)" class="time">{{ formatChatTime(msg.lastSendTime) }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -200,6 +204,32 @@ import axios from 'axios';
                     }
                 }
                 return m;
+            },
+            isGroupStart(index) {
+                if (index === 0) return true;
+                const prev = this.messages[index - 1];
+                const curr = this.messages[index];
+                if (!prev || !curr) return true;
+                return prev.senderId !== curr.senderId;
+            },
+            isTimeGroupEnd(index) {
+                const curr = this.messages[index];
+                const next = this.messages[index + 1];
+                if (!curr) return true;
+                // 마지막 메시지면 시간 표시
+                if (!next) return true;
+                // 다음 메시지가 동일 발신자이고 동일 분 단위 시간이면 현재는 시간 숨김
+                const sameSender = next.senderId === curr.senderId;
+                const sameMinute = this.sameMinute(curr.lastSendTime, next.lastSendTime);
+                return !(sameSender && sameMinute);
+            },
+            sameMinute(a, b) {
+                try {
+                    const da = new Date(a);
+                    const db = new Date(b);
+                    if (isNaN(da) || isNaN(db)) return String(a).slice(0,16) !== String(b).slice(0,16) ? false : true;
+                    return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate() && da.getHours() === db.getHours() && da.getMinutes() === db.getMinutes();
+                } catch(_) { return false; }
             },
             async loadHistory() {
                 if (!this.roomId) return;
@@ -397,6 +427,9 @@ import axios from 'axios';
 .chat-header .title-text{ flex: 1; text-align: left; }
 .back-btn-top{ min-width: 28px; height: 28px; padding: 0; }
 .chat-row{ display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-end; }
+.chat-row.group-cont .avatar{ visibility: hidden; width: 28px; }
+.avatar-spacer{ visibility: hidden; }
+.chat-row.group-cont .name{ display: none; }
 .chat-row.sent{ justify-content: flex-end; }
 .chat-row .avatar{ width: 28px; height: 28px; border-radius: 50%; overflow: hidden; flex: 0 0 28px; }
 .chat-row .avatar img{ width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -425,10 +458,13 @@ import axios from 'axios';
 .composer-input .v-field__input{ padding: 0 !important; height: 100% !important; min-height: 0 !important; display: flex; align-items: center; font-size: 12px; }
 .composer-input input{ height: 100%; line-height: 1; font-size: 12px; display: flex; align-items: center; }
 .composer-input input::placeholder{ color: #9E9E9E; font-size: 12px; }
-.emoji-panel{ display: grid; grid-template-columns: repeat(8, 28px); gap: 6px; padding: 8px; }
+.emoji-panel{ display: grid; grid-template-columns: repeat(8, 28px); gap: 6px; padding: 8px; background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
 .emoji-btn{ width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; font-size: 18px; }
 .emoji-btn:focus{ outline: none; }
 .send-btn{ flex: 0 0 112px; height: var(--composer-height) !important; border-radius: calc(var(--composer-height) / 2) !important; background-color: var(--chat-accent) !important; border-color: var(--chat-accent) !important; color: #000000 !important; font-weight: 400 !important; font-size: 12px !important; line-height: 15px !important; text-transform: none; letter-spacing: 0; }
+.send-btn:focus,
+.send-btn:focus-visible,
+.send-btn:active{ outline: none !important; box-shadow: none !important; }
 
 .files{ display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
 .files .file-item{ max-width: 160px; }
