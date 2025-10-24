@@ -229,8 +229,8 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
 .v-table .v-table__wrapper table{ table-layout: fixed; width: 100%; }
 .v-table tbody tr.room-row{ display: table-row !important; }
 .v-table tbody tr:not(:last-child) td{ border-bottom: 1px solid #E5E5E5; }
-.room-row > td{ vertical-align: middle; padding: 8px 12px; }
-.col-avatar{ width: 48px; }
+.room-row > td{ vertical-align: middle; padding: 8px 8px; }
+.col-avatar{ width: 48px; padding-right: 4px; }
 .avatar-img{ width: 36px; height: 36px; display: block; border-radius: 50%; object-fit: cover; }
 .avatar-stack{ position: relative; height: 28px; }
 .avatar-stack .avatar-item{ position: absolute; border-radius: 50%; overflow: hidden; border: 1px solid rgba(0,0,0,0.25); box-shadow: none; }
@@ -259,15 +259,15 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
 
 /* +N indicator position */
 .avatar-stack .avatar-item.more{ width: 18px; height: 18px; right: -6px; bottom: -6px; left: auto; top: auto; font-size: 10px; }
-.col-main { padding-top: 6px; padding-bottom: 6px; }
+.col-main { padding-top: 4px; padding-bottom: 4px; }
 .row-title{ display: flex; align-items: baseline; gap: 4px; line-height: 1.3; margin-bottom: 4px; }
 .row-title .title{ font-size: 13px; font-weight: 500; color: #212121; display: block; }
 .row-title .member-count{ font-size: 11px; color: #9E9E9E; }
 .row-subtitle{ font-size: 11px; color: #555; line-height: 1.5; margin: 0; }
 .text-ellipsis{ overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .row-subtitle-wrap{ display: flex; align-items: baseline; }
-.col-meta{ width: 80px; text-align: right; white-space: nowrap; }
-.last-time{ font-size: 11px; color: #757575; margin-bottom: 4px; white-space: nowrap; }
+.col-meta{ width: 80px; text-align: right; white-space: nowrap; position: relative; padding-bottom: 20px; --last-time-top: 10px; --last-time-right: 12px; --badge-right: 18px; --badge-bottom: 18px; }
+.last-time{ font-size: 11px; color: #757575; margin: 0; white-space: nowrap; position: absolute; top: var(--last-time-top); right: var(--last-time-right); }
 .badge-unread{
     display: inline-flex;
     min-width: 16px;
@@ -279,6 +279,9 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
     color: #FFFFFF;
     font-size: 10px;
     font-weight: 600;
+    position: absolute;
+    right: var(--badge-right);
+    bottom: var(--badge-bottom);
 }
 .badge-unread.preview{
     height: 24px;
@@ -286,5 +289,16 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
     padding: 0 10px;
     border-radius: 8px;
     cursor: pointer;
+}
+
+/* Vuetify v-table 기본 셀 패딩 오버라이드 (간격 축소) */
+:deep(.v-table .v-table__wrapper table tbody tr.room-row > td){
+  padding: 8px 8px !important;
+}
+:deep(.v-table .v-table__wrapper table tbody tr.room-row > td.col-avatar){
+  padding-right: 8px !important;
+}
+:deep(.v-table .v-table__wrapper table tbody tr.room-row > td.col-main){
+  padding-left: 8px !important;
 }
 </style>
