@@ -4,12 +4,12 @@
             <v-row justify="center">
                 <v-col cols="12" md="16" lg="16" xl="12">
                     <v-card class="chat-card">
-                        <div :class="['chat-banner', { 'with-user-panel': isUserPanelOpen }]"><!-- header shifts with panel -->
+                        <div :class="['chat-banner', { 'with-user-panel': isUserPanelOpen, 'with-side-panel': (isUserPanelOpen || isDocsPanelOpen) }]"><!-- header shifts with panel -->
                             <v-btn class="banner-btn back" variant="text" size="small" @click="refreshPage" icon>
                                 <v-icon icon="mdi-chevron-left"></v-icon>
                             </v-btn>
                             <div class="banner-title">{{ computedTitle }}</div>
-                            <template v-if="isUserPanelOpen">
+                            <template v-if="(isUserPanelOpen || isDocsPanelOpen)">
                                 <v-btn class="banner-btn menu" variant="text" size="small" icon @click="closeUserPanel">
                                     <img src="@/assets/icons/user/close.svg" alt="close" class="menu-icon" />
                                 </v-btn>
@@ -38,7 +38,8 @@
                                 </v-menu>
                             </template>
                         </div>
-                        <v-card-text :class="['chat-body', { 'with-user-panel': isUserPanelOpen }]">
+                        <v-card-text :class="['chat-body', { 'with-user-panel': isUserPanelOpen, 'with-side-panel': (isUserPanelOpen || isDocsPanelOpen) }]
+                        ">
                             <div class="chat-box">
                                 <div
                                     v-for="(msg, index) in messages"
@@ -61,13 +62,17 @@
                                         <div v-if="showFiles(msg)" :class="['files', msg.senderId === senderId ? 'files-sent' : 'files-received']">
                                             <div v-for="(file, fIdx) in (msg.chatFileListDtoList || [])" :key="fIdx" class="file-item">
                                                 <template v-if="isImage(file?.fileUrl || file?.fileName)">
-                                                    <a :href="file?.fileUrl" target="_blank" rel="noopener">
-                                                        <img v-if="file?.fileUrl" :src="file.fileUrl" alt="file" class="image-thumb" />
-                                                        <div v-else class="file-chip">{{ file?.fileName || '파일' }}</div>
-                                                    </a>
+                                                <a href="#" @click.prevent="openImage(file.fileUrl)">
+                                                    <img v-if="file?.fileUrl" :src="file.fileUrl" alt="file" class="image-thumb" />
+                                                    <div v-else class="file-chip">{{ file?.fileName || '파일' }}</div>
+                                                </a>
                                                 </template>
                                                 <template v-else>
-                                                    <a :href="file?.fileUrl" target="_blank" rel="noopener" class="file-chip">{{ file?.fileName || '파일' }}</a>
+                                                    <a :href="file?.fileUrl" target="_blank" rel="noopener" class="file-doc">
+                                                        <span class="badge-doc">{{ fileExt(file?.fileName) }}</span>
+                                                        <span class="doc-name text-ellipsis">{{ file?.fileName || '파일' }}</span>
+                                                        <span v-if="file?.fileSize" class="doc-size">{{ formatFileSize(file.fileSize) }}</span>
+                                                    </a>
                                                 </template>
                                             </div>
                                         </div>
@@ -142,11 +147,51 @@
                             </div>
                         </div>
                         </transition>
+                        <transition name="slide-user">
+                        <div v-if="isDocsPanelOpen" class="user-panel docs-mode">
+                            <div class="user-panel-header">
+                                <img src="@/assets/icons/chat/file-multiple.svg" alt="docs" class="user-panel-icon" />
+                                <span class="user-panel-title">문서함</span>
+                                <span class="user-panel-count">{{ filesList.length }}</span>
+                            </div>
+                            <div class="docs-panel-body">
+                                <div v-for="(group, gIdx) in groupedFiles" :key="gIdx" class="docs-group">
+                                    <div class="docs-date">{{ group.date }}</div>
+                                    <div class="file-grid">
+                                        <div v-for="file in group.items" :key="file.fileId" class="file-card">
+                                            <template v-if="isImage(file.fileUrl || file.fileName)">
+                                                <a href="#" @click.prevent="openImage(file.fileUrl)">
+                                                    <img :src="file.fileUrl" alt="file" class="file-thumb" />
+                                                </a>
+                                            </template>
+                                            <template v-else>
+                                                <a :href="file.fileUrl" target="_blank" rel="noopener" class="file-doc">
+                                                    <span class="badge-doc">{{ fileExt(file.fileName) }}</span>
+                                                    <span class="doc-name text-ellipsis">{{ file.fileName }}</span>
+                                                    <span class="doc-size">{{ formatFileSize(file.fileSize) }}</span>
+                                                </a>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </transition>
                     </v-card>
 
                 </v-col>
             </v-row>
         </v-container>
+        <v-dialog v-model="isImageModalOpen" max-width="820px">
+            <v-card class="image-modal-card">
+                <v-card-text class="image-modal-body">
+                    <img :src="imageModalSrc" alt="preview" class="image-modal-img" />
+                </v-card-text>
+                <v-card-actions class="justify-end">
+                    <v-btn class="image-modal-btn" variant="elevated" color="#FFE364" @click="isImageModalOpen=false">닫기</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
     </div>
 </template>
 
@@ -172,6 +217,16 @@ import axios from 'axios';
                     return `${this.roomTitle} (${this.participantCount})`;
                 }
                 return '채팅';
+            },
+            groupedFiles(){
+                const groups = {};
+                for (const f of (this.filesList||[])){
+                    const d = new Date(f.createAt);
+                    const date = isNaN(d) ? String(f.createAt).slice(0,10) : `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+                    if(!groups[date]) groups[date] = [];
+                    groups[date].push(f);
+                }
+                return Object.entries(groups).sort((a,b)=> a[0]<b[0] ? 1 : -1).map(([date, items])=>({ date, items }));
             }
         },
         data() {
@@ -193,7 +248,11 @@ import axios from 'axios';
                 ],
                 isHeaderMenuOpen: false,
                 isUserPanelOpen: false,
+                isDocsPanelOpen: false,
                 participantsList: [],
+                filesList: [],
+                isImageModalOpen: false,
+                imageModalSrc: '',
             }
         },
         created() {
@@ -285,6 +344,17 @@ import axios from 'axios';
                     if (isNaN(da) || isNaN(db)) return String(a).slice(0,16) !== String(b).slice(0,16) ? false : true;
                     return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate() && da.getHours() === db.getHours() && da.getMinutes() === db.getMinutes();
                 } catch(_) { return false; }
+            },
+            fileExt(name){
+                const m = String(name||'').match(/\.([a-zA-Z0-9]+)$/);
+                return (m && m[1] || 'FILE').toUpperCase();
+            },
+            formatFileSize(bytes){
+                const b = Number(bytes)||0;
+                if (b < 1024) return `${b} B`;
+                const kb = b/1024;
+                if (kb < 1024) return `${kb.toFixed(1)} KB`;
+                const mb = kb/1024; return `${mb.toFixed(1)} MB`;
             },
             async loadHistory() {
                 if (!this.roomId) return;
@@ -397,11 +467,15 @@ import axios from 'axios';
                         this.fetchParticipants();
                     }
                 } else if (what === 'docs') {
-                    // 문서함 이동/패널 연결 포인트
+                    this.isDocsPanelOpen = !this.isDocsPanelOpen;
+                    if (this.isDocsPanelOpen) {
+                        this.fetchFiles();
+                    }
                 }
             },
             closeUserPanel(){
                 this.isUserPanelOpen = false;
+                this.isDocsPanelOpen = false;
             },
             async fetchParticipants(){
                 try {
@@ -414,6 +488,23 @@ import axios from 'axios';
                     console.warn('fetch participants failed', e);
                     this.participantsList = [];
                 }
+            },
+            async fetchFiles(){
+                try {
+                    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                    const url = `${baseURL}/chat-service/chat/room/${this.roomId}/files`;
+                    const { data } = await axios.get(url);
+                    const list = Array.isArray(data?.result) ? data.result : [];
+                    this.filesList = list;
+                } catch (e) {
+                    console.warn('fetch files failed', e);
+                    this.filesList = [];
+                }
+            },
+            openImage(url){
+                if (!url) return;
+                this.imageModalSrc = url;
+                this.isImageModalOpen = true;
             },
             onFilesSelected(event) {
                 const files = Array.from(event.target.files || []);
@@ -504,9 +595,9 @@ import axios from 'axios';
   bottom: 0;
   background-color: #F5F5F5;
 }
-.chat-card{ --v-card-border-radius: 15px; border-radius: 15px !important; overflow: hidden; margin: 24px 0; border: 1px solid #E5E5E5; --chat-accent: #FFE364; }
-.chat-banner{ height: 56px; background: var(--chat-accent); display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; position: sticky; top: 0; z-index: 2; }
-.chat-banner.with-user-panel{ margin-right: 280px; transition: margin-right 200ms ease; }
+.chat-card{ --v-card-border-radius: 15px; border-radius: 15px !important; overflow: hidden; margin: 24px 0; border: 1px solid #E5E5E5; --chat-accent: #FFE364; --banner-height: 56px; }
+.chat-banner{ height: var(--banner-height); background: var(--chat-accent); display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; position: sticky; top: 0; z-index: 2; }
+.chat-banner.with-user-panel, .chat-banner.with-side-panel{ margin-right: 280px; transition: margin-right 200ms ease; }
 .banner-title{ color: #1C0F0F; font-weight: 700; font-size: 18px; line-height: 22px; text-align: center; }
 .banner-btn{ min-width: 32px; height: 32px; padding: 0; }
 .banner-btn.back{ justify-self: start; }
@@ -522,7 +613,7 @@ import axios from 'axios';
 }
 
 .chat-body{ display: flex; flex-direction: column; padding: 0; height: calc(100vh - 64px - 80px - 56px); position: relative; }
-.chat-body.with-user-panel{ margin-right: 280px; transition: margin-right 200ms ease; }
+.chat-body.with-user-panel, .chat-body.with-side-panel{ margin-right: 280px; transition: margin-right 200ms ease; }
 /* v-card-text 기본 좌우 패딩 제거 (배너와 동일 폭 맞춤) */
 .chat-card > .v-card-text.chat-body{ padding: 0 !important; }
 .chat-box{
@@ -597,15 +688,35 @@ import axios from 'axios';
 .slide-user-leave-from{ transform: translateX(0); opacity: 1; }
 .slide-user-leave-active{ transition: transform 200ms ease, opacity 200ms ease; }
 .slide-user-leave-to{ transform: translateX(100%); opacity: 0; }
-.user-panel-header{ height: 56px; background: var(--chat-accent); display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; padding: 0 8px; }
+.user-panel-header{ height: var(--banner-height); background: var(--chat-accent); display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; padding: 0 8px; position: sticky; top: 0; z-index: 2; }
+.user-panel.docs-mode .user-panel-header{ height: 112px; background: var(--chat-accent); display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; padding: 0 8px; position: sticky; top: 0; z-index: 2; }
 .user-panel-icon{ width: 24px; height: 24px; }
 .user-panel-title{ color: #1C0F0F; font-weight: 700; text-align: center; }
-.user-panel-count{ color: #1C0F0F; font-weight: 700; }
+.user-panel-count{ color: #1C0F0F; font-weight: 700; justify-self: end; }
 .user-panel-body{ flex: 1 1 auto; overflow-y: auto; padding: 12px 8px; }
 .user-row{ display: flex; align-items: center; justify-content: flex-start; gap: 64px; padding: 12px 8px 12px 36px; border-bottom: 1px solid #F1F1F1; }
 .user-avatar{ width: 32px; height: 32px; border-radius: 50%; overflow: hidden; background: transparent; flex: 0 0 32px; border: 0; box-shadow: none; }
 .user-avatar img{ width: 100%; height: 100%; object-fit: cover; display: block; }
 .user-name{ font-size: 14px; color: #2A2828; text-align: center; }
+
+/* Docs panel */
+.docs-panel-body{ flex: 1 1 auto; overflow-y: auto; padding: 12px 10px; }
+.docs-group{ margin-bottom: 12px; }
+.docs-date{ font-size: 12px; color: #777; margin: 8px 4px; }
+.file-grid{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.file-card{ background: #F9F9F9; border: 1px solid #EAEAEA; border-radius: 8px; overflow: hidden; }
+.file-thumb{ width: 100%; height: 120px; object-fit: cover; display: block; }
+.file-doc{ display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 10px; text-decoration: none; color: #2A2828; background: #F9F9F9; border: 1px solid #EAEAEA; border-radius: 8px; }
+.file-doc:hover{ background: #F7F7F7; }
+.badge-doc{ background: #2A2828; color: #fff; font-size: 10px; border-radius: 4px; padding: 2px 4px; }
+.doc-name{ font-size: 12px; max-width: 100%; }
+.doc-size{ font-size: 11px; color: #777; }
+
+/* Image modal */
+.image-modal-body{ padding: 0; background: #FFF; display: grid; place-items: center; }
+.image-modal-img{ max-width: 100%; max-height: 80vh; object-fit: contain; display: block; }
+.image-modal-btn{ background: #FFE364 !important; color: #2A2828 !important; font-weight: 600; border-color: #FFE364 !important; }
+.image-modal-btn:hover{ filter: brightness(0.98); }
 
 .attach-preview{ display: flex; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #eee; background: #FAFAFA; }
 .preview-item{ position: relative; }
