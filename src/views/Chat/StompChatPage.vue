@@ -41,15 +41,19 @@
                         <v-card-text :class="['chat-body', { 'with-user-panel': isUserPanelOpen, 'with-side-panel': (isUserPanelOpen || isDocsPanelOpen) }]
                         ">
                             <div class="chat-box">
-                                <div
-                                    v-for="(msg, index) in messages"
-                                    :key="index"
-                                    :class="[
-                                        'chat-row',
-                                        msg.senderId === senderId ? 'sent' : 'received',
-                                        isGroupStart(index) ? 'group-start' : 'group-cont'
-                                    ]"
-                                >
+                                <template v-for="(msg, index) in messages" :key="index">
+                                    <div v-if="isDateBoundary(index)" class="date-sep">
+                                        <div class="line"></div>
+                                        <span class="label">{{ formatDateHeader(msg.lastSendTime) }}</span>
+                                        <div class="line"></div>
+                                    </div>
+                                    <div
+                                        :class="[
+                                            'chat-row',
+                                            msg.senderId === senderId ? 'sent' : 'received',
+                                            isGroupStart(index) ? 'group-start' : 'group-cont'
+                                        ]"
+                                    >
                                     <div v-if="msg.senderId !== senderId" :class="['avatar', { 'avatar-spacer': !isGroupStart(index) }]"><!---->
                                         <img v-if="isGroupStart(index)" :src="msg.userProfileImageUrl || userDefault" alt="user" @error="onAvatarError($event)" />
                                     </div>
@@ -80,7 +84,8 @@
                                             <div v-if="isTimeGroupEnd(index)" class="time">{{ formatChatTime(msg.lastSendTime) }}</div>
                                         </div>
                                     </div>
-                                </div>
+                                    </div>
+                                </template>
                             </div>
                             <div v-if="selectedFiles && selectedFiles.length" class="attach-preview">
                                 <div v-for="(file, i) in selectedFiles" :key="i" class="preview-item">
@@ -344,6 +349,24 @@ import axios from 'axios';
                     if (isNaN(da) || isNaN(db)) return String(a).slice(0,16) !== String(b).slice(0,16) ? false : true;
                     return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate() && da.getHours() === db.getHours() && da.getMinutes() === db.getMinutes();
                 } catch(_) { return false; }
+            },
+            isDateBoundary(index){
+                if (index === 0) return true;
+                const prev = this.messages[index - 1];
+                const curr = this.messages[index];
+                if (!prev || !curr) return true;
+                const pd = new Date(prev.lastSendTime);
+                const cd = new Date(curr.lastSendTime);
+                if (isNaN(pd) || isNaN(cd)) return String(prev.lastSendTime).slice(0,10) !== String(curr.lastSendTime).slice(0,10);
+                return pd.getFullYear() !== cd.getFullYear() || pd.getMonth() !== cd.getMonth() || pd.getDate() !== cd.getDate();
+            },
+            formatDateHeader(t){
+                const d = new Date(t);
+                if (isNaN(d)) return String(t).slice(0,10);
+                const y = d.getFullYear();
+                const m = String(d.getMonth()+1).padStart(2,'0');
+                const day = String(d.getDate()).padStart(2,'0');
+                return `${y}.${m}.${day}`;
             },
             fileExt(name){
                 const m = String(name||'').match(/\.([a-zA-Z0-9]+)$/);
@@ -644,6 +667,11 @@ import axios from 'axios';
 .chat-row .line-sent .time{ margin-right: 0; }
 .chat-row .line-received .time{ margin-left: 0; }
 .content-sent{ align-items: flex-end; }
+
+/* Date separator */
+.date-sep{ display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin: 12px 0; }
+.date-sep .line{ height: 1px; background: #E5E5E5; }
+.date-sep .label{ font-size: 12px; color: #000; background: #FFF; border: 1px solid #E5E5E5; border-radius: 999px; padding: 4px 10px; }
 
 .chat-footer{ background: #2A2828; border-radius: 0 0 15px 15px; padding: 16px; display: flex; align-items: center; gap: 12px; width: 100%; align-self: stretch; box-sizing: border-box; margin-left: 0; margin-right: 0; --composer-height: 36px; }
 .composer{ flex: 1 1 auto; display: grid; grid-template-columns: var(--composer-height) 1fr var(--composer-height); align-items: center; background: #FFFFFF; border: 1px solid #DDDDDD; border-radius: calc(var(--composer-height) / 2); padding: 0 10px; height: var(--composer-height); box-sizing: border-box; }
