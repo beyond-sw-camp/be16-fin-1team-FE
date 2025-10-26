@@ -24,8 +24,6 @@
         </template>
       </div>
       <div class="suggestions">
-        <button class="chip" type="button">오늘 할 일 요약</button>
-        <button class="chip" type="button">회의록 정리</button>
         <button class="chip" type="button">도움말</button>
       </div>
     </div>

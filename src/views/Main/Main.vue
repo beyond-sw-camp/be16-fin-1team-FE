@@ -54,7 +54,7 @@
               챗봇 관련
             </v-card-text>
             <v-card-actions>
-              <v-btn variant="flat" color="primary" :to="'/chatbot/page'">챗봇 화면</v-btn>
+              <v-btn class="chatbot-open-btn" variant="flat" color="primary" :to="'/chatbot/page'">챗봇 화면</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -83,4 +83,6 @@ export default {
   bottom: 0;
   background-color: #F5F5F5;
 }
+.chatbot-open-btn:focus, .chatbot-open-btn:focus-visible { outline: none !important; box-shadow: none !important; }
+.chatbot-open-btn { -webkit-tap-highlight-color: transparent; }
 </style>
