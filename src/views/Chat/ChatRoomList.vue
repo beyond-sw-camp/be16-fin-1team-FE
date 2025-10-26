@@ -45,7 +45,7 @@
                                             </div>
                                             <div class="row-subtitle-wrap">
                                                 <span class="row-subtitle text-ellipsis-2">
-                                                    {{ chat.lastMessage || '메시지가 없습니다' }}
+                                                    {{ (chat.messageType === 'FILE' && !chat.lastMessage) ? '파일이 전송되었습니다.' : (chat.lastMessage || '메시지가 없습니다.') }}
                                                 </span>
                                             </div>
                                         </td>
@@ -109,6 +109,7 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
                         lastMessage: s.lastMessage ?? room.lastMessage,
                         lastSendTime: s.lastSendTime ?? room.lastSendTime,
                         unreadCount: s.unreadCount ?? room.unreadCount,
+                        messageType: s.messageType ?? room.messageType,
                     };
                 });
             }

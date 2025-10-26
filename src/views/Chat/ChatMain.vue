@@ -64,19 +64,23 @@ export default {
         };
     },
     async created() {
-        const id = localStorage.getItem('id');
+                        const id = localStorage.getItem('id');
         if (id) {
             const topic = `/topic/summary/${id}`;
-            this.summaryUnsub = await stompManager.subscribe(topic, (summary) => {
-                // summary: { roomId, lastMessage, lastSendTime, lastSenderEmail, unreadCount }
+                            this.summaryUnsub = await stompManager.subscribe(topic, (summary) => {
+                                // summary: { roomId, lastMessage, lastSendTime, lastSenderEmail, unreadCount, messageType }
+                                try { console.log('[summary] incoming', summary); } catch(_) {}
                 if (summary && summary.roomId != null) {
-                    this.summariesByRoomId = {
+                                    this.summariesByRoomId = {
                         ...this.summariesByRoomId,
                         [summary.roomId]: {
                             ...(this.summariesByRoomId[summary.roomId] || {}),
                             ...summary,
                         },
                     };
+                                    try { console.log('[summary] merged for room', summary.roomId, this.summariesByRoomId[summary.roomId]); } catch(_) {}
+                                } else {
+                                    try { console.warn('[summary] malformed payload', summary); } catch(_) {}
                 }
             });
             this.summaryTopic = topic;
@@ -119,19 +123,23 @@ export default {
         },
         async resubscribeSummary() {
             if (!this.summaryTopic) return;
-            try {
+                            try {
                 if (this.summaryUnsub) { try { this.summaryUnsub(); } catch(_) {} }
-                this.summaryUnsub = await stompManager.subscribe(this.summaryTopic, (summary) => {
-                    if (summary && summary.roomId != null) {
-                        this.summariesByRoomId = {
-                            ...this.summariesByRoomId,
-                            [summary.roomId]: {
-                                ...(this.summariesByRoomId[summary.roomId] || {}),
-                                ...summary,
-                            },
-                        };
-                    }
-                });
+                                this.summaryUnsub = await stompManager.subscribe(this.summaryTopic, (summary) => {
+                                    try { console.log('[summary][resub] incoming', summary); } catch(_) {}
+                                    if (summary && summary.roomId != null) {
+                                        this.summariesByRoomId = {
+                                            ...this.summariesByRoomId,
+                                            [summary.roomId]: {
+                                                ...(this.summariesByRoomId[summary.roomId] || {}),
+                                                ...summary,
+                                            },
+                                        };
+                                        try { console.log('[summary][resub] merged for room', summary.roomId, this.summariesByRoomId[summary.roomId]); } catch(_) {}
+                                    } else {
+                                        try { console.warn('[summary][resub] malformed payload', summary); } catch(_) {}
+                                    }
+                                });
             } catch(_) {}
         },
         startSummaryReconnectLoop() {
