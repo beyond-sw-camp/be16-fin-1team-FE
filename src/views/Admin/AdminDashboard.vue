@@ -41,7 +41,7 @@
 
           <!-- API에서 가져온 권한 그룹들 -->
           <div v-for="group in permissionGroups" :key="group.accessGroupId" class="permission-group-card" :class="{ 'default-group': isDefaultGroup(group.accessGroupName) }">
-            <div class="group-header">
+            <div class="group-header" @click="viewGroupDetail(group)">
               <div class="group-icon">
                 <img 
                   :src="group.accessGroupName === '관리자 그룹' ? '/src/assets/icons/sidebar/admin.svg' : '/src/assets/icons/user/user_default_icon.svg'" 
@@ -1073,6 +1073,11 @@ export default {
     // 기본 그룹인지 확인하는 메서드
     isDefaultGroup(groupName) {
       return groupName === '관리자 그룹' || groupName === '일반 유저 그룹';
+    },
+    
+    // 권한 그룹 상세 조회
+    viewGroupDetail(group) {
+      this.$router.push(`/admin/permission-group/${group.accessGroupId}/detail`);
     }
   }
 };
@@ -1341,6 +1346,11 @@ export default {
   align-items: center;
   padding: 16px 20px;
   cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.group-header:hover {
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .group-icon {
