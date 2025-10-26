@@ -59,11 +59,11 @@
                                     </div>
                                     <div :class="['content', msg.senderId === senderId ? 'content-sent' : 'content-received']">
                                         <div v-if="msg.senderId !== senderId && isGroupStart(index)" class="name">{{ msg.senderName || msg.senderId }}</div>
-                                        <div v-if="msg.message && msg.message.length" :class="['line', msg.senderId === senderId ? 'line-sent' : 'line-received']">
+                                        <div v-if="(msg.message && msg.message.length) && msg.messageType !== 'FILE'" :class="['line', msg.senderId === senderId ? 'line-sent' : 'line-received']">
                                             <div class="bubble">{{ msg.message }}</div>
                                             <div v-if="isTimeGroupEnd(index)" class="time">{{ formatChatTime(msg.lastSendTime) }}</div>
                                         </div>
-                                        <div v-if="showFiles(msg)" :class="['files', msg.senderId === senderId ? 'files-sent' : 'files-received']">
+                                        <div v-if="showFiles(msg) && msg.messageType !== 'TEXT'" :class="['files', msg.senderId === senderId ? 'files-sent' : 'files-received']">
                                             <div v-for="(file, fIdx) in (msg.chatFileListDtoList || [])" :key="fIdx" class="file-item">
                                                 <template v-if="isImage(file?.fileUrl || file?.fileName)">
                                                 <a href="#" @click.prevent="openImage(file.fileUrl)">
@@ -80,7 +80,7 @@
                                                 </template>
                                             </div>
                                         </div>
-                                        <div v-if="showFiles(msg) && !(msg.message && msg.message.length)" :class="['line', msg.senderId === senderId ? 'line-sent' : 'line-received']">
+                                        <div v-if="showFiles(msg) && msg.messageType !== 'TEXT' && !((msg.message && msg.message.length) && msg.messageType !== 'FILE')" :class="['line', msg.senderId === senderId ? 'line-sent' : 'line-received']">
                                             <div v-if="isTimeGroupEnd(index)" class="time">{{ formatChatTime(msg.lastSendTime) }}</div>
                                         </div>
                                     </div>
@@ -123,7 +123,7 @@
                                         </div>
                                     </v-menu>
                                 </div>
-                                <v-btn class="send-btn" variant="flat" elevation="0" rounded="xl" height="48" @click="sendMessage">전송</v-btn>
+                                <v-btn class="send-btn" variant="flat" elevation="0" rounded="xl" height="48" @click="sendMessage" :loading="isSending || uploading" :disabled="isSending || uploading">전송</v-btn>
                             </div>
                             <v-overlay :model-value="uploading" class="align-center justify-center" scrim="rgba(0,0,0,0.12)" persistent>
                                 <v-progress-circular indeterminate :size="42" :width="4" color="#FFE364" />
@@ -244,6 +244,7 @@ import axios from 'axios';
                 selectedFiles: [],
                 selectedPreviewUrls: [],
                 uploading: false,
+                isSending: false,
                 reconnecting: false,
                 _reconnectTimer: null,
                 isEmojiOpen: false,
@@ -302,8 +303,7 @@ import axios from 'axios';
             },
             showFiles(msg) {
                 if (!msg) return false;
-                if (Array.isArray(msg.chatFileListDtoList) && msg.chatFileListDtoList.length > 0) return true;
-                return msg.messageType && msg.messageType !== 'TEXT';
+                return Array.isArray(msg.chatFileListDtoList) && msg.chatFileListDtoList.length > 0;
             },
             isImage(nameOrUrl) {
                 if (!nameOrUrl) return false;
@@ -321,6 +321,12 @@ import axios from 'axios';
                     } else {
                         m.messageType = 'TEXT';
                     }
+                }
+                // 파일이 실제로 첨부되어 있는데 서버가 임시 텍스트를 넣은 경우 제거
+                if (m.chatFileListDtoList.length > 0 && typeof m.message === 'string') {
+                    const t = m.message.trim();
+                    const looksLikePlaceholder = t.length <= 40 && /(FILE|파일)/i.test(t) && /\(|\)|\s/.test(t) && !/[a-zA-Z가-힣0-9].*[a-zA-Z가-힣0-9]/.test(t.replace(/\(|\)/g, ''));
+                    if (looksLikePlaceholder) m.message = '';
                 }
                 return m;
             },
@@ -424,9 +430,12 @@ import axios from 'axios';
                 }, 5000);
             },
             async sendMessage() {
-                const hasText = this.newMessage.trim().length > 0;
+                if (this.isSending) return; // guard for double trigger
+                this.isSending = true;
+                const text = (this.newMessage || "").trim();
+                const hasText = text.length > 0;
                 const hasFiles = this.selectedFiles && this.selectedFiles.length > 0;
-                if (!hasText && !hasFiles) return;
+                if (!hasText && !hasFiles) { this.isSending = false; return; }
 
                 let uploadedFileIds = [];
                 if (hasFiles) {
@@ -448,6 +457,7 @@ import axios from 'axios';
                     }
                 }
 
+                // 단일 메시지 전송 규칙
                 const messageType = hasText && uploadedFileIds.length > 0
                     ? 'TEXT_WITH_FILE'
                     : hasText
@@ -457,14 +467,24 @@ import axios from 'axios';
                 const message = {
                     roomId: this.roomId,
                     senderId: this.senderId,
-                    message: hasText ? this.newMessage : '',
+                    message: hasText ? text : '',
                     lastSendTime: this.getNowLocalDateTime(),
                     messageType,
                     chatFileListDtoList: uploadedFileIds.map((id) => ({ fileId: id })),
                 };
-
-                stompManager.send(`/publish/${this.roomId}`, JSON.stringify(message));
-                this.newMessage = "";
+                try {
+                    stompManager.send(`/publish/${this.roomId}`, JSON.stringify(message));
+                } finally {
+                    // 입력 초기화
+                    this.newMessage = "";
+                    // 미리보기 URL 해제 및 초기화
+                    try {
+                        const urls = Array.isArray(this.selectedPreviewUrls) ? [...this.selectedPreviewUrls] : [];
+                        urls.forEach(u => { try { if (u) URL.revokeObjectURL(u); } catch(_) {} });
+                    } catch(_) {}
+                    this.selectedPreviewUrls = [];
+                    this.isSending = false;
+                }
             },
             openFilePicker() {
                 this.$refs.fileInput && this.$refs.fileInput.click();
