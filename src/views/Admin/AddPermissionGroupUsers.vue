@@ -354,59 +354,26 @@ export default {
     
     // 권한 그룹에 사용자 추가/제거
     async addUsersToPermissionGroup() {
-      if (this.selectedUsers.length === 0) {
-        alert('추가할 사용자를 선택해주세요.');
-        return;
-      }
-      
       try {
-        // 기존 멤버와 새로 추가된 멤버 구분
-        const existingMembers = this.selectedUsers.filter(user => user.groupName === '기존 멤버');
-        const newMembers = this.selectedUsers.filter(user => user.groupName !== '기존 멤버');
+        // 선택된 사용자들의 userId 리스트 생성
+        const userIdList = this.selectedUsers.map(user => user.userId);
         
-        // 새로 추가된 멤버가 있는 경우에만 추가 API 호출
-        if (newMembers.length > 0) {
-          const addResponse = await axios.post(
-            `http://localhost:8080/workspace-service/access/${this.permissionGroupId}/participants`,
-            {
-              userIdList: newMembers.map(user => user.userId)
-            },
-            {
-              headers: {
-                'X-User-Id': localStorage.getItem('userId'),
-                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-              }
+        // 백엔드 API 호출 - 빈 배열이어도 요청을 보냄 (백엔드에서 모든 사용자 제거 처리)
+        const response = await axios.patch(
+          `http://localhost:8080/workspace-service/access/${this.permissionGroupId}/users`,
+          {
+            userIdList: userIdList
+          },
+          {
+            headers: {
+              'X-User-Id': localStorage.getItem('userId'),
+              'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
             }
-          );
-          
-          if (addResponse.data.statusCode !== 200) {
-            throw new Error('사용자 추가에 실패했습니다.');
           }
-        }
-        
-        // 제거된 멤버가 있는 경우 제거 API 호출 (기존 멤버 중에서 선택된 목록에 없는 사용자들)
-        const allExistingMembers = await this.getAllExistingMembers();
-        const removedMembers = allExistingMembers.filter(member => 
-          !this.selectedUsers.find(user => user.userId === member.userId)
         );
         
-        if (removedMembers.length > 0) {
-          const removeResponse = await axios.delete(
-            `http://localhost:8080/workspace-service/access/${this.permissionGroupId}/participants`,
-            {
-              data: {
-                userIdList: removedMembers.map(member => member.userId)
-              },
-              headers: {
-                'X-User-Id': localStorage.getItem('userId'),
-                'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-              }
-            }
-          );
-          
-          if (removeResponse.data.statusCode !== 200) {
-            throw new Error('사용자 제거에 실패했습니다.');
-          }
+        if (response.data.statusCode !== 200) {
+          throw new Error('사용자 관리에 실패했습니다.');
         }
         
         alert('사용자 관리가 성공적으로 완료되었습니다.');

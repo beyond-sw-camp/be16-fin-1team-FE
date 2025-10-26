@@ -40,7 +40,7 @@
           </div>
 
           <!-- API에서 가져온 권한 그룹들 -->
-          <div v-for="group in permissionGroups" :key="group.accessGroupId" class="permission-group-card">
+          <div v-for="group in permissionGroups" :key="group.accessGroupId" class="permission-group-card" :class="{ 'default-group': isDefaultGroup(group.accessGroupName) }">
             <div class="group-header">
               <div class="group-icon">
                 <img 
@@ -50,7 +50,10 @@
                 />
               </div>
               <div class="group-info">
-                <h3 class="group-title">{{ group.accessGroupName }}</h3>
+                <h3 class="group-title" :class="{ 'default-group-title': isDefaultGroup(group.accessGroupName) }">
+                  {{ group.accessGroupName }}
+                  <span v-if="isDefaultGroup(group.accessGroupName)" class="default-badge">기본 그룹</span>
+                </h3>
               </div>
               <div class="group-member-count">
                 <span class="member-count">{{ group.groupParticipantCount }}명</span>
@@ -1065,6 +1068,11 @@ export default {
         alert('멤버 추가 중 오류가 발생했습니다.');
         return false;
       }
+    },
+    
+    // 기본 그룹인지 확인하는 메서드
+    isDefaultGroup(groupName) {
+      return groupName === '관리자 그룹' || groupName === '일반 유저 그룹';
     }
   }
 };
@@ -1323,8 +1331,9 @@ export default {
 }
 
 .default-group {
-  background: #F8F9FA;
-  border: 1px solid #E9ECEF;
+  background: #F0F8FF;
+  border: 1px solid #4A90E2;
+  box-shadow: 0 2px 4px rgba(74, 144, 226, 0.1);
 }
 
 .group-header {
@@ -1350,6 +1359,10 @@ export default {
   filter: brightness(0);
 }
 
+.default-group .group-icon-img {
+  filter: brightness(0) saturate(100%) invert(40%) sepia(100%) saturate(2000%) hue-rotate(200deg) brightness(100%) contrast(100%);
+}
+
 .group-info {
   flex: 1;
   text-align: left;
@@ -1362,6 +1375,23 @@ export default {
   line-height: 19px;
   color: #1C0F0F;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.default-group-title {
+  color: #4A90E2 !important;
+}
+
+.default-badge {
+  background: #4A90E2;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  line-height: 12px;
 }
 
 .group-member-count {
