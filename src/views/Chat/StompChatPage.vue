@@ -264,6 +264,14 @@ import axios from 'axios';
         created() {
             this.senderId = localStorage.getItem("id");
         },
+        watch: {
+            roomId(){
+                // 채팅방 변경 시 사이드 패널 닫기
+                this.isUserPanelOpen = false;
+                this.isDocsPanelOpen = false;
+                this.isHeaderMenuOpen = false;
+            }
+        },
         beforeRouteLeave(to, from, next) {
             this.teardownRoomSubscription();
             next();
