@@ -5,8 +5,11 @@
                 <ChatRoomList embedded @select-room="handleSelectRoom" @preview-summary="handlePreviewSummary" :summaries-by-room-id="summariesByRoomId" :selected-room-id="selectedRoomId" />
             </div>
             <div class="chat-panel">
-                <StompChatPage v-if="selectedRoomId" embedded :room-id="selectedRoomId" :room-title="selectedRoomTitle" :participant-count="selectedRoomParticipantCount" />
-                <div v-else class="empty-state">채팅방을 선택하세요</div>
+                  <StompChatPage v-if="selectedRoomId" embedded :room-id="selectedRoomId" :room-title="selectedRoomTitle" :participant-count="selectedRoomParticipantCount" />
+                  <div v-else class="empty-state">
+                    <div class="empty-icon" aria-hidden="true"></div>
+                    <div class="empty-text">채팅방을 선택하세요.</div>
+                  </div>
             </div>
         </div>
     </div>
@@ -21,16 +24,16 @@
 
     <!-- 요약 미리보기 다이얼로그 -->
     <v-dialog v-model="isSummaryDialogOpen" max-width="520px">
-        <v-card>
-            <v-card-title class="text-h6">요약 미리보기</v-card-title>
-            <v-card-text :key="summaryDialogVersion">
+        <v-card class="summary-card">
+            <v-card-title class="text-h6 summary-title">요약 미리보기</v-card-title>
+            <v-card-text class="summary-body" :key="summaryDialogVersion">
                 <div v-if="summaryDialogLoading" class="d-flex align-center justify-center" style="min-height:120px">
                     <v-progress-circular indeterminate :size="42" :width="4" color="#FFE364" />
                 </div>
                 <div v-else v-html="formatMultiline(summaryDialogText)" style="white-space: normal; line-height: 1.5;"></div>
             </v-card-text>
-            <v-card-actions class="justify-end">
-                <v-btn color="primary" variant="text" @click="isSummaryDialogOpen = false">닫기</v-btn>
+            <v-card-actions class="justify-end summary-actions">
+                <v-btn class="summary-btn" variant="flat" @click="isSummaryDialogOpen = false">닫기</v-btn>
             </v-card-actions>
         </v-card>
     </v-dialog>
@@ -64,19 +67,23 @@ export default {
         };
     },
     async created() {
-        const id = localStorage.getItem('id');
+                        const id = localStorage.getItem('id');
         if (id) {
             const topic = `/topic/summary/${id}`;
-            this.summaryUnsub = await stompManager.subscribe(topic, (summary) => {
-                // summary: { roomId, lastMessage, lastSendTime, lastSenderEmail, unreadCount }
+                            this.summaryUnsub = await stompManager.subscribe(topic, (summary) => {
+                                // summary: { roomId, lastMessage, lastSendTime, lastSenderEmail, unreadCount, messageType }
+                                try { console.log('[summary] incoming', summary); } catch(_) {}
                 if (summary && summary.roomId != null) {
-                    this.summariesByRoomId = {
+                                    this.summariesByRoomId = {
                         ...this.summariesByRoomId,
                         [summary.roomId]: {
                             ...(this.summariesByRoomId[summary.roomId] || {}),
                             ...summary,
                         },
                     };
+                                    try { console.log('[summary] merged for room', summary.roomId, this.summariesByRoomId[summary.roomId]); } catch(_) {}
+                                } else {
+                                    try { console.warn('[summary] malformed payload', summary); } catch(_) {}
                 }
             });
             this.summaryTopic = topic;
@@ -119,19 +126,23 @@ export default {
         },
         async resubscribeSummary() {
             if (!this.summaryTopic) return;
-            try {
+                            try {
                 if (this.summaryUnsub) { try { this.summaryUnsub(); } catch(_) {} }
-                this.summaryUnsub = await stompManager.subscribe(this.summaryTopic, (summary) => {
-                    if (summary && summary.roomId != null) {
-                        this.summariesByRoomId = {
-                            ...this.summariesByRoomId,
-                            [summary.roomId]: {
-                                ...(this.summariesByRoomId[summary.roomId] || {}),
-                                ...summary,
-                            },
-                        };
-                    }
-                });
+                                this.summaryUnsub = await stompManager.subscribe(this.summaryTopic, (summary) => {
+                                    try { console.log('[summary][resub] incoming', summary); } catch(_) {}
+                                    if (summary && summary.roomId != null) {
+                                        this.summariesByRoomId = {
+                                            ...this.summariesByRoomId,
+                                            [summary.roomId]: {
+                                                ...(this.summariesByRoomId[summary.roomId] || {}),
+                                                ...summary,
+                                            },
+                                        };
+                                        try { console.log('[summary][resub] merged for room', summary.roomId, this.summariesByRoomId[summary.roomId]); } catch(_) {}
+                                    } else {
+                                        try { console.warn('[summary][resub] malformed payload', summary); } catch(_) {}
+                                    }
+                                });
             } catch(_) {}
         },
         startSummaryReconnectLoop() {
@@ -195,7 +206,7 @@ export default {
 .room-list-panel {
   flex: 0 0 30%;
   min-width: 240px; /* 너무 좁아지지 않도록 하한 */
-  border-right: 1px solid #E0E0E0;
+  border-right: none;
   overflow: auto;
 }
 .chat-panel {
@@ -209,7 +220,15 @@ export default {
   justify-content: center;
   color: #9E9E9E;
   font-size: 14px;
+  flex-direction: column;
 }
+.empty-icon{
+  width: 64px; height: 64px; margin-bottom: 12px; opacity: 0.9;
+  mask: url('@/assets/icons/chat/chat-processing.svg') no-repeat center / contain;
+  -webkit-mask: url('@/assets/icons/chat/chat-processing.svg') no-repeat center / contain;
+  background-color: #9E9E9E; /* 텍스트와 동일 색상 */
+}
+.empty-text{ font-size: 14px; color: #9E9E9E; }
 .chatbot-fab {
   position: fixed;
   right: 24px;
@@ -217,4 +236,11 @@ export default {
   background: #FFE364;
   color: #2A2828;
 }
+
+/* Summary dialog styling */
+.summary-card{ --v-card-border-radius: 15px; border-radius: 15px !important; overflow: hidden; }
+.summary-title{ background: #FFE364; color: #1C0F0F; font-weight: 700; }
+.summary-body{ padding-top: 16px; }
+.summary-actions{ padding: 12px 16px; }
+.summary-btn{ background: #FFE364 !important; color: #2A2828 !important; font-weight: 600; }
 </style>
