@@ -1,8 +1,8 @@
 <template>
-  <div v-if="isVisible" class="stone-detail-modal" @click="closeModal">
+  <div v-if="isVisible" class="stone-detail-modal" @click="closeModal" @mounted="console.log('스톤 상세 모달 표시됨')">
     <div class="modal-content" @click.stop>
       <!-- 모달 헤더 -->
-      <div class="modal-header">
+      <div class="modal-header" @mounted="console.log('모달 헤더 렌더링됨')">
         <div class="header-left">
           <button class="collapse-btn" @click="toggleCollapse">
             <svg v-if="!isCollapsed" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -19,12 +19,7 @@
           </button>
         </div>
         <div class="header-right">
-          <button class="delete-btn" @click="deleteStone">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 6H5H21" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
+          <!-- 휴지통 아이콘 제거됨 -->
         </div>
       </div>
 
@@ -39,7 +34,15 @@
           <!-- 스톤 정보 -->
           <div v-else>
         <!-- 스톤/프로젝트 제목 -->
-        <div class="stone-title">{{ stoneData.stoneName }}</div>
+        <div class="stone-title-container">
+          <div class="stone-title">{{ stoneData.stoneName }}</div>
+          <button class="delete-btn" @click="deleteStone" title="스톤 삭제">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 6H5H21" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
         
         <!-- 프로젝트 전용 정보 -->
         <div v-if="stoneData.isProject" class="project-info">
@@ -210,6 +213,25 @@
         </div>
       </div>
     </div>
+
+    <!-- 삭제 확인 모달 -->
+    <div v-if="showDeleteConfirm" class="delete-confirm-overlay" @click="cancelDelete">
+      <div class="delete-confirm-modal" @click.stop>
+        <h2 class="delete-modal-title">스톤 삭제</h2>
+        <div class="delete-modal-content">
+          <div class="delete-modal-body">
+            <div class="stone-name-container">
+              <strong class="stone-name">{{ stoneData.stoneName }}</strong>
+            </div>
+            <p class="delete-modal-message">스톤을 삭제하시겠습니까?</p>
+          </div>
+          <div class="delete-modal-actions">
+            <button class="cancel-btn" @click="cancelDelete">취소</button>
+            <button class="delete-btn" @click="confirmDelete">스톤 삭제</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -269,7 +291,8 @@ export default {
   },
   data() {
     return {
-      isCollapsed: false
+      isCollapsed: false,
+      showDeleteConfirm: false
     }
   },
   methods: {
@@ -283,7 +306,15 @@ export default {
       this.$emit('expand')
     },
     deleteStone() {
+      console.log('휴지통 아이콘 클릭됨!', this.stoneData)
+      this.showDeleteConfirm = true
+    },
+    confirmDelete() {
       this.$emit('delete', this.stoneData)
+      this.showDeleteConfirm = false
+    },
+    cancelDelete() {
+      this.showDeleteConfirm = false
     },
     addTask() {
       this.$emit('add-task', this.stoneData)
@@ -338,6 +369,7 @@ export default {
   min-width: 400px;
   height: 100vh;
   background: #FFFFFF;
+  overflow: visible;
   border-left: 1px solid rgba(42, 40, 40, 0.5);
   display: flex;
   flex-direction: column;
@@ -356,13 +388,17 @@ export default {
 }
 
 .modal-header {
-  display: flex;
+  display: flex !important;
   justify-content: space-between;
   align-items: center;
   padding: 20px 30px;
   border-bottom: 1px solid rgba(42, 40, 40, 0.1);
   background: #F5F5F5;
   min-height: 60px;
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: visible;
+  position: relative;
 }
 
 .header-left {
@@ -375,6 +411,8 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding-right: 10px;
+  margin-right: -10px;
 }
 
 .collapse-btn,
@@ -389,9 +427,34 @@ export default {
 }
 
 .collapse-btn:hover,
-.expand-btn:hover,
+.expand-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  opacity: 0.7;
+  width: 18px;
+  height: 24px;
+}
+
 .delete-btn:hover {
   background: rgba(0, 0, 0, 0.05);
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.delete-btn:active {
+  transform: scale(0.95);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .modal-body {
@@ -418,14 +481,21 @@ export default {
   background: #a8a8a8;
 }
 
+.stone-title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
 .stone-title {
   font-family: 'Pretendard', sans-serif;
   font-weight: 800;
   font-size: 28px;
   line-height: 33px;
   color: #1C0F0F;
-  margin-bottom: 30px;
-  text-align: center;
+  flex: 1;
+  text-align: left;
 }
 
 .info-section {
@@ -718,6 +788,203 @@ export default {
   
   .modal-header {
     padding: 15px 20px;
+  }
+}
+
+/* 삭제 확인 모달 스타일 */
+.delete-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.delete-confirm-modal {
+  position: relative;
+  width: 560px;
+  height: 240px;
+  background: #F5F5F5;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 20px 0;
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.delete-modal-content {
+  width: 480px;
+  height: 140px;
+  background: #FFFFFF;
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0;
+  position: relative;
+  margin-top: 10px;
+}
+
+.delete-modal-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 33px;
+  color: #1C0F0F;
+  margin: 0;
+  text-align: center;
+}
+
+.delete-modal-body {
+  flex: 1;
+  padding: 2px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.stone-name-container {
+  margin-bottom: 0px;
+  text-align: center;
+}
+
+.delete-modal-message {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.4;
+  color: #666666;
+  margin: 0;
+  text-align: center;
+}
+
+.stone-name {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1.4;
+  color: #1C0F0F;
+  margin: 0;
+}
+
+.delete-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 32px 16px 32px;
+}
+
+.cancel-btn {
+  padding: 10px 20px;
+  background: #FFFFFF;
+  border: 2px solid #D1D5DB;
+  border-radius: 8px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  color: #666666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 120px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cancel-btn:hover {
+  background: #F5F5F5;
+  border-color: #9CA3AF;
+}
+
+.delete-btn {
+  padding: 10px 20px;
+  background: #EF4444;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 20px;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 120px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  background: #DC2626;
+  transform: translateY(-1px);
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.delete-btn:active {
+  transform: translateY(0);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .delete-confirm-modal {
+    width: 90vw;
+    max-width: 500px;
+    height: auto;
+    min-height: 300px;
+  }
+  
+  .delete-modal-content {
+    width: 100%;
+    height: auto;
+    min-height: 200px;
+  }
+  
+  .delete-modal-title {
+    font-size: 24px;
+    line-height: 28px;
+  }
+  
+  .delete-modal-message {
+    font-size: 24px;
+    line-height: 32px;
+  }
+  
+  .delete-modal-actions {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .cancel-btn,
+  .delete-btn {
+    width: 100%;
   }
 }
 </style>

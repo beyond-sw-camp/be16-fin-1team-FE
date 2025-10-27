@@ -32,7 +32,7 @@
     
     <!-- 프로젝트 설명 -->
     <div class="project-description-section">
-      <p class="project-description-text">{{ projectDescription }}</p>
+      <p class="project-description-text">프로젝트 협업을 위한 일정관리 서비스</p>
     </div>
     
     <!-- 탭 메뉴 -->
@@ -1082,7 +1082,9 @@ export default {
                 isProject: true // 프로젝트 모달임을 표시
               };
               
+              console.log('프로젝트 모달 표시 설정:', this.selectedStoneData);
               this.showStoneDetailModal = true;
+              console.log('showStoneDetailModal 상태:', this.showStoneDetailModal);
               return;
             } else {
               console.error('프로젝트 상세 조회 실패:', response.data.statusMessage);
@@ -1129,7 +1131,9 @@ export default {
             isProject: false // 일반 스톤 모달임을 표시
           };
           
+          console.log('일반 스톤 모달 표시 설정:', this.selectedStoneData);
           this.showStoneDetailModal = true;
+          console.log('showStoneDetailModal 상태:', this.showStoneDetailModal);
         } else {
           console.error('스톤 상세 조회 실패:', response.data.statusMessage);
           alert('스톤 정보를 불러오는데 실패했습니다.');
@@ -1151,7 +1155,9 @@ export default {
           tasks: [],
           isProject: stone.isRoot || false
         };
+        console.log('에러 처리 후 모달 표시 설정:', this.selectedStoneData);
         this.showStoneDetailModal = true;
+        console.log('showStoneDetailModal 상태:', this.showStoneDetailModal);
       } finally {
         this.isLoadingStoneDetail = false;
       }
