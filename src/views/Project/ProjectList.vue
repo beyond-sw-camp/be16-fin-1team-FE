@@ -574,6 +574,7 @@ export default {
       selectedUser: null, // 선택된 사용자
       selectedGroupMembers: [], // 선택된 그룹의 멤버들
       allSelectedUsers: [], // 모든 선택된 사용자들 (누적)
+      confirmedParticipants: [], // 확정된 참여자 ID 리스트
       currentUser: {
         id: '',
         name: '',
@@ -1208,8 +1209,22 @@ export default {
         const projectId = this.$route.query.id;
         const userId = localStorage.getItem('id');
         
-        // 참여자 ID 리스트 생성 (API 전송용)
-        const participantIds = this.allSelectedUsers.map(user => user.id);
+        // 참여자 ID 리스트 생성 (API 전송용) - Proxy 문제 해결을 위해 명시적으로 배열 복제
+        console.log('=== 디버깅: confirmedParticipants 원본 ===');
+        console.log('this.confirmedParticipants:', this.confirmedParticipants);
+        console.log('isArray?', Array.isArray(this.confirmedParticipants));
+        console.log('JSON.stringify:', JSON.stringify(this.confirmedParticipants));
+        console.log('typeof:', typeof this.confirmedParticipants);
+        
+        // Array.from으로 명시적 변환 시도
+        const participantIds = this.confirmedParticipants 
+          ? Array.from(this.confirmedParticipants) 
+          : [];
+        
+        console.log('변환 후 participantIds:', participantIds);
+        console.log('변환 후 isArray?', Array.isArray(participantIds));
+        console.log('변환 후 JSON.stringify:', JSON.stringify(participantIds));
+        console.log('==========================');
         
         const stoneData = {
           parentStoneId: this.selectedParentStone.id,
@@ -1220,7 +1235,9 @@ export default {
           participantIds: participantIds
         };
         
-        console.log('스톤 생성 요청 데이터:', stoneData);
+        console.log('=== 최종 전송 데이터 ===');
+        console.log('전체 데이터:', JSON.stringify(stoneData, null, 2));
+        console.log('==========================');
         
         const response = await axios.post(
           `http://localhost:8080/workspace-service/stone`,
@@ -1324,8 +1341,15 @@ export default {
         // 선택된 사용자들의 이름을 참여자 목록에 표시
         const participantNames = this.allSelectedUsers.map(user => user.name);
         this.newStone.participants = participantNames.join(', ');
+        
+        // participantId를 사용 (없으면 userId 사용)
+        this.confirmedParticipants = this.allSelectedUsers.map(user => {
+          return user.participantId || user.id;
+        });
+        
         console.log('선택된 참여자 이름들:', participantNames);
-        console.log('선택된 참여자 ID들:', this.allSelectedUsers.map(user => user.id));
+        console.log('선택된 참여자 객체:', this.allSelectedUsers);
+        console.log('확정된 참여자 ID들 (participantId 우선):', this.confirmedParticipants);
       }
       this.closeUserSelectModal();
     },
