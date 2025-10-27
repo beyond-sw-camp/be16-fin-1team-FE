@@ -4,6 +4,7 @@
     <HeaderComponent v-if="!hideLayout" />
     <v-main :class="hideLayout ? 'no-offset' : 'with-offset'">
       <router-view />
+      <GlobalSnackbar />
     </v-main>
     
     <!-- 워크스페이스 생성 모달 (전체 화면에서 렌더링) -->
@@ -22,12 +23,14 @@ import HeaderComponent from './components/HeaderComponent.vue';
 import SideBarComponent from './components/SideBarComponent.vue';
 import CreateWorkspaceModal from './views/Workspace/CreateWorkspaceModal.vue';
 import CreateProjectModal from './views/Project/CreateProjectModal.vue';
+import GlobalSnackbar from './components/GlobalSnackbar.vue';
 
 export default {
   name: "App",
   components: {
     SideBarComponent,
     HeaderComponent,
+    GlobalSnackbar,
     CreateWorkspaceModal,
     CreateProjectModal,
   },
