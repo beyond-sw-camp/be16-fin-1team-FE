@@ -42,23 +42,7 @@
     </div>
   </div>
 
-  <!-- 캘린더 응답 상세 오버레이 (위젯 내부 전용) -->
-  <div v-if="isCalendarDialogOpen" class="calendar-overlay">
-    <div class="calendar-card">
-      <div class="calendar-title">캘린더 일정 확인</div>
-      <div v-if="calendarDetails" class="calendar-detail">
-        <div class="detail-row"><span class="label">캘린더</span><span class="value">{{ calendarDetails.calendarName }}</span></div>
-        <div class="detail-row"><span class="label">시작</span><span class="value">{{ calendarDetails.startedAt }}</span></div>
-        <div class="detail-row"><span class="label">종료</span><span class="value">{{ calendarDetails.endedAt }}</span></div>
-        <div class="detail-row" v-if="calendarDetails.calendarType !== undefined"><span class="label">유형</span><span class="value">{{ calendarDetails.calendarType ?? '-' }}</span></div>
-        <div class="detail-row" v-if="calendarDetails.bookmark !== undefined"><span class="label">북마크</span><span class="value">{{ calendarDetails.bookmark ?? '-' }}</span></div>
-        <div class="detail-row" v-if="calendarDetails.isShared !== undefined"><span class="label">공유</span><span class="value">{{ calendarDetails.isShared ?? '-' }}</span></div>
-      </div>
-      <div class="calendar-actions">
-        <button class="btn" @click="isCalendarDialogOpen = false">닫기</button>
-      </div>
-    </div>
-  </div>
+  <!-- 전역 모달 트리거: App으로 emit -->
 </template>
 
 <script setup>
@@ -66,6 +50,7 @@ import { ref, nextTick, onMounted, defineEmits } from 'vue';
 import axios from 'axios';
 
 const WELCOME = '안녕하세요! ORBIT의 귀염둥이 챗봇 오르빙입니다🤖 무엇을 도와드릴까요?';
+const selectedWorkspaceId = localStorage.getItem('selectedWorkspaceId') || 'ws_1';
 const GUIDE_TEXT = `💬 사용 가이드
 아래와 같은 질문을 하면, 챗봇이 업무 정보를 바로 답변해드려요!
 
@@ -82,8 +67,9 @@ const GUIDE_TEXT = `💬 사용 가이드
 “밀린 메시지 뭐 있어?”
 
 📅 4. 일정 등록
-“다음 주 목요일 휴가 일정 등록해줘”
+“다음 주 수목금 휴가 일정 등록해줘”
 “내일 2시에 회의 일정 추가해줘”
+""
 
 💡 5. 추가 질문 / 일반 대화
 “아까 프로젝트 요약한 내용 중 설명 부분 자세히 알려줘”
@@ -92,7 +78,7 @@ const emit = defineEmits(['close']);
 const messages = ref([]);
 const inputText = ref('');
 const isLoading = ref(false);
-const isCalendarDialogOpen = ref(false);
+const isCalendarDialogOpen = ref(false); // 내부 사용 안 함(하위 호환)
 const calendarDetails = ref(null);
 
 function formatTime(date) {
@@ -122,7 +108,7 @@ async function handleSend() {
   isLoading.value = true;
   try {
     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-    const body = { workspaceId: 'ws_1', content: text };
+    const body = { workspaceId: selectedWorkspaceId, content: text };
     const { data } = await axios.post(`${baseURL}/workspace-service/chatbot/message`, body, {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -133,8 +119,10 @@ async function handleSend() {
     messages.value.push({ role: 'assistant', text: resultText, time: new Date() });
     if (resultObj && resultObj.calendarName != null && String(resultObj.calendarName).trim() !== '') {
       calendarDetails.value = resultObj;
-      // 답장을 먼저 보여주고 1초 뒤 상세 모달을 띄움
-      setTimeout(() => { isCalendarDialogOpen.value = true; }, 1000);
+      // 답장을 먼저 보여주고 1초 뒤 전역 모달 오픈을 emit
+      setTimeout(() => {
+        try { window.dispatchEvent(new CustomEvent('openCalendarDetailModal', { detail: { ...resultObj } })); } catch(_) {}
+      }, 1000);
     }
   } catch (e) {
     messages.value = messages.value.filter(m => m.type !== 'typing');
@@ -165,12 +153,12 @@ onMounted(loadHistory);
 async function loadHistory() {
   try {
     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-    const { data } = await axios.get(`${baseURL}/workspace-service/chatbot/workspaces/ws_1/chat/messages`);
+    const { data } = await axios.get(`${baseURL}/workspace-service/chatbot/workspaces/${selectedWorkspaceId}/chat/messages`);
     const list = Array.isArray(data?.result) ? data.result : [];
     const mapped = list.map(item => ({
       role: String(item?.type).toUpperCase() === 'USER' ? 'user' : 'assistant',
       text: normalizeContent(item?.content),
-      time: new Date(),
+      time: item?.timestamp ?? new Date(),
     }));
     // 환영 문구는 가장 마지막(최신)으로 표시
     messages.value = [...mapped, { role: 'assistant', text: WELCOME, time: new Date() }];
@@ -225,6 +213,8 @@ function normalizeContent(content) {
 .bubble-row .bubble { max-width: 75%; padding: 8px 10px; border-radius: 10px; font-size: 14px; line-height: 1.4; }
 .bubble-row.received .bubble { background: #F1F3F4; color: #222; }
 .bubble-row.sent .bubble { background: #FFE364; color: #2A2828; }
+.bubble-row.sent .meta { order: 0; }
+.bubble-row.sent .bubble { order: 1; }
 .bubble.typing { display: inline-flex; align-items: center; gap: 4px; width: auto; }
 .dot { width: 6px; height: 6px; background: #9E9E9E; border-radius: 50%; display: inline-block; opacity: 0.2; animation: blink 1.2s infinite; }
 .dot:nth-child(2){ animation-delay: 0.2s; }

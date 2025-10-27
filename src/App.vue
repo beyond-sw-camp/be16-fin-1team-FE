@@ -32,6 +32,8 @@
     
     <!-- 프로젝트 생성 모달 (전체 화면에서 렌더링) -->
     <CreateProjectModal v-model="showProjectModal" />
+    <!-- 전역 캘린더 상세 모달 -->
+    <CalendarDetailModal v-model="isCalendarModalOpen" :details="calendarModalDetails" />
   </v-app>
 </template>
 
@@ -42,6 +44,7 @@ import CreateWorkspaceModal from './views/Workspace/CreateWorkspaceModal.vue';
 import CreateProjectModal from './views/Project/CreateProjectModal.vue';
 import GlobalSnackbar from './components/GlobalSnackbar.vue';
 import ChatBotPage from './views/ChatBot/ChatBotPage.vue';
+import CalendarDetailModal from './components/CalendarDetailModal.vue';
 
 export default {
   name: "App",
@@ -52,6 +55,7 @@ export default {
     CreateWorkspaceModal,
     CreateProjectModal,
     ChatBotPage,
+    CalendarDetailModal,
   },
   data() {
     return {
@@ -64,7 +68,9 @@ export default {
       dragOffsetY: 0,
       fabSize: 56,
       showCreateModal: false,
-      showProjectModal: false
+      showProjectModal: false,
+      isCalendarModalOpen: false,
+      calendarModalDetails: null
     };
   },
   mounted() {
@@ -81,6 +87,12 @@ export default {
       });
       window.addEventListener('openCreateProjectModal', () => {
         this.showProjectModal = true;
+      });
+      window.addEventListener('openCalendarDetailModal', (e) => {
+        try {
+          this.calendarModalDetails = e?.detail || null;
+          this.isCalendarModalOpen = true;
+        } catch(_) {}
       });
     });
   },
