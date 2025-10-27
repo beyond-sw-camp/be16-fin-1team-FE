@@ -29,7 +29,7 @@
         </template>
       </div>
       <div class="suggestions">
-        <button class="chip" type="button">📍 사용 가이드</button>
+        <button class="chip" type="button" @click="showGuide">📍 사용 가이드</button>
       </div>
     </div>
     <div class="chatbot-footer">
@@ -66,6 +66,28 @@ import { ref, nextTick, onMounted, defineEmits } from 'vue';
 import axios from 'axios';
 
 const WELCOME = '안녕하세요! ORBIT의 귀염둥이 챗봇 오르빙입니다🤖 무엇을 도와드릴까요?';
+const GUIDE_TEXT = `💬 사용 가이드
+아래와 같은 질문을 하면, 챗봇이 업무 정보를 바로 답변해드려요!
+
+🧩 1. 프로젝트 요약
+“A 프로젝트 요약해줘”
+“최근 진행 중인 프로젝트 알려줘”
+
+✅ 2. 오늘의 할 일 / 일정 브리핑
+“나 오늘 뭐해야 돼?”
+“이번 주 일정 정리해줘”
+
+💬 3. 안 읽은 채팅 요약
+“안 읽은 채팅 요약해줘”
+“밀린 메시지 뭐 있어?”
+
+📅 4. 일정 등록
+“다음 주 목요일 휴가 일정 등록해줘”
+“내일 2시에 회의 일정 추가해줘”
+
+💡 5. 추가 질문 / 일반 대화
+“아까 프로젝트 요약한 내용 중 설명 부분 자세히 알려줘”
+“그 외엔 그냥 편하게 물어보세요!”`;
 const emit = defineEmits(['close']);
 const messages = ref([]);
 const inputText = ref('');
@@ -132,6 +154,11 @@ function scrollToBottom() {
 function closeWidget(){
   isCalendarDialogOpen.value = false;
   emit('close');
+}
+async function showGuide(){
+  messages.value.push({ role: 'assistant', text: GUIDE_TEXT, time: new Date() });
+  await nextTick();
+  scrollToBottom();
 }
 // 초기 히스토리 불러오기
 onMounted(loadHistory);
@@ -207,6 +234,8 @@ function normalizeContent(content) {
 .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .chip { padding: 6px 10px; border-radius: 999px; border: 1px solid #E3E8EF; background: #FFF; font-size: 12px; color: #475467; cursor: pointer; }
 .chip:hover { background: #F8FAFC; }
+.chip:focus, .chip:focus-visible { outline: none !important; box-shadow: none !important; }
+.chip { -webkit-tap-highlight-color: transparent; }
 .chatbot-footer { padding: 10px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #F0F0F0; background: #FFFFFF; }
 .input-wrap { flex: 1 1 auto; }
 .input { width: 100%; height: 40px !important; min-height: 40px; max-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #E3E3E3; outline: none; background: #FFF; color: #2A2828; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
