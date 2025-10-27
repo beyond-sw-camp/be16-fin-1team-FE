@@ -18,14 +18,14 @@
             <path d="M5.33333 1.33333V4" stroke="#666666" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M2 6.66667H14" stroke="#666666" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="date-range">2025.09.12 - 2025.11.12</span>
+          <span class="date-range">{{ formatDateRange(projectDetail.startTime, projectDetail.endTime) }}</span>
         </div>
         <div class="project-owner">
           <svg class="user-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M8 8C10.2091 8 12 6.20914 12 4C12 1.79086 10.2091 0 8 0C5.79086 0 4 1.79086 4 4C4 6.20914 5.79086 8 8 8Z" fill="#666666"/>
             <path d="M8 10C3.58172 10 0 13.5817 0 18H16C16 13.5817 12.4183 10 8 10Z" fill="#666666"/>
           </svg>
-          <span class="owner-name">김을빗</span>
+          <span class="owner-name">{{ projectDetail.manager }}</span>
         </div>
       </div>
     </div>
@@ -523,15 +523,30 @@
           </div>
       </div>
     </div>
+
+    <!-- 스톤 상세 모달 -->
+    <StoneDetailModal 
+      :is-visible="showStoneDetailModal"
+      :stone-data="selectedStoneData"
+      :is-loading="isLoadingStoneDetail"
+      @close="closeStoneDetailModal"
+      @expand="expandStoneDetailModal"
+      @delete="deleteStoneFromModal"
+      @add-task="addTaskToStone"
+    />
   </div>
 </template>
 
 <script>
 import axios from 'axios';
 import * as d3 from 'd3';
+import StoneDetailModal from '@Project/StoneDetailModal.vue';
 
 export default {
   name: 'ProjectList',
+  components: {
+    StoneDetailModal
+  },
   data() {
     return {
       activeTab: 'milestone',
@@ -544,7 +559,19 @@ export default {
       maxScale: 2,
       zoomStep: 0.1,
       translate: { x: 0, y: 0 },
+      // 줌 관련 속성 추가
+      zoomLevel: 1,
+      zoomMax: 2,
+      zoomMin: 0.5,
       isPanning: false,
+      // 프로젝트 상세 정보
+      projectDetail: {
+        projectName: '오르빗 출시',
+        projectDescription: '프로젝트 협업을 위한 일정 관리 서비스',
+        startTime: '2025-09-12',
+        endTime: '2025-11-12',
+        manager: '김을빗'
+      },
       startPt: { x: 0, y: 0 },
       startTranslate: { x: 0, y: 0 },
       panMode: false,
@@ -556,6 +583,9 @@ export default {
       connections: [],
       showCreateStoneModal: false,
       selectedParentStone: null,
+      showStoneDetailModal: false,
+      selectedStoneData: {},
+      isLoadingStoneDetail: false,
       newStone: {
         parentStoneName: '',
         stoneName: '',
@@ -596,15 +626,8 @@ export default {
     
     const projectId = this.$route.query.id;
     if (projectId) {
-      // 프로젝트 상세 정보는 선택적으로 로드 (실패해도 계속 진행)
-      try {
-        await this.loadProjectDetail(projectId);
-      } catch (error) {
-        console.log('프로젝트 상세 정보 로드 실패, 기본값 사용');
-      }
-      
-      // 스톤 목록은 반드시 로드
-      await this.loadStones(projectId);
+      await this.loadProjectData(projectId);
+      await this.loadProjectDetail(projectId);
     }
     
     // 캔버스 크기 업데이트
@@ -627,19 +650,49 @@ export default {
   watch: {
     stones: {
       handler(newStones) {
+        console.log('stones watch 트리거됨:', newStones);
         if (newStones && newStones.length > 0) {
+          console.log('스톤 데이터가 있음, stoneNodes 변환 시작');
           this.stoneNodes = this.convertStonesToNodes(newStones);
+          console.log('변환된 stoneNodes:', this.stoneNodes);
           this.$nextTick(() => {
             this.updateStonePositions();
             this.updateConnections();
           });
+        } else {
+          console.log('스톤 데이터가 없거나 비어있음');
+          this.stoneNodes = [];
         }
       },
       immediate: true,
       deep: true
+    },
+    '$route.query.id': {
+      handler(newProjectId, oldProjectId) {
+        if (newProjectId && newProjectId !== oldProjectId) {
+          console.log('프로젝트 ID 변경됨:', oldProjectId, '->', newProjectId);
+          this.loadProjectData(newProjectId);
+        }
+      },
+      immediate: true
     }
   },
   methods: {
+    // 날짜 범위 포맷팅 메서드
+    formatDateRange(startDate, endDate) {
+      if (!startDate || !endDate) return '날짜 미설정'
+      const formatDate = (dateStr) => {
+        if (!dateStr) return ''
+        const date = new Date(dateStr)
+        return date.toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).replace(/\./g, '.').replace(/\s/g, '')
+      }
+      return `${formatDate(startDate)} - ${formatDate(endDate)}`
+    },
+    
     // 현재 사용자 정보 로드
     async loadCurrentUserInfo() {
       const userId = localStorage.getItem('id');
@@ -699,6 +752,33 @@ export default {
       this.newStone.assignee = '김을빗';
     },
     
+    // 프로젝트 데이터 로드 (공통 메서드)
+    async loadProjectData(projectId) {
+      if (!projectId) return;
+      
+      console.log('loadProjectData 시작, projectId:', projectId);
+      this.loading = true;
+      
+      try {
+        // 스톤 목록을 먼저 로드 (중요한 데이터)
+        console.log('스톤 목록 로드 시작');
+        await this.loadStones(projectId);
+        
+        // 프로젝트 상세 정보는 선택적으로 로드 (실패해도 계속 진행)
+        try {
+          console.log('프로젝트 상세 정보 로드 시작');
+          await this.loadProjectDetail(projectId);
+        } catch (error) {
+          console.log('프로젝트 상세 정보 로드 실패, 기본값 사용:', error);
+        }
+      } catch (error) {
+        console.error('프로젝트 데이터 로드 중 오류:', error);
+      } finally {
+        this.loading = false;
+        console.log('loadProjectData 완료');
+      }
+    },
+    
     async loadProjectDetail(projectId) {
       try {
         const userId = localStorage.getItem('id');
@@ -715,6 +795,15 @@ export default {
           const projectData = response.data.result;
           this.projectName = projectData.projectName || '프로젝트';
           this.projectDescription = projectData.projectDescription || '프로젝트 협업을 위한 일정 관리 서비스';
+          
+          // 프로젝트 상세 정보 업데이트
+          this.projectDetail = {
+            projectName: projectData.projectName || '프로젝트',
+            projectDescription: projectData.projectDescription || '프로젝트 협업을 위한 일정 관리 서비스',
+            startTime: projectData.startTime || '2025-09-12',
+            endTime: projectData.endTime || '2025-11-12',
+            manager: projectData.projectManagerName || projectData.managerName || projectData.manager || projectData.projectManager || '김을빗'
+          };
         }
       } catch (error) {
         console.error('프로젝트 상세 정보 로드 실패:', error);
@@ -722,8 +811,11 @@ export default {
     },
     async loadStones(projectId) {
       try {
+        console.log('loadStones 시작, projectId:', projectId);
         this.loading = true;
         const userId = localStorage.getItem('id');
+        console.log('사용자 ID:', userId);
+        
         const response = await axios.get(
           `http://localhost:8080/workspace-service/project/stones/${projectId}`,
           {
@@ -733,12 +825,16 @@ export default {
           }
         );
         
+        console.log('스톤 API 응답:', response.data);
+        
         if (response.data.statusCode === 200) {
           this.stones = response.data.result || [];
-          console.log('스톤 목록 로드 성공:', this.stones);
+          console.log('스톤 목록 로드 성공, stones 배열:', this.stones);
+          console.log('stones 길이:', this.stones.length);
           console.log('첫 번째 스톤의 childStone:', this.stones[0]?.childStone);
         } else {
           console.log('스톤 목록 응답 상태 코드:', response.data.statusCode);
+          console.log('응답 메시지:', response.data.statusMessage);
           this.stones = [];
         }
       } catch (error) {
@@ -867,6 +963,7 @@ export default {
       this.translate.x = center.x - ratio * (center.x - this.translate.x);
       this.translate.y = center.y - ratio * (center.y - this.translate.y);
       this.scale = newScale;
+      this.zoomLevel = newScale;
     },
     
     // 값 제한 유틸리티
@@ -876,18 +973,20 @@ export default {
     
     // + / - 버튼용 줌 메서드들
     zoomIn() {
-      if (this.scale < this.maxScale) {
+      if (this.zoomLevel < this.zoomMax) {
         const newScale = this.clamp(this.scale + this.zoomStep, this.minScale, this.maxScale);
         const center = { x: this.canvasWidth / 2, y: this.canvasHeight / 2 };
         this.applyZoom(newScale, center);
+        this.zoomLevel = newScale;
       }
     },
     
     zoomOut() {
-      if (this.scale > this.minScale) {
+      if (this.zoomLevel > this.zoomMin) {
         const newScale = this.clamp(this.scale - this.zoomStep, this.minScale, this.maxScale);
         const center = { x: this.canvasWidth / 2, y: this.canvasHeight / 2 };
         this.applyZoom(newScale, center);
+        this.zoomLevel = newScale;
       }
     },
     
@@ -931,12 +1030,131 @@ export default {
       });
     },
     // 스톤 관련 메서드들
-    onStoneClick(stone, event) {
+    async onStoneClick(stone, event) {
       if (this.interactionMode === 'pan') {
         event.stopPropagation();
         return;
       }
       console.log('스톤 클릭:', stone);
+      
+      try {
+        this.isLoadingStoneDetail = true;
+        
+        // 루트 스톤인 경우 프로젝트 상세 정보 API 호출
+        if (stone.isRoot) {
+          try {
+            // 루트 스톤의 경우 프로젝트 ID를 사용
+            // 현재 프로젝트의 ID를 사용하거나 stone.id를 프로젝트 ID로 사용
+            const projectId = this.$route.params.projectId || 'pjt_1';
+            console.log('프로젝트 ID:', projectId);
+            console.log('스톤 ID:', stone.id);
+            
+            const response = await axios.get(
+              `http://localhost:8080/workspace-service/project/detail/${projectId}`,
+              {
+                headers: {
+                  'X-User-Id': this.currentUser.id || 'test-user-id' // 실제 사용자 ID로 교체 필요
+                }
+              }
+            );
+            
+            if (response.data.statusCode === 200) {
+              const projectDetail = response.data.result;
+              console.log('프로젝트 상세 데이터:', projectDetail);
+              
+              // 프로젝트 상세 데이터를 모달에 맞는 형태로 변환
+              this.selectedStoneData = {
+                stoneId: stone.id,
+                stoneName: projectDetail.projectName,
+                startTime: projectDetail.startTime,
+                endTime: projectDetail.endTime,
+                manager: '프로젝트 담당자', // API에 담당자 정보가 없으므로 기본값
+                participants: '비어 있음',
+                documentLink: '바로가기',
+                chatCreation: false,
+                tasks: [],
+                // 프로젝트 전용 데이터
+                projectObjective: projectDetail.projectObjective,
+                projectDescription: projectDetail.projectDescription,
+                stoneCount: projectDetail.stoneCount,
+                completedCount: projectDetail.completedCount,
+                projectStatus: projectDetail.projectStatus,
+                isProject: true // 프로젝트 모달임을 표시
+              };
+              
+              this.showStoneDetailModal = true;
+              return;
+            } else {
+              console.error('프로젝트 상세 조회 실패:', response.data.statusMessage);
+              alert('프로젝트 정보를 불러오는데 실패했습니다.');
+              return;
+            }
+          } catch (projectError) {
+            console.error('프로젝트 상세 조회 API 호출 실패:', projectError);
+            alert('프로젝트 정보를 불러오는데 실패했습니다.');
+            return;
+          }
+        }
+        
+        // 일반 스톤인 경우 스톤 상세 정보 API 호출
+        const response = await axios.get(
+          `http://localhost:8080/workspace-service/stone/${stone.id}`,
+          {
+            headers: {
+              'X-User-Id': this.currentUser.id || 'test-user-id' // 실제 사용자 ID로 교체 필요
+            }
+          }
+        );
+        
+        if (response.data.statusCode === 200) {
+          const stoneDetail = response.data.result;
+          
+          // API 응답 데이터를 모달에 맞는 형태로 변환
+          this.selectedStoneData = {
+            stoneId: stone.id,
+            stoneName: stoneDetail.stoneName,
+            startTime: stoneDetail.startTime,
+            endTime: stoneDetail.endTime,
+            manager: stoneDetail.stoneManagerName,
+            participants: '비어 있음', // API에 참여자 정보가 없으므로 기본값
+            documentLink: '바로가기', // API에 문서 링크가 없으므로 기본값
+            chatCreation: stoneDetail.chatCreation,
+            tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
+              id: task.taskId || index + 1,
+              name: task.taskName || '태스크',
+              completed: task.taskStatus === 'COMPLETED' || false,
+              startTime: task.startTime || stoneDetail.startTime,
+              endTime: task.endTime || stoneDetail.endTime
+            })),
+            isProject: false // 일반 스톤 모달임을 표시
+          };
+          
+          this.showStoneDetailModal = true;
+        } else {
+          console.error('스톤 상세 조회 실패:', response.data.statusMessage);
+          alert('스톤 정보를 불러오는데 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('스톤 상세 조회 API 호출 실패:', error);
+        alert('스톤 정보를 불러오는데 실패했습니다.');
+        
+        // 에러 발생 시 기본 데이터로 모달 표시
+        this.selectedStoneData = {
+          stoneId: stone.id,
+          stoneName: stone.name,
+          startTime: stone.startTime || '2025-09-12',
+          endTime: stone.endTime || '2025-09-17',
+          manager: '김올빗',
+          participants: '비어 있음',
+          documentLink: '바로가기',
+          chatCreation: false,
+          tasks: [],
+          isProject: stone.isRoot || false
+        };
+        this.showStoneDetailModal = true;
+      } finally {
+        this.isLoadingStoneDetail = false;
+      }
     },
     calculateDDay(endTime) {
       if (!endTime) return null;
@@ -1186,6 +1404,29 @@ export default {
       this.showCreateStoneModal = false;
       this.selectedParentStone = null;
       this.resetNewStoneForm();
+    },
+    
+    // 스톤 상세 모달 관련 메서드들
+    closeStoneDetailModal() {
+      this.showStoneDetailModal = false;
+      this.selectedStoneData = {};
+    },
+    
+    expandStoneDetailModal() {
+      // 전체 화면으로 확장하는 로직 (필요시 구현)
+      console.log('스톤 상세 모달 확장');
+    },
+    
+    deleteStoneFromModal(stoneData) {
+      console.log('스톤 삭제:', stoneData);
+      // 스톤 삭제 로직
+      this.closeStoneDetailModal();
+    },
+    
+    addTaskToStone(stoneData) {
+      console.log('태스크 추가:', stoneData);
+      // 태스크 추가 로직 (향후 구현)
+      alert('태스크 추가 기능은 곧 구현될 예정입니다.');
     },
     
     resetNewStoneForm() {

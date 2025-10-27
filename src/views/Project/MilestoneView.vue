@@ -21,6 +21,15 @@
         <MiniMap />
       </VueFlow>
     </div>
+
+    <!-- 스톤 상세 모달 -->
+    <StoneDetailModal 
+      :is-visible="showStoneModal"
+      :stone-data="selectedStoneData"
+      @close="closeStoneModal"
+      @expand="expandStoneModal"
+      @delete="deleteStone"
+    />
   </div>
 </template>
 
@@ -29,6 +38,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { VueFlow } from '@vue-flow/core'
 import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
+import StoneDetailModal from '@Project/StoneDetailModal.vue'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/controls/dist/style.css'
 import '@vue-flow/minimap/dist/style.css'
@@ -46,7 +56,109 @@ const emit = defineEmits(['edit-stone', 'delete-stone', 'add-stone'])
 
 // Reactive data
 const elements = ref([])
+const showStoneModal = ref(false)
+const selectedStoneData = ref({})
 let nodeIdCounter = 1
+
+// 더미 데이터
+const dummyStones = [
+  {
+    stoneId: 'stone-1',
+    stoneName: '오르빗 출시 D-53',
+    startTime: '2025-09-12',
+    endTime: '2025-09-17',
+    manager: '김올빗',
+    participants: '비어 있음',
+    documentLink: '바로가기',
+    tasks: [
+      {
+        id: 1,
+        name: '채팅방',
+        completed: true,
+        startTime: '2025-09-12',
+        endTime: '2025-09-17'
+      },
+      {
+        id: 2,
+        name: '기획안 작성',
+        completed: true,
+        startTime: '2025-09-12',
+        endTime: '2025-09-14'
+      },
+      {
+        id: 3,
+        name: '요구사항 정의',
+        completed: false,
+        startTime: '2025-09-14',
+        endTime: '2025-09-16'
+      },
+      {
+        id: 4,
+        name: 'WBS 작성',
+        completed: false,
+        startTime: '2025-09-16',
+        endTime: '2025-09-17'
+      }
+    ]
+  },
+  {
+    stoneId: 'stone-2',
+    stoneName: '기획 D-4',
+    startTime: '2025-09-12',
+    endTime: '2025-09-16',
+    manager: '김올빗',
+    participants: '비어 있음',
+    documentLink: '바로가기',
+    tasks: [
+      {
+        id: 1,
+        name: '기획안 작성',
+        completed: true,
+        startTime: '2025-09-12',
+        endTime: '2025-09-14'
+      },
+      {
+        id: 2,
+        name: '요구사항 정의',
+        completed: false,
+        startTime: '2025-09-14',
+        endTime: '2025-09-16'
+      }
+    ]
+  },
+  {
+    stoneId: 'stone-3',
+    stoneName: '백엔드 개발 D-21',
+    startTime: '2025-09-12',
+    endTime: '2025-10-03',
+    manager: '김올빗',
+    participants: '비어 있음',
+    documentLink: '바로가기',
+    tasks: [
+      {
+        id: 1,
+        name: 'API 설계',
+        completed: false,
+        startTime: '2025-09-12',
+        endTime: '2025-09-20'
+      },
+      {
+        id: 2,
+        name: '데이터베이스 설계',
+        completed: false,
+        startTime: '2025-09-15',
+        endTime: '2025-09-25'
+      },
+      {
+        id: 3,
+        name: '백엔드 구현',
+        completed: false,
+        startTime: '2025-09-20',
+        endTime: '2025-10-03'
+      }
+    ]
+  }
+]
 
 // Default edge options
 const defaultEdgeOptions = {
@@ -150,7 +262,35 @@ const calculateNodePosition = (level, index, totalCount) => {
 
 const onNodeClick = (event, node) => {
   console.log('노드 클릭:', node.data)
-  // 상세 정보 표시 또는 편집 모달 열기
+  
+  // 더미 데이터에서 해당 스톤 정보 찾기
+  const stoneData = dummyStones.find(stone => stone.stoneId === node.data.stoneId)
+  if (stoneData) {
+    selectedStoneData.value = stoneData
+    showStoneModal.value = true
+  } else {
+    // 기본 데이터로 모달 열기
+    selectedStoneData.value = {
+      stoneId: node.data.stoneId,
+      stoneName: node.data.label,
+      startTime: node.data.startTime || '2025-09-12',
+      endTime: node.data.endTime || '2025-09-17',
+      manager: '김올빗',
+      participants: '비어 있음',
+      documentLink: '바로가기',
+      tasks: [
+        {
+          id: 1,
+          name: '기본 태스크',
+          completed: false,
+          startTime: '2025-09-12',
+          endTime: '2025-09-17'
+        }
+      ]
+    }
+    showStoneModal.value = true
+  }
+  
   emit('edit-stone', {
     stoneId: node.data.stoneId,
     stoneName: node.data.label,
@@ -198,17 +338,42 @@ const addStone = () => {
   emit('add-stone', newNode.data)
 }
 
+// 모달 관련 메서드들
+const closeStoneModal = () => {
+  showStoneModal.value = false
+  selectedStoneData.value = {}
+}
+
+const expandStoneModal = () => {
+  // 전체 화면으로 확장하는 로직 (필요시 구현)
+  console.log('모달 확장')
+}
+
+const deleteStone = (stoneData) => {
+  console.log('스톤 삭제:', stoneData)
+  // 스톤 삭제 로직
+  const stoneIndex = elements.value.findIndex(el => el.data.stoneId === stoneData.stoneId)
+  if (stoneIndex !== -1) {
+    elements.value.splice(stoneIndex, 1)
+  }
+  closeStoneModal()
+  emit('delete-stone', stoneData)
+}
+
 // Watchers
 watch(() => props.stones, (newStones) => {
   if (newStones && newStones.length > 0) {
     elements.value = convertStonesToElements(newStones)
   } else {
-    // 테스트용 기본 노드들
+    // 테스트용 기본 노드들 (더미 데이터와 연결)
     elements.value = [
       {
         id: '1',
         type: 'input',
-        data: { label: '3번째 프로젝트' },
+        data: { 
+          label: '오르빗 출시 D-53',
+          stoneId: 'stone-1'
+        },
         position: { x: 400, y: 100 },
         style: {
           background: '#FFDD44',
@@ -229,8 +394,35 @@ watch(() => props.stones, (newStones) => {
       {
         id: '2',
         type: 'default',
-        data: { label: '백엔드5 수정 스톤' },
-        position: { x: 450, y: 300 },
+        data: { 
+          label: '기획 D-4',
+          stoneId: 'stone-2'
+        },
+        position: { x: 200, y: 300 },
+        style: {
+          background: '#FFEE93',
+          borderRadius: '50%',
+          width: 120,
+          height: 120,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          border: '3px solid #FFFFFF',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          fontSize: '12px',
+          fontWeight: '700',
+          color: '#1C0F0F',
+          cursor: 'pointer'
+        }
+      },
+      {
+        id: '3',
+        type: 'default',
+        data: { 
+          label: '백엔드 개발 D-21',
+          stoneId: 'stone-3'
+        },
+        position: { x: 600, y: 300 },
         style: {
           background: '#FFEE93',
           borderRadius: '50%',
@@ -253,6 +445,13 @@ watch(() => props.stones, (newStones) => {
         target: '2',
         animated: true,
         style: { stroke: '#FFDD44', strokeWidth: 2 }
+      },
+      {
+        id: 'e1-3',
+        source: '1',
+        target: '3',
+        animated: true,
+        style: { stroke: '#FFDD44', strokeWidth: 2 }
       }
     ]
   }
@@ -260,12 +459,15 @@ watch(() => props.stones, (newStones) => {
 
 // Lifecycle
 onMounted(() => {
-  // 테스트용 기본 노드들
+  // 테스트용 기본 노드들 (더미 데이터와 연결)
   elements.value = [
     {
       id: '1',
       type: 'input',
-      data: { label: '3번째 프로젝트' },
+      data: { 
+        label: '오르빗 출시 D-53',
+        stoneId: 'stone-1'
+      },
       position: { x: 400, y: 100 },
       style: {
         background: '#FFDD44',
@@ -286,8 +488,35 @@ onMounted(() => {
     {
       id: '2',
       type: 'default',
-      data: { label: '백엔드5 수정 스톤' },
-      position: { x: 450, y: 300 },
+      data: { 
+        label: '기획 D-4',
+        stoneId: 'stone-2'
+      },
+      position: { x: 200, y: 300 },
+      style: {
+        background: '#FFEE93',
+        borderRadius: '50%',
+        width: 120,
+        height: 120,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        border: '3px solid #FFFFFF',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        fontSize: '12px',
+        fontWeight: '700',
+        color: '#1C0F0F',
+        cursor: 'pointer'
+      }
+    },
+    {
+      id: '3',
+      type: 'default',
+      data: { 
+        label: '백엔드 개발 D-21',
+        stoneId: 'stone-3'
+      },
+      position: { x: 600, y: 300 },
       style: {
         background: '#FFEE93',
         borderRadius: '50%',
@@ -308,6 +537,13 @@ onMounted(() => {
       id: 'e1-2',
       source: '1',
       target: '2',
+      animated: true,
+      style: { stroke: '#FFDD44', strokeWidth: 2 }
+    },
+    {
+      id: 'e1-3',
+      source: '1',
+      target: '3',
       animated: true,
       style: { stroke: '#FFDD44', strokeWidth: 2 }
     }

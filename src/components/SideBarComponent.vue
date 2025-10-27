@@ -184,8 +184,15 @@ export default {
     
     // 프로젝트 목록 로드
     await this.loadProjectList();
+    
+    // 프로젝트 생성 이벤트 리스너 추가
+    window.addEventListener('projectCreated', this.onProjectCreated);
   },
   
+  beforeUnmount() {
+    // 이벤트 리스너 제거
+    window.removeEventListener('projectCreated', this.onProjectCreated);
+  },
   watch: {
     // 워크스페이스 변경 감지
     'workspaceStore.currentWorkspace': {
@@ -386,6 +393,12 @@ export default {
         console.error('프로젝트 목록 로드 실패:', error);
         this.projectList = [];
       }
+    },
+    
+    // 프로젝트 생성 이벤트 핸들러
+    async onProjectCreated() {
+      console.log('프로젝트 생성 이벤트 수신 - 목록 새로고침');
+      await this.loadProjectList();
     }
   }
 };

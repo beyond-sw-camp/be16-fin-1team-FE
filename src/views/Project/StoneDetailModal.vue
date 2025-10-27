@@ -1,0 +1,723 @@
+<template>
+  <div v-if="isVisible" class="stone-detail-modal" @click="closeModal">
+    <div class="modal-content" @click.stop>
+      <!-- 모달 헤더 -->
+      <div class="modal-header">
+        <div class="header-left">
+          <button class="collapse-btn" @click="toggleCollapse">
+            <svg v-if="!isCollapsed" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 18L15 12L9 6" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 18L9 12L15 6" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="expand-btn" @click="toggleExpand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 3H5C3.89543 3 3 3.89543 3 5V8M21 3H18M21 21V18M3 21V18" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="header-right">
+          <button class="delete-btn" @click="deleteStone">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 6H5H21" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+        <!-- 모달 본문 -->
+        <div v-if="!isCollapsed" class="modal-body">
+          <!-- 로딩 상태 -->
+          <div v-if="isLoading" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">스톤 정보를 불러오는 중...</p>
+          </div>
+          
+          <!-- 스톤 정보 -->
+          <div v-else>
+        <!-- 스톤/프로젝트 제목 -->
+        <div class="stone-title">{{ stoneData.stoneName }}</div>
+        
+        <!-- 프로젝트 전용 정보 -->
+        <div v-if="stoneData.isProject" class="project-info">
+          <!-- 디버깅용 콘솔 로그 -->
+          {{ console.log('모달에서 받은 프로젝트 데이터:', stoneData) }}
+          <!-- 프로젝트 목표 -->
+          <div class="info-section">
+            <div class="info-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 17L12 22L22 17" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>목표</span>
+            </div>
+            <div class="info-value">{{ stoneData.projectObjective || '목표 미설정' }}</div>
+          </div>
+          
+          <!-- 프로젝트 설명 -->
+          <div class="info-section">
+            <div class="info-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 2V8H20" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 13H8M16 17H8M10 9H8" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>설명</span>
+            </div>
+            <div class="info-value">{{ stoneData.projectDescription || '설명 없음' }}</div>
+          </div>
+          
+          <!-- 스톤 개수 -->
+          <div class="info-section">
+            <div class="info-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 12H16M12 8V16" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>스톤 개수</span>
+            </div>
+            <div class="info-value">{{ stoneData.stoneCount || 0 }}개</div>
+          </div>
+        </div>
+        
+        <!-- 기간 정보 -->
+        <div class="info-section">
+          <div class="info-label">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 2V5M16 2V5M3.5 9.09H20.5M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 13H12.01M12 17H12.01M16 13H16.01M16 17H16.01M8 13H8.01M8 17H8.01" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>기간</span>
+          </div>
+          <div class="info-value">{{ formatDateRange(stoneData.startTime, stoneData.endTime) }}</div>
+        </div>
+
+        <!-- 스톤 정보 (일반 스톤인 경우에만 표시) -->
+        <div v-if="!stoneData.isProject">
+          <!-- 담당자 정보 -->
+          <div class="info-section">
+            <div class="info-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="7" r="4" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>담당자</span>
+            </div>
+            <div class="info-value">{{ stoneData.manager || '김올빗' }}</div>
+          </div>
+
+          <!-- 참여자 정보 -->
+          <div class="info-section">
+            <div class="info-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="rgba(244, 206, 83, 0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="9" cy="7" r="4" stroke="rgba(244, 206, 83, 0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M23 21V19C23 17.9391 22.5786 16.9217 21.8284 16.1716C21.0783 15.4214 20.0609 15 19 15H16" stroke="rgba(102, 102, 102, 0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45768C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="rgba(102, 102, 102, 0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>참여자</span>
+            </div>
+            <div class="info-value">{{ stoneData.participants || '비어 있음' }}</div>
+          </div>
+
+          <!-- 채팅방 -->
+          <div class="info-section">
+            <div class="info-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13 8H13.01M9 8H9.01M17 8H17.01" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>채팅방</span>
+            </div>
+            <div class="info-value">
+              <div class="chat-link">
+                <span>{{ stoneData.chatCreation ? '바로가기' : '채팅방 없음' }}</span>
+                <svg v-if="stoneData.chatCreation" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M15 3H21V9" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M10 14L21 3" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- 문서함 -->
+          <div class="info-section">
+            <div class="info-label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 2V8H20" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 13H8M16 17H8M10 9H8" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>문서함</span>
+            </div>
+            <div class="info-value">
+              <div class="document-link">
+                <span>{{ stoneData.documentLink || '바로가기' }}</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M15 3H21V9" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M10 14L21 3" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 태스크 섹션 (일반 스톤인 경우에만 표시) -->
+        <div v-if="!stoneData.isProject">
+          <!-- 구분선 -->
+          <div class="divider"></div>
+
+          <!-- 태스크 섹션 -->
+          <div class="tasks-section">
+            <div class="section-title">태스크</div>
+            <div class="task-list">
+              <div v-for="task in stoneData.tasks" :key="task.id" class="task-item">
+                <div class="task-checkbox" :class="{ 'completed': task.completed }">
+                  <svg v-if="task.completed" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 12L11 14L15 10" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="task-content">
+                  <div class="task-name" :class="{ 'completed': task.completed }">{{ task.name }}</div>
+                  <div class="task-period">{{ formatDateRange(task.startTime, task.endTime) }}</div>
+                </div>
+                <div class="task-assignee">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 태스크 추가 버튼 -->
+            <div class="add-task-section">
+              <button class="add-task-btn" @click="addTask">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>태스크 추가</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'StoneDetailModal',
+  props: {
+    isVisible: {
+      type: Boolean,
+      default: false
+    },
+    isLoading: {
+      type: Boolean,
+      default: false
+    },
+    stoneData: {
+      type: Object,
+      default: () => ({
+        stoneName: '오늘의 일정',
+        startTime: '2025-09-12',
+        endTime: '2025-09-17',
+        manager: '김올빗',
+        participants: '비어 있음',
+        documentLink: '바로가기',
+        tasks: [
+          {
+            id: 1,
+            name: '채팅방',
+            completed: true,
+            startTime: '2025-09-12',
+            endTime: '2025-09-17'
+          },
+          {
+            id: 2,
+            name: '기획안 작성',
+            completed: true,
+            startTime: '2025-09-12',
+            endTime: '2025-09-14'
+          },
+          {
+            id: 3,
+            name: '요구사항 정의',
+            completed: false,
+            startTime: '2025-09-14',
+            endTime: '2025-09-16'
+          },
+          {
+            id: 4,
+            name: 'WBS 작성',
+            completed: false,
+            startTime: '2025-09-16',
+            endTime: '2025-09-17'
+          }
+        ]
+      })
+    }
+  },
+  data() {
+    return {
+      isCollapsed: false
+    }
+  },
+  methods: {
+    closeModal() {
+      this.$emit('close')
+    },
+    toggleCollapse() {
+      this.isCollapsed = !this.isCollapsed
+    },
+    toggleExpand() {
+      this.$emit('expand')
+    },
+    deleteStone() {
+      this.$emit('delete', this.stoneData)
+    },
+    addTask() {
+      this.$emit('add-task', this.stoneData)
+    },
+    formatDateRange(startDate, endDate) {
+      if (!startDate || !endDate) return '날짜 미설정'
+      
+      // API 응답이 ISO 8601 형식인 경우 처리
+      const formatDate = (dateStr) => {
+        if (!dateStr) return ''
+        const date = new Date(dateStr)
+        return date.toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).replace(/\./g, '.').replace(/\s/g, '')
+      }
+      
+      return `${formatDate(startDate)} - ${formatDate(endDate)}`
+    }
+  }
+}
+</script>
+
+<style scoped>
+.stone-detail-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  width: 50vw;
+  max-width: 600px;
+  min-width: 400px;
+  height: 100vh;
+  background: #FFFFFF;
+  border-left: 1px solid rgba(42, 40, 40, 0.5);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  border-bottom: 1px solid rgba(42, 40, 40, 0.1);
+  background: #F5F5F5;
+  min-height: 60px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.collapse-btn,
+.expand-btn,
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.collapse-btn:hover,
+.expand-btn:hover,
+.delete-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.modal-body {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+  background: #FFFFFF;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.stone-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 33px;
+  color: #1C0F0F;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.info-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 12px 0;
+}
+
+.info-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 24px;
+  color: #666666;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.info-label svg {
+  flex-shrink: 0;
+}
+
+.info-value {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 22px;
+  color: #1C0F0F;
+  text-align: right;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+  max-width: 100%;
+}
+
+
+
+.document-link,
+.chat-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.document-link:hover,
+.chat-link:hover {
+  color: #F6D365;
+}
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(42, 40, 40, 0.5);
+  margin: 30px 0;
+}
+
+.tasks-section {
+  margin-top: 20px;
+}
+
+.section-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 24px;
+  color: #666666;
+  margin-bottom: 20px;
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(42, 40, 40, 0.1);
+}
+
+.task-item:last-child {
+  border-bottom: none;
+}
+
+.task-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #F4CE53;
+  border-radius: 2px;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.task-checkbox.completed {
+  background: #F4CE53;
+  border-color: #F4CE53;
+}
+
+.task-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-name {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 24px;
+  color: #666666;
+}
+
+.task-name.completed {
+  color: rgba(102, 102, 102, 0.5);
+  text-decoration: line-through;
+}
+
+.task-period {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 24px;
+  color: #666666;
+}
+
+.task-assignee {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 태스크 추가 버튼 스타일 */
+.add-task-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(42, 40, 40, 0.1);
+}
+
+.add-task-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #F5F5F5;
+  border: 2px dashed #F4CE53;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 20px;
+  color: #666666;
+  width: 100%;
+  justify-content: center;
+}
+
+.add-task-btn:hover {
+  background: #F4CE53;
+  color: #FFFFFF;
+  border-color: #F4CE53;
+}
+
+.add-task-btn:active {
+  transform: translateY(1px);
+}
+
+/* 로딩 상태 스타일 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #F4CE53;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 20px;
+  color: #666666;
+  margin: 0;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1200px) {
+  .modal-content {
+    width: 100%;
+    max-width: 600px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .modal-content {
+    width: 60vw;
+    max-width: 500px;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 80vw;
+    max-width: none;
+    min-width: 300px;
+  }
+  
+  .modal-body {
+    padding: 20px;
+  }
+  
+  .stone-title {
+    font-size: 24px;
+    line-height: 28px;
+  }
+  
+  .info-label,
+  .info-value,
+  .task-name,
+  .task-period {
+    font-size: 18px;
+    line-height: 22px;
+  }
+  
+  .task-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .task-content {
+    width: 100%;
+  }
+  
+  .task-assignee {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-body {
+    padding: 15px;
+  }
+  
+  .stone-title {
+    font-size: 20px;
+    line-height: 24px;
+  }
+  
+  .info-label,
+  .info-value,
+  .task-name,
+  .task-period {
+    font-size: 16px;
+    line-height: 20px;
+  }
+  
+  .modal-header {
+    padding: 15px 20px;
+  }
+}
+</style>
