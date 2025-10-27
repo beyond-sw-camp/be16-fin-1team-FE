@@ -75,6 +75,13 @@ export default {
       window.addEventListener('touchmove', this.onFabPointerMove, { passive: false });
       window.addEventListener('touchend', this.onFabPointerUp, { passive: true });
       window.addEventListener('resize', this.onWindowResize, { passive: true });
+      // Global modal open events
+      window.addEventListener('openCreateWorkspaceModal', () => {
+        this.showCreateModal = true;
+      });
+      window.addEventListener('openCreateProjectModal', () => {
+        this.showProjectModal = true;
+      });
     });
   },
   beforeUnmount() {
@@ -170,19 +177,9 @@ export default {
         localStorage.setItem('chatbotFabY', String(this.fabY));
       } catch (_) {}
     },
-  },
-  closeCreateModal() {
-    this.showCreateModal = false;
-  },
-  mounted() {
-    // 전역 이벤트 리스너 등록 (Vue 3 방식)
-    window.addEventListener('openCreateWorkspaceModal', () => {
-      this.showCreateModal = true;
-    });
-    
-    window.addEventListener('openCreateProjectModal', () => {
-      this.showProjectModal = true;
-    });
+    closeCreateModal() {
+      this.showCreateModal = false;
+    },
   },
 }
 </script>
