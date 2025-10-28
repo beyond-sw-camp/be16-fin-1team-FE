@@ -24,6 +24,18 @@
           <label class="label">종류</label>
           <v-select v-model="form.calendarType" :items="typeItems" variant="outlined" density="comfortable" hide-details />
         </div>
+        <div class="form-row" v-if="form.calendarType === '개인 일정'">
+          <label class="label">반복</label>
+          <v-select
+            v-model="form.recurrence"
+            :items="recurrenceItems"
+            item-title="title"
+            item-value="value"
+            variant="outlined"
+            density="comfortable"
+            hide-details
+          />
+        </div>
         <div class="form-row" v-if="form.calendarType !== '개인 일정'">
           <label class="label">북마크 여부</label>
           <v-switch v-model="form.bookmark" inset color="#FFE364" hide-details class="switch" />
@@ -57,10 +69,18 @@ export default {
         startedAtDate: '',
         endedAt: '',
         calendarType: '',
+        recurrence: 'NONE',
         bookmark: false,
         isShared: false,
       },
       typeItems: ['개인 일정', 'ToDo'],
+      recurrenceItems: [
+        { title: '반복 없음', value: 'NONE' },
+        { title: '매일', value: 'DAILY' },
+        { title: '매주', value: 'WEEKLY' },
+        { title: '매월', value: 'MONTHLY' },
+        { title: '매년', value: 'YEARLY' },
+      ],
     };
   },
   watch: {
@@ -102,6 +122,14 @@ export default {
       this.form.calendarType = this.mapTypeToUi(d.calendarType);
       this.form.bookmark = Boolean(d.bookmark);
       this.form.isShared = Boolean(d.isShared);
+      // recurrence defaulting (개인 일정일 때만 의미 있음)
+      if (this.form.calendarType === '개인 일정') {
+        const allowed = this.recurrenceItems.map(i => (i && i.value) ? i.value : i);
+        const upper = d.recurrence ? String(d.recurrence).toUpperCase() : '';
+        this.form.recurrence = (upper && allowed.includes(upper)) ? upper : 'NONE';
+      } else {
+        this.form.recurrence = 'NONE';
+      }
       // 기본값 설정
       const now = new Date();
       if (this.form.calendarType === 'ToDo') {
