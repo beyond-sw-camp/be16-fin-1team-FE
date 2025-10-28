@@ -8,6 +8,7 @@ import { adminRouter } from './AdminRouter';
 import { projectRouter } from './ProjectRouter';
 import { documentRouter } from './DocumentRouter';
 import { chatBotRouter } from './ChatBotRouter';
+import driveRouter from './DriveRouter';
 
 const routes = [
     ...homeRouter,
@@ -19,6 +20,7 @@ const routes = [
     ...projectRouter,
     ...documentRouter,
     ...chatBotRouter,
+    ...driveRouter,
 ];
 
 const router = createRouter({
