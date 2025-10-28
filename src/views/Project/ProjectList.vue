@@ -178,7 +178,6 @@
                 
                 <!-- 진척도 progress ring -->
                 <circle
-                  v-if="stone.milestone"
                   :cx="stone.x + (stone.isRoot ? 90 : 75)"
                   :cy="stone.y + (stone.isRoot ? 90 : 75)"
                   :r="stone.isRoot ? 90 : 75"
@@ -187,7 +186,7 @@
                   :stroke-width="stone.isRoot ? 16 : 12"
                   stroke-linecap="round"
                   :stroke-dasharray="2 * Math.PI * (stone.isRoot ? 90 : 75)"
-                  :stroke-dashoffset="2 * Math.PI * (stone.isRoot ? 90 : 75) * (1 - stone.milestone / 100)"
+                  :stroke-dashoffset="2 * Math.PI * (stone.isRoot ? 90 : 75) * (1 - (stone.milestone || 0) / 100)"
                   class="donut-progress"
                   transform="rotate(-90)"
                   :transform-origin="`${stone.x + (stone.isRoot ? 90 : 75)}px ${stone.y + (stone.isRoot ? 90 : 75)}px`"
@@ -203,11 +202,21 @@
                   {{ stone.name }}
                 </text>
                 
+                <!-- 마일스톤 진행률 텍스트 -->
+                <text
+                  :x="stone.x + (stone.isRoot ? 90 : 75)"
+                  :y="stone.y + (stone.isRoot ? 90 : 75) + 15"
+                  text-anchor="middle"
+                  :class="stone.isRoot ? 'root-stone-milestone' : 'stone-milestone'"
+                >
+                  {{ (stone.milestone || 0) }}%
+                </text>
+                
                 <!-- D-Day 텍스트 -->
                 <text
                   v-if="stone.dDay"
                   :x="stone.x + (stone.isRoot ? 90 : 75)"
-                  :y="stone.y + (stone.isRoot ? 90 : 75) + 15"
+                  :y="stone.y + (stone.isRoot ? 90 : 75) + 30"
                   text-anchor="middle"
                   :class="stone.isRoot ? 'root-stone-dday' : 'stone-dday'"
                 >
@@ -1975,21 +1984,9 @@ export default {
         const userId = localStorage.getItem('id');
         
         // 참여자 ID 리스트 생성 (API 전송용) - Proxy 문제 해결을 위해 명시적으로 배열 복제
-        console.log('=== 디버깅: confirmedParticipants 원본 ===');
-        console.log('this.confirmedParticipants:', this.confirmedParticipants);
-        console.log('isArray?', Array.isArray(this.confirmedParticipants));
-        console.log('JSON.stringify:', JSON.stringify(this.confirmedParticipants));
-        console.log('typeof:', typeof this.confirmedParticipants);
-        
-        // Array.from으로 명시적 변환 시도
         const participantIds = this.confirmedParticipants 
           ? Array.from(this.confirmedParticipants) 
           : [];
-        
-        console.log('변환 후 participantIds:', participantIds);
-        console.log('변환 후 isArray?', Array.isArray(participantIds));
-        console.log('변환 후 JSON.stringify:', JSON.stringify(participantIds));
-        console.log('==========================');
         
         const stoneData = {
           parentStoneId: this.selectedParentStone.id,
@@ -1999,10 +1996,6 @@ export default {
           chatCreation: this.newStone.createChat,
           participantIds: participantIds
         };
-        
-        console.log('=== 최종 전송 데이터 ===');
-        console.log('전체 데이터:', JSON.stringify(stoneData, null, 2));
-        console.log('==========================');
         
         const response = await axios.post(
           `http://localhost:8080/workspace-service/stone`,
@@ -2016,18 +2009,21 @@ export default {
         );
         
         if (response.data.statusCode === 201) {
-          console.log('스톤 생성 성공:', response.data);
           alert('스톤이 성공적으로 생성되었습니다.');
           this.closeCreateStoneModal();
           // 스톤 목록 새로고침
           await this.loadStones(projectId);
         } else {
-          console.error('스톤 생성 실패:', response.data);
-          alert('스톤 생성에 실패했습니다.');
+          alert(`스톤 생성에 실패했습니다. (${response.data.statusCode}: ${response.data.statusMessage})`);
         }
       } catch (error) {
-        console.error('스톤 생성 API 호출 실패:', error);
-        alert('스톤 생성 중 오류가 발생했습니다.');
+        if (error.response) {
+          alert(`서버 오류: ${error.response.status} - ${error.response.data?.statusMessage || error.message}`);
+        } else if (error.request) {
+          alert('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
+        } else {
+          alert(`요청 오류: ${error.message}`);
+        }
       }
     },
     
@@ -3395,7 +3391,17 @@ export default {
 
 
 .donut-progress {
-  transition: all 0.2s ease;
+  transition: stroke-dashoffset 0.8s ease-in-out;
+  animation: progressFill 1s ease-out;
+}
+
+@keyframes progressFill {
+  from {
+    stroke-dashoffset: 2 * 3.14159 * 90; /* 초기값: 완전히 비어있는 상태 */
+  }
+  to {
+    stroke-dashoffset: 2 * 3.14159 * 90 * (1 - var(--progress, 0) / 100);
+  }
 }
 
 /* 스톤 생성 텍스트 버튼 스타일 */
@@ -3462,6 +3468,15 @@ export default {
   text-anchor: middle;
 }
 
+.stone-milestone {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  fill: #4A90E2;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
 /* 루트 스톤 텍스트 스타일 */
 .root-stone-name {
   font-family: 'Pretendard', sans-serif;
@@ -3478,6 +3493,15 @@ export default {
   font-weight: 600;
   font-size: 13px;
   fill: #F8F8F2;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+.root-stone-milestone {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  fill: #4A90E2;
   pointer-events: none;
   text-anchor: middle;
 }

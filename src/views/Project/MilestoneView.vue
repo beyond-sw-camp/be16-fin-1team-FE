@@ -37,10 +37,11 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { VueFlow } from '@vue-flow/core'
+import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
 import StoneDetailModal from '@Project/StoneDetailModal.vue'
+import StoneNode from '@/components/StoneNode.vue'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/controls/dist/style.css'
 import '@vue-flow/minimap/dist/style.css'
@@ -61,6 +62,12 @@ const elements = ref([])
 const showStoneModal = ref(false)
 const selectedStoneData = ref({})
 let nodeIdCounter = 1
+
+// Vue Flow 설정
+const { addNodeType } = useVueFlow()
+
+// 커스텀 노드 타입 등록
+addNodeType('stoneNode', StoneNode)
 
 // 더미 데이터
 const dummyStones = [
@@ -189,30 +196,16 @@ const convertStonesToElements = (stones, parentId = null, level = 0) => {
     // 노드 생성
     const node = {
       id: nodeId,
-      type: level === 0 ? 'input' : 'default',
+      type: 'stoneNode',
       data: { 
         label: stone.stoneName,
         milestone: stone.milestone,
         startTime: stone.startTime,
         endTime: stone.endTime,
-        stoneId: stone.stoneId
+        stoneId: stone.stoneId,
+        isRoot: level === 0
       },
-      position: calculateNodePosition(level, index, stones.length),
-      style: {
-        background: level === 0 ? '#FFDD44' : '#FFEE93',
-        borderRadius: '50%',
-        width: 120,
-        height: 120,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        border: '3px solid #FFFFFF',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-        fontSize: '12px',
-        fontWeight: '700',
-        color: '#1C0F0F',
-        cursor: 'pointer'
-      }
+      position: calculateNodePosition(level, index, stones.length)
     }
     
     nodes.push(node)
@@ -312,30 +305,16 @@ const addStone = () => {
   const newStoneId = `new-stone-${Date.now()}`
   const newNode = {
     id: newStoneId,
-    type: 'default',
+    type: 'stoneNode',
     data: { 
       label: '새 스톤',
-      milestone: null,
+      milestone: 0,
       startTime: null,
       endTime: null,
-      stoneId: newStoneId
+      stoneId: newStoneId,
+      isRoot: false
     },
-    position: { x: 200, y: 200 },
-    style: {
-      background: '#FFEE93',
-      borderRadius: '50%',
-      width: 120,
-      height: 120,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      border: '3px solid #FFFFFF',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-      fontSize: '12px',
-      fontWeight: '700',
-      color: '#1C0F0F',
-      cursor: 'pointer'
-    }
+    position: { x: 200, y: 200 }
   }
   
   elements.value.push(newNode)
@@ -418,75 +397,36 @@ watch(() => props.stones, (newStones) => {
     elements.value = [
       {
         id: '1',
-        type: 'input',
+        type: 'stoneNode',
         data: { 
           label: '오르빗 출시 D-53',
-          stoneId: 'stone-1'
+          stoneId: 'stone-1',
+          milestone: 75,
+          isRoot: true
         },
-        position: { x: 400, y: 100 },
-        style: {
-          background: '#FFDD44',
-          borderRadius: '50%',
-          width: 120,
-          height: 120,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          border: '3px solid #FFFFFF',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          fontSize: '12px',
-          fontWeight: '700',
-          color: '#1C0F0F',
-          cursor: 'pointer'
-        }
+        position: { x: 400, y: 100 }
       },
       {
         id: '2',
-        type: 'default',
+        type: 'stoneNode',
         data: { 
           label: '기획 D-4',
-          stoneId: 'stone-2'
+          stoneId: 'stone-2',
+          milestone: 50,
+          isRoot: false
         },
-        position: { x: 200, y: 300 },
-        style: {
-          background: '#FFEE93',
-          borderRadius: '50%',
-          width: 120,
-          height: 120,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          border: '3px solid #FFFFFF',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          fontSize: '12px',
-          fontWeight: '700',
-          color: '#1C0F0F',
-          cursor: 'pointer'
-        }
+        position: { x: 200, y: 300 }
       },
       {
         id: '3',
-        type: 'default',
+        type: 'stoneNode',
         data: { 
           label: '백엔드 개발 D-21',
-          stoneId: 'stone-3'
+          stoneId: 'stone-3',
+          milestone: 25,
+          isRoot: false
         },
-        position: { x: 600, y: 300 },
-        style: {
-          background: '#FFEE93',
-          borderRadius: '50%',
-          width: 120,
-          height: 120,
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          border: '3px solid #FFFFFF',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          fontSize: '12px',
-          fontWeight: '700',
-          color: '#1C0F0F',
-          cursor: 'pointer'
-        }
+        position: { x: 600, y: 300 }
       },
       {
         id: 'e1-2',
@@ -512,75 +452,36 @@ onMounted(() => {
   elements.value = [
     {
       id: '1',
-      type: 'input',
+      type: 'stoneNode',
       data: { 
         label: '오르빗 출시 D-53',
-        stoneId: 'stone-1'
+        stoneId: 'stone-1',
+        milestone: 75,
+        isRoot: true
       },
-      position: { x: 400, y: 100 },
-      style: {
-        background: '#FFDD44',
-        borderRadius: '50%',
-        width: 120,
-        height: 120,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        border: '3px solid #FFFFFF',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-        fontSize: '12px',
-        fontWeight: '700',
-        color: '#1C0F0F',
-        cursor: 'pointer'
-      }
+      position: { x: 400, y: 100 }
     },
     {
       id: '2',
-      type: 'default',
+      type: 'stoneNode',
       data: { 
         label: '기획 D-4',
-        stoneId: 'stone-2'
+        stoneId: 'stone-2',
+        milestone: 50,
+        isRoot: false
       },
-      position: { x: 200, y: 300 },
-      style: {
-        background: '#FFEE93',
-        borderRadius: '50%',
-        width: 120,
-        height: 120,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        border: '3px solid #FFFFFF',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-        fontSize: '12px',
-        fontWeight: '700',
-        color: '#1C0F0F',
-        cursor: 'pointer'
-      }
+      position: { x: 200, y: 300 }
     },
     {
       id: '3',
-      type: 'default',
+      type: 'stoneNode',
       data: { 
         label: '백엔드 개발 D-21',
-        stoneId: 'stone-3'
+        stoneId: 'stone-3',
+        milestone: 25,
+        isRoot: false
       },
-      position: { x: 600, y: 300 },
-      style: {
-        background: '#FFEE93',
-        borderRadius: '50%',
-        width: 120,
-        height: 120,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        border: '3px solid #FFFFFF',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-        fontSize: '12px',
-        fontWeight: '700',
-        color: '#1C0F0F',
-        cursor: 'pointer'
-      }
+      position: { x: 600, y: 300 }
     },
     {
       id: 'e1-2',
