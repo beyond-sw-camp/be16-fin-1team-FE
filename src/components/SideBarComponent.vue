@@ -47,7 +47,7 @@
       </div>
       
       <!-- 내 일정 -->
-      <div class="nav-item">
+      <div class="nav-item" @click="navigateToSchedule">
         <img src="@/assets/icons/sidebar/schedule.svg" alt="내 일정" class="nav-icon" />
         <div class="nav-text">내 일정</div>
       </div>
@@ -59,7 +59,7 @@
       </div>
       
       <!-- 문서함 -->
-      <div class="nav-item">
+      <div class="nav-item" :class="{ active: currentRoute.startsWith('/drive') }" @click="navigateToDrive">
         <img src="@/assets/icons/sidebar/document.svg" alt="문서함" class="nav-icon" />
         <div class="nav-text">문서함</div>
       </div>
@@ -123,6 +123,7 @@
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { workspaceWatcher } from '@/mixins/workspaceWatcher';
+import { scheduleRouter } from '../router/ScheduleRouter';
 
 export default {
   name: "SideBarComponent",
@@ -298,6 +299,17 @@ export default {
     navigateToAdmin() {
       this.$router.push('/admin');
     },
+    navigateToDrive() {
+      // localStorage에서 selectedWorkspaceId 가져오기
+      const workspaceId = localStorage.getItem('selectedWorkspaceId');
+      
+      if (workspaceId) {
+        this.$router.push(`/drive/${workspaceId}`);
+      } else {
+        // 워크스페이스 ID가 없으면 기본 드라이브로
+        this.$router.push('/drive');
+      }
+    },
     
     selectProject(project) {
       console.log('프로젝트 선택:', project);
@@ -406,6 +418,12 @@ export default {
       console.log('프로젝트 생성 이벤트 수신 - 목록 새로고침');
       await this.loadProjectList();
     },
+
+    // 내 일정
+    navigateToSchedule() {
+      this.$router.push("/schedule");
+    },
+
     
     // 프로젝트 수정 이벤트 핸들러
     async onProjectUpdated(event) {

@@ -8,6 +8,11 @@
           <div class="subtitle">무엇을 도와드릴까요?</div>
         </div>
       </div>
+      <div class="header-actions">
+        <button class="header-close-btn" aria-label="닫기" @click="closeWidget">
+          <v-icon size="18" color="#8B8B8B">mdi-close</v-icon>
+        </button>
+      </div>
     </div>
     <div class="chatbot-body">
       <div
@@ -24,9 +29,7 @@
         </template>
       </div>
       <div class="suggestions">
-        <button class="chip" type="button">오늘 할 일 요약</button>
-        <button class="chip" type="button">회의록 정리</button>
-        <button class="chip" type="button">도움말</button>
+        <button class="chip" type="button" @click="showGuide">📍 사용 가이드</button>
       </div>
     </div>
     <div class="chatbot-footer">
@@ -39,34 +42,43 @@
     </div>
   </div>
 
-  <!-- 캘린더 응답 상세 오버레이 (위젯 내부 전용) -->
-  <div v-if="isCalendarDialogOpen" class="calendar-overlay">
-    <div class="calendar-card">
-      <div class="calendar-title">캘린더 일정 확인</div>
-      <div v-if="calendarDetails" class="calendar-detail">
-        <div class="detail-row"><span class="label">캘린더</span><span class="value">{{ calendarDetails.calendarName }}</span></div>
-        <div class="detail-row"><span class="label">시작</span><span class="value">{{ calendarDetails.startedAt }}</span></div>
-        <div class="detail-row"><span class="label">종료</span><span class="value">{{ calendarDetails.endedAt }}</span></div>
-        <div class="detail-row" v-if="calendarDetails.calendarType !== undefined"><span class="label">유형</span><span class="value">{{ calendarDetails.calendarType ?? '-' }}</span></div>
-        <div class="detail-row" v-if="calendarDetails.bookmark !== undefined"><span class="label">북마크</span><span class="value">{{ calendarDetails.bookmark ?? '-' }}</span></div>
-        <div class="detail-row" v-if="calendarDetails.isShared !== undefined"><span class="label">공유</span><span class="value">{{ calendarDetails.isShared ?? '-' }}</span></div>
-      </div>
-      <div class="calendar-actions">
-        <button class="btn" @click="isCalendarDialogOpen = false">닫기</button>
-      </div>
-    </div>
-  </div>
+  <!-- 전역 모달 트리거: App으로 emit -->
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, nextTick, onMounted, defineEmits } from 'vue';
 import axios from 'axios';
 
 const WELCOME = '안녕하세요! ORBIT의 귀염둥이 챗봇 오르빙입니다🤖 무엇을 도와드릴까요?';
+const selectedWorkspaceId = localStorage.getItem('selectedWorkspaceId') || 'ws_1';
+const GUIDE_TEXT = `💬 사용 가이드
+아래와 같은 질문을 하면, 챗봇이 업무 정보를 바로 답변해드려요!
+
+🧩 1. 프로젝트 요약
+“A 프로젝트 요약해줘”
+“최근 진행 중인 프로젝트 알려줘”
+
+✅ 2. 오늘의 할 일 / 일정 브리핑
+“나 오늘 뭐해야 돼?”
+“이번 주 일정 정리해줘”
+
+💬 3. 안 읽은 채팅 요약
+“안 읽은 채팅 요약해줘”
+“밀린 메시지 뭐 있어?”
+
+📅 4. 일정 등록
+“다음 주 수목금 휴가 일정 등록해줘”
+“내일 2시에 회의 일정 추가해줘”
+""
+
+💡 5. 추가 질문 / 일반 대화
+“아까 프로젝트 요약한 내용 중 설명 부분 자세히 알려줘”
+“그 외엔 그냥 편하게 물어보세요!”`;
+const emit = defineEmits(['close']);
 const messages = ref([]);
 const inputText = ref('');
 const isLoading = ref(false);
-const isCalendarDialogOpen = ref(false);
+const isCalendarDialogOpen = ref(false); // 내부 사용 안 함(하위 호환)
 const calendarDetails = ref(null);
 
 function formatTime(date) {
@@ -96,7 +108,7 @@ async function handleSend() {
   isLoading.value = true;
   try {
     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-    const body = { workspaceId: 'ws_1', content: text };
+    const body = { workspaceId: selectedWorkspaceId, content: text };
     const { data } = await axios.post(`${baseURL}/workspace-service/chatbot/message`, body, {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -107,8 +119,10 @@ async function handleSend() {
     messages.value.push({ role: 'assistant', text: resultText, time: new Date() });
     if (resultObj && resultObj.calendarName != null && String(resultObj.calendarName).trim() !== '') {
       calendarDetails.value = resultObj;
-      // 답장을 먼저 보여주고 1초 뒤 상세 모달을 띄움
-      setTimeout(() => { isCalendarDialogOpen.value = true; }, 1000);
+      // 답장을 먼저 보여주고 1초 뒤 전역 모달 오픈을 emit
+      setTimeout(() => {
+        try { window.dispatchEvent(new CustomEvent('openCalendarDetailModal', { detail: { ...resultObj } })); } catch(_) {}
+      }, 1000);
     }
   } catch (e) {
     messages.value = messages.value.filter(m => m.type !== 'typing');
@@ -125,17 +139,26 @@ function scrollToBottom() {
   if (el) el.scrollTop = el.scrollHeight;
 }
 
+function closeWidget(){
+  isCalendarDialogOpen.value = false;
+  emit('close');
+}
+async function showGuide(){
+  messages.value.push({ role: 'assistant', text: GUIDE_TEXT, time: new Date() });
+  await nextTick();
+  scrollToBottom();
+}
 // 초기 히스토리 불러오기
 onMounted(loadHistory);
 async function loadHistory() {
   try {
     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-    const { data } = await axios.get(`${baseURL}/workspace-service/chatbot/workspaces/ws_1/chat/messages`);
+    const { data } = await axios.get(`${baseURL}/workspace-service/chatbot/workspaces/${selectedWorkspaceId}/chat/messages`);
     const list = Array.isArray(data?.result) ? data.result : [];
     const mapped = list.map(item => ({
       role: String(item?.type).toUpperCase() === 'USER' ? 'user' : 'assistant',
       text: normalizeContent(item?.content),
-      time: new Date(),
+      time: item?.timestamp ?? new Date(),
     }));
     // 환영 문구는 가장 마지막(최신)으로 표시
     messages.value = [...mapped, { role: 'assistant', text: WELCOME, time: new Date() }];
@@ -177,6 +200,12 @@ function normalizeContent(content) {
 .title-wrap { min-width: 0; }
 .title { font-size: 14px; font-weight: 700; color: #2A2828; }
 .subtitle { font-size: 12px; color: #8B8B8B; }
+.header-actions { display: flex; align-items: center; }
+.header-close-btn { border: 0; background: transparent; width: 28px; height: 28px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; line-height: 0; }
+.header-close-btn:hover { background: #F1F3F4; }
+.header-close-btn .v-icon { display: block; line-height: 1; }
+.header-close-btn:focus, .header-close-btn:focus-visible { outline: none !important; box-shadow: none !important; }
+.header-close-btn { -webkit-tap-highlight-color: transparent; }
 .chatbot-body { flex: 1 1 auto; padding: 12px; overflow-y: auto; background: linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 100%); }
 .bubble-row { display: flex; align-items: flex-end; gap: 6px; margin-bottom: 10px; }
 .bubble-row.received { justify-content: flex-start; }
@@ -184,6 +213,8 @@ function normalizeContent(content) {
 .bubble-row .bubble { max-width: 75%; padding: 8px 10px; border-radius: 10px; font-size: 14px; line-height: 1.4; }
 .bubble-row.received .bubble { background: #F1F3F4; color: #222; }
 .bubble-row.sent .bubble { background: #FFE364; color: #2A2828; }
+.bubble-row.sent .meta { order: 0; }
+.bubble-row.sent .bubble { order: 1; }
 .bubble.typing { display: inline-flex; align-items: center; gap: 4px; width: auto; }
 .dot { width: 6px; height: 6px; background: #9E9E9E; border-radius: 50%; display: inline-block; opacity: 0.2; animation: blink 1.2s infinite; }
 .dot:nth-child(2){ animation-delay: 0.2s; }
@@ -193,13 +224,15 @@ function normalizeContent(content) {
 .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .chip { padding: 6px 10px; border-radius: 999px; border: 1px solid #E3E8EF; background: #FFF; font-size: 12px; color: #475467; cursor: pointer; }
 .chip:hover { background: #F8FAFC; }
+.chip:focus, .chip:focus-visible { outline: none !important; box-shadow: none !important; }
+.chip { -webkit-tap-highlight-color: transparent; }
 .chatbot-footer { padding: 10px; display: flex; align-items: center; gap: 8px; border-top: 1px solid #F0F0F0; background: #FFFFFF; }
 .input-wrap { flex: 1 1 auto; }
-.input { width: 100%; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #E3E3E3; outline: none; background: #FFF; color: #2A2828; }
+.input { width: 100%; height: 40px !important; min-height: 40px; max-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #E3E3E3; outline: none; background: #FFF; color: #2A2828; box-sizing: border-box; -webkit-appearance: none; appearance: none; }
 .input-wrap { flex: 1 1 auto; }
 .input::placeholder { color: #9E9E9E; }
 .footer-actions { display: flex; align-items: center; }
-.send-btn { height: 36px; padding: 0 12px; border-radius: 10px; border: 0; background: #FFE364; color: #2A2828; font-weight: 700; cursor: pointer; }
+.send-btn { height: 40px !important; min-height: 40px; max-height: 40px; padding: 0 14px; border-radius: 10px !important; border: 1px solid #E3E3E3 !important; background-color: #FFE364 !important; color: #2A2828 !important; font-size: 14px; font-weight: 700 !important; cursor: pointer; -webkit-appearance: none; appearance: none; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
 .send-btn:hover { filter: brightness(0.98); }
 
 .calendar-detail { display: grid; grid-template-columns: 80px 1fr; row-gap: 8px; column-gap: 12px; font-size: 14px; }
