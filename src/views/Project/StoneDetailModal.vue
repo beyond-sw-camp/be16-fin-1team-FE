@@ -232,12 +232,24 @@
                   <div class="task-name" :class="{ 'completed': task.completed }">{{ task.name }}</div>
                   <div class="task-period">{{ formatDateRange(task.startTime, task.endTime) }}</div>
                 </div>
-                  <div class="task-assignee" @click="openTaskAssigneeEditModal(task)" title="담당자 변경">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="7" r="4" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
+                  <div class="task-assignee">
+                    <div class="assignee-icons">
+                      <div class="icon-button" @click="openTaskAssigneeEditModal(task)" title="담당자 변경">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="user-icon">
+                          <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <circle cx="12" cy="7" r="4" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </div>
+                      <div class="icon-button" @click="deleteTask(task)" title="태스크 삭제">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="trash-icon">
+                          <path d="M3 6H5H21" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M10 11V17" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M14 11V17" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -640,15 +652,28 @@
         </div>
       </div>
     </div>
+    
+    <!-- 태스크 삭제 확인 모달 -->
+    <TaskDeleteConfirmModal
+      :show="showDeleteConfirmModal"
+      :task-name="taskToDelete?.name || ''"
+      :loading="deleteLoading"
+      @close="closeDeleteConfirmModal"
+      @confirm="confirmDeleteTask"
+    />
   </div>
 </template>
 
 <script>
-import { deleteStone, modifyStoneManager, searchWorkspaceParticipants, modifyStone, getTaskList, createTask, getStoneParticipantList, modifyTask } from '@/services/stoneService.js';
+import { deleteStone, modifyStoneManager, searchWorkspaceParticipants, modifyStone, getTaskList, createTask, getStoneParticipantList, modifyTask, deleteTask } from '@/services/stoneService.js';
 import { showSnackbar } from '@/services/snackbar.js';
+import TaskDeleteConfirmModal from '@/components/modal/TaskDeleteConfirmModal.vue';
 
 export default {
   name: 'StoneDetailModal',
+  components: {
+    TaskDeleteConfirmModal
+  },
   props: {
     isVisible: {
       type: Boolean,
@@ -748,7 +773,10 @@ export default {
       availableTaskAssigneeEdits: [],
       filteredTaskAssigneeEdits: [],
       selectedTaskAssigneeEditId: null,
-      isTaskAssigneeEditSearching: false
+      isTaskAssigneeEditSearching: false,
+      showDeleteConfirmModal: false,
+      taskToDelete: null,
+      deleteLoading: false
     }
   },
   computed: {
@@ -1072,6 +1100,44 @@ export default {
       }
       
       this.closeTaskAssigneeModal();
+    },
+    
+    // 태스크 삭제
+    deleteTask(task) {
+      this.taskToDelete = task;
+      this.showDeleteConfirmModal = true;
+    },
+    
+    // 태스크 삭제 확인
+    async confirmDeleteTask() {
+      if (!this.taskToDelete) return;
+      
+      try {
+        this.deleteLoading = true;
+        console.log('태스크 삭제:', this.taskToDelete);
+        
+        // 태스크 삭제 API 호출
+        await deleteTask(this.taskToDelete.id);
+        
+        showSnackbar('태스크가 삭제되었습니다.', { color: 'success' });
+        
+        // 태스크 목록 새로고침
+        await this.loadTaskList();
+        
+        this.closeDeleteConfirmModal();
+      } catch (error) {
+        console.error('태스크 삭제 실패:', error);
+        showSnackbar(error.message || '태스크 삭제에 실패했습니다.', { color: 'error' });
+      } finally {
+        this.deleteLoading = false;
+      }
+    },
+    
+    // 삭제 확인 모달 닫기
+    closeDeleteConfirmModal() {
+      this.showDeleteConfirmModal = false;
+      this.taskToDelete = null;
+      this.deleteLoading = false;
     },
     
     // 태스크 담당자 변경 모달 열기
@@ -1908,6 +1974,38 @@ export default {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.assignee-icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.icon-button:hover {
+  background-color: rgba(244, 206, 83, 0.1);
+}
+
+.icon-button:active {
+  background-color: rgba(244, 206, 83, 0.2);
+}
+
+.user-icon {
+  margin: 0;
+}
+
+.trash-icon {
+  margin: 0;
 }
 
 /* 태스크 추가 버튼 스타일 */
