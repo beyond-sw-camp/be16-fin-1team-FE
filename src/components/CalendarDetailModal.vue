@@ -24,6 +24,10 @@
           <label class="label">종류</label>
           <v-select v-model="form.calendarType" :items="typeItems" variant="outlined" density="comfortable" hide-details />
         </div>
+        <div class="form-row" v-if="form.calendarType === '개인 일정' && form.recurrence !== 'NONE'">
+          <label class="label">반복 종료일</label>
+          <v-text-field v-model="form.repeatEndAtDate" type="date" variant="outlined" density="comfortable" hide-details />
+        </div>
         <div class="form-row" v-if="form.calendarType === '개인 일정'">
           <label class="label">반복</label>
           <v-select
@@ -69,6 +73,7 @@ export default {
         startedAtDate: '',
         endedAt: '',
         calendarType: '',
+        repeatEndAtDate: '',
         recurrence: 'NONE',
         bookmark: false,
         isShared: false,
@@ -125,7 +130,8 @@ export default {
       // recurrence defaulting (개인 일정일 때만 의미 있음)
       if (this.form.calendarType === '개인 일정') {
         const allowed = this.recurrenceItems.map(i => (i && i.value) ? i.value : i);
-        const upper = d.recurrence ? String(d.recurrence).toUpperCase() : '';
+        const rawRepeat = (d.repeatType !== undefined && d.repeatType !== null) ? d.repeatType : d.recurrence;
+        const upper = rawRepeat ? String(rawRepeat).toUpperCase() : '';
         this.form.recurrence = (upper && allowed.includes(upper)) ? upper : 'NONE';
       } else {
         this.form.recurrence = 'NONE';
@@ -151,7 +157,33 @@ export default {
           const e = `${later.getFullYear()}-${pad(later.getMonth()+1)}-${pad(later.getDate())}T${pad(later.getHours())}:${pad(later.getMinutes())}`;
           this.form.endedAt = e;
         }
+        // 반복 종료일: 서버 repeatEndAt가 오면 우선 사용, 없으면 endedAt 기준으로 recurrence에 따라 설정
+        if (d.repeatEndAt) {
+          try {
+            const dt = new Date(d.repeatEndAt);
+            if (!isNaN(dt)) {
+              const pad = (n) => String(n).padStart(2,'0');
+              this.form.repeatEndAtDate = `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+            }
+          } catch(_) { /* noop */ }
+        }
+        if (!this.form.repeatEndAtDate) {
+          const base = this.form.endedAt ? new Date(this.form.endedAt) : (this.form.startedAt ? new Date(this.form.startedAt) : now);
+          const next = this.computeNextDate(base, this.form.recurrence);
+          const pad = (n) => String(n).padStart(2,'0');
+          this.form.repeatEndAtDate = `${next.getFullYear()}-${pad(next.getMonth()+1)}-${pad(next.getDate())}`;
+        }
       }
+    },
+    computeNextDate(baseDate, recurrence){
+      const d = new Date(baseDate);
+      if (isNaN(d)) return new Date();
+      const r = String(recurrence || 'NONE').toUpperCase();
+      if (r === 'DAILY') { d.setDate(d.getDate() + 1); return d; }
+      if (r === 'WEEKLY') { d.setDate(d.getDate() + 7); return d; }
+      if (r === 'MONTHLY') { d.setMonth(d.getMonth() + 1); return d; }
+      if (r === 'YEARLY') { d.setFullYear(d.getFullYear() + 1); return d; }
+      return d;
     },
     mapTypeToUi(raw){
       const v = (raw || '').toString().toUpperCase();
