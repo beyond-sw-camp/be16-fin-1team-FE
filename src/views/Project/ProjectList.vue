@@ -542,6 +542,7 @@
       @stone-updated="onStoneUpdatedFromModal"
       @delete="deleteStoneFromModal"
       @stone-deleted="handleStoneDeleted"
+      @stone-completed="handleStoneCompleted"
       @add-task="addTaskToStone"
       @edit-manager="editStoneManager"
       @edit-participants="editStoneParticipants"
@@ -1384,6 +1385,7 @@ export default {
             participants: participantsText,
             documentLink: '바로가기', // API에 문서 링크가 없으므로 기본값
             chatCreation: stoneDetail.chatCreation,
+            stoneStatus: stoneDetail.stoneStatus,
             tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
               id: task.taskId || index + 1,
               name: task.taskName || '태스크',
@@ -1861,6 +1863,22 @@ export default {
     // 스톤 삭제 완료 처리 (API 삭제 후 호출)
     async handleStoneDeleted(deletedStone) {
       console.log('스톤 삭제 완료:', deletedStone);
+      
+      try {
+        // 스톤 목록 새로고침
+        const projectId = this.$route.query.id;
+        if (projectId) {
+          await this.loadStones(projectId);
+          console.log('스톤 목록이 새로고침되었습니다.');
+        }
+      } catch (error) {
+        console.error('스톤 목록 새로고침 실패:', error);
+      }
+    },
+    
+    // 스톤 완료 처리
+    async handleStoneCompleted(completedStone) {
+      console.log('스톤 완료:', completedStone);
       
       try {
         // 스톤 목록 새로고침

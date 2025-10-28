@@ -35,8 +35,21 @@
           <div v-else>
         <!-- 스톤/프로젝트 제목 -->
         <div class="stone-title-container">
-          <div class="stone-title">{{ stoneData.stoneName }}</div>
+          <div class="stone-title-section">
+            <div class="stone-title">{{ stoneData.stoneName }}</div>
+            <div class="stone-status" :class="getStoneStatusClass(stoneData.stoneStatus)">
+              {{ getStoneStatusText(stoneData.stoneStatus) }}
+            </div>
+          </div>
           <div class="action-buttons">
+            <button 
+              v-if="stoneData.stoneStatus === 'PROGRESS'" 
+              class="complete-stone-btn" 
+              @click="completeStone" 
+              title="스톤 완료"
+            >
+              완료
+            </button>
             <button class="edit-stone-btn" @click="editStone" title="스톤 수정">
               수정
             </button>
@@ -223,7 +236,7 @@
               <!-- 태스크 목록 -->
               <div v-else-if="taskList.length > 0">
                 <div v-for="task in taskList" :key="task.id" class="task-item">
-                <div class="task-checkbox" :class="{ 'completed': task.completed }">
+                <div class="task-checkbox" :class="{ 'completed': task.completed }" @click="toggleTaskComplete(task)">
                   <svg v-if="task.completed" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M9 12L11 14L15 10" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
@@ -661,18 +674,29 @@
       @close="closeDeleteConfirmModal"
       @confirm="confirmDeleteTask"
     />
+    
+    <!-- 태스크 완료 확인 모달 -->
+    <TaskCompleteConfirmModal
+      :show="showCompleteConfirmModal"
+      :task-name="taskToComplete?.name || ''"
+      :loading="completeLoading"
+      @close="closeCompleteConfirmModal"
+      @confirm="confirmCompleteTask"
+    />
   </div>
 </template>
 
 <script>
-import { deleteStone, modifyStoneManager, searchWorkspaceParticipants, modifyStone, getTaskList, createTask, getStoneParticipantList, modifyTask, deleteTask } from '@/services/stoneService.js';
+import { deleteStone, modifyStoneManager, searchWorkspaceParticipants, modifyStone, getTaskList, createTask, getStoneParticipantList, modifyTask, deleteTask, completeTask, completeStone } from '@/services/stoneService.js';
 import { showSnackbar } from '@/services/snackbar.js';
 import TaskDeleteConfirmModal from '@/components/modal/TaskDeleteConfirmModal.vue';
+import TaskCompleteConfirmModal from '@/components/modal/TaskCompleteConfirmModal.vue';
 
 export default {
   name: 'StoneDetailModal',
   components: {
-    TaskDeleteConfirmModal
+    TaskDeleteConfirmModal,
+    TaskCompleteConfirmModal
   },
   props: {
     isVisible: {
@@ -692,6 +716,7 @@ export default {
         manager: '김올빗',
         participants: '비어 있음',
         documentLink: '바로가기',
+        stoneStatus: 'PROGRESS',
         tasks: [
           {
             id: 1,
@@ -776,7 +801,10 @@ export default {
       isTaskAssigneeEditSearching: false,
       showDeleteConfirmModal: false,
       taskToDelete: null,
-      deleteLoading: false
+      deleteLoading: false,
+      showCompleteConfirmModal: false,
+      taskToComplete: null,
+      completeLoading: false
     }
   },
   computed: {
@@ -799,6 +827,51 @@ export default {
     editStone() {
       console.log('수정 버튼 클릭됨!', this.stoneData)
       this.openEditModal()
+    },
+    
+    // 스톤 완료 처리
+    async completeStone() {
+      try {
+        console.log('스톤 완료 버튼 클릭됨!', this.stoneData)
+        
+        const stoneId = this.stoneData.stoneId || this.stoneData.id;
+        if (!stoneId) {
+          showSnackbar('스톤 ID를 찾을 수 없습니다.', { color: 'error' });
+          return;
+        }
+        
+        // 태스크 완료 상태 확인
+        const incompleteTasks = this.taskList.filter(task => !task.completed);
+        if (incompleteTasks.length > 0) {
+          const taskNames = incompleteTasks.map(task => task.name).join(', ');
+          showSnackbar(`모든 태스크가 완료되어야 스톤을 완료할 수 있습니다. 미완료 태스크: ${taskNames}`, { color: 'warning' });
+          return;
+        }
+        
+        // 스톤 완료 API 호출
+        await completeStone(stoneId);
+        
+        showSnackbar('스톤이 완료되었습니다.', { color: 'success' });
+        
+        // 부모 컴포넌트에 스톤 완료 이벤트 전달
+        this.$emit('stone-completed', {
+          stoneId: stoneId,
+          stoneName: this.stoneData.stoneName
+        });
+        
+        // 모달 닫기
+        this.closeModal();
+        
+      } catch (error) {
+        console.error('스톤 완료 처리 실패:', error);
+        
+        // 500 에러인 경우 특별한 메시지 표시
+        if (error.message.includes('서버 오류가 발생했습니다')) {
+          showSnackbar('모든 태스크가 완료되어야 스톤을 완료할 수 있습니다.', { color: 'warning' });
+        } else {
+          showSnackbar(error.message || '스톤 완료 처리에 실패했습니다.', { color: 'error' });
+        }
+      }
     },
     
     openEditModal() {
@@ -1138,6 +1211,75 @@ export default {
       this.showDeleteConfirmModal = false;
       this.taskToDelete = null;
       this.deleteLoading = false;
+    },
+    
+    // 태스크 완료 처리
+    toggleTaskComplete(task) {
+      // 이미 완료된 태스크는 처리하지 않음
+      if (task.completed) {
+        return;
+      }
+      
+      this.taskToComplete = task;
+      this.showCompleteConfirmModal = true;
+    },
+    
+    // 태스크 완료 확인
+    async confirmCompleteTask() {
+      if (!this.taskToComplete) return;
+      
+      try {
+        this.completeLoading = true;
+        console.log('태스크 완료 처리:', this.taskToComplete);
+        
+        // 태스크 완료 API 호출
+        const response = await completeTask(this.taskToComplete.id);
+        
+        // 마일스톤 정보 표시
+        const milestone = response.result || '마일스톤 정보 없음';
+        showSnackbar(`태스크가 완료되었습니다. ${milestone}`, { color: 'success' });
+        
+        // 태스크 목록 새로고침
+        await this.loadTaskList();
+        
+        this.closeCompleteConfirmModal();
+      } catch (error) {
+        console.error('태스크 완료 처리 실패:', error);
+        showSnackbar(error.message || '태스크 완료 처리에 실패했습니다.', { color: 'error' });
+      } finally {
+        this.completeLoading = false;
+      }
+    },
+    
+    // 완료 확인 모달 닫기
+    closeCompleteConfirmModal() {
+      this.showCompleteConfirmModal = false;
+      this.taskToComplete = null;
+      this.completeLoading = false;
+    },
+    
+    // 스톤 상태 텍스트 반환
+    getStoneStatusText(status) {
+      switch (status) {
+        case 'PROGRESS':
+          return '진행중';
+        case 'COMPLETED':
+          return '완료';
+        default:
+          return '알 수 없음';
+      }
+    },
+    
+    // 스톤 상태 CSS 클래스 반환
+    getStoneStatusClass(status) {
+      switch (status) {
+        case 'PROGRESS':
+          return 'status-progress';
+        case 'COMPLETED':
+          return 'status-completed';
+        default:
+          return 'status-unknown';
+      }
     },
     
     // 태스크 담당자 변경 모달 열기
@@ -1674,7 +1816,8 @@ export default {
 }
 
 .edit-stone-btn,
-.delete-stone-btn {
+.delete-stone-btn,
+.complete-stone-btn {
   padding: 6px 12px;
   border: 1px solid #D1D5DB;
   border-radius: 6px;
@@ -1725,6 +1868,23 @@ export default {
   background: #FECACA;
 }
 
+.complete-stone-btn {
+  background: #F0FDF4;
+  color: #16A34A;
+  border-color: #BBF7D0;
+}
+
+.complete-stone-btn:hover {
+  background: #DCFCE7;
+  border-color: #86EFAC;
+  transform: translateY(-1px);
+}
+
+.complete-stone-btn:active {
+  transform: translateY(0);
+  background: #BBF7D0;
+}
+
 .modal-body {
   flex: 1;
   padding: 30px;
@@ -1754,6 +1914,42 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
+}
+
+.stone-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stone-status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  width: fit-content;
+}
+
+.status-progress {
+  background: #E3F2FD;
+  color: #1976D2;
+  border: 1px solid #BBDEFB;
+}
+
+.status-completed {
+  background: #E8F5E8;
+  color: #2E7D32;
+  border: 1px solid #C8E6C9;
+}
+
+.status-unknown {
+  background: #F5F5F5;
+  color: #757575;
+  border: 1px solid #E0E0E0;
 }
 
 .action-buttons {
@@ -1939,6 +2135,7 @@ export default {
 .task-checkbox.completed {
   background: #F4CE53;
   border-color: #F4CE53;
+  cursor: not-allowed;
 }
 
 .task-content {

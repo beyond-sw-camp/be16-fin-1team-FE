@@ -30,6 +30,7 @@
       @expand="expandStoneModal"
       @delete="deleteStone"
       @stone-deleted="handleStoneDeleted"
+      @stone-completed="handleStoneCompleted"
     />
   </div>
 </template>
@@ -71,6 +72,7 @@ const dummyStones = [
     manager: '김올빗',
     participants: '비어 있음',
     documentLink: '바로가기',
+    stoneStatus: 'PROGRESS',
     tasks: [
       {
         id: 1,
@@ -279,6 +281,7 @@ const onNodeClick = (event, node) => {
       manager: '김올빗',
       participants: '비어 있음',
       documentLink: '바로가기',
+      stoneStatus: 'PROGRESS',
       tasks: [
         {
           id: 1,
@@ -386,6 +389,24 @@ const handleStoneDeleted = (deletedStone) => {
   
   // 부모 컴포넌트에 삭제 완료 알림
   emit('delete-stone', deletedStone)
+}
+
+// 스톤 완료 처리
+const handleStoneCompleted = (completedStone) => {
+  console.log('스톤 완료:', completedStone)
+  
+  // elements 배열에서 해당 스톤 노드의 상태 업데이트
+  const stoneIndex = elements.value.findIndex(el => 
+    el.data.stoneId === completedStone.stoneId || el.id === completedStone.stoneId
+  )
+  
+  if (stoneIndex !== -1) {
+    // 노드의 상태를 완료로 업데이트
+    elements.value[stoneIndex].data.status = 'COMPLETED'
+    elements.value[stoneIndex].data.milestone = 100
+    
+    console.log('스톤이 완료 상태로 업데이트되었습니다:', completedStone.stoneName)
+  }
 }
 
 // Watchers
