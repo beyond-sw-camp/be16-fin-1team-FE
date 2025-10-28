@@ -37,7 +37,7 @@
     
     <!-- 프로젝트 설명 -->
     <div class="project-description-section">
-      <p class="project-description-text">프로젝트 협업을 위한 일정관리 서비스</p>
+      <p class="project-description-text">{{ projectDescrinpption }}</p>
     </div>
     
     <!-- 탭 메뉴 -->

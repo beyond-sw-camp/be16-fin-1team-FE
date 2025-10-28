@@ -47,7 +47,7 @@
       </div>
       
       <!-- 내 일정 -->
-      <div class="nav-item">
+      <div class="nav-item" @click="navigateToSchedule">
         <img src="@/assets/icons/sidebar/schedule.svg" alt="내 일정" class="nav-icon" />
         <div class="nav-text">내 일정</div>
       </div>
@@ -123,6 +123,7 @@
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { workspaceWatcher } from '@/mixins/workspaceWatcher';
+import { scheduleRouter } from '../router/ScheduleRouter';
 
 export default {
   name: "SideBarComponent",
@@ -417,6 +418,12 @@ export default {
       console.log('프로젝트 생성 이벤트 수신 - 목록 새로고침');
       await this.loadProjectList();
     },
+
+    // 내 일정
+    navigateToSchedule() {
+      this.$router.push("/schedule");
+    },
+
     
     // 프로젝트 수정 이벤트 핸들러
     async onProjectUpdated(event) {
