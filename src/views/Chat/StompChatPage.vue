@@ -4,7 +4,7 @@
             <v-row justify="center">
                 <v-col cols="12" md="16" lg="16" xl="12">
                     <v-card class="chat-card">
-                        <div :class="['chat-banner', { 'with-user-panel': isUserPanelOpen, 'with-side-panel': (isUserPanelOpen || isDocsPanelOpen) }]"><!-- header shifts with panel -->
+                        <div :class="['chat-banner', { 'with-user-panel': isUserPanelOpen, 'with-side-panel': (isUserPanelOpen || isDocsPanelOpen || isSearchOpen) }]"><!-- header shifts with panel -->
                             <v-btn class="banner-btn back" variant="text" size="small" @click="refreshPage" icon>
                                 <v-icon icon="mdi-chevron-left"></v-icon>
                             </v-btn>
@@ -38,7 +38,7 @@
                                 </v-menu>
                             </template>
                         </div>
-                        <v-card-text :class="['chat-body', { 'with-user-panel': isUserPanelOpen, 'with-side-panel': (isUserPanelOpen || isDocsPanelOpen) }]
+                        <v-card-text :class="['chat-body', { 'with-user-panel': isUserPanelOpen, 'with-side-panel': (isUserPanelOpen || isDocsPanelOpen || isSearchOpen) }]
                         ">
                             <div class="chat-box">
                                 <template v-for="(msg, index) in messages" :key="index">
@@ -51,8 +51,10 @@
                                         :class="[
                                             'chat-row',
                                             msg.senderId === senderId ? 'sent' : 'received',
-                                            isGroupStart(index) ? 'group-start' : 'group-cont'
+                                            isGroupStart(index) ? 'group-start' : 'group-cont',
+                                            { highlight: index === highlightIndex }
                                         ]"
+                                        :data-msg-idx="index"
                                     >
                                     <div v-if="msg.senderId !== senderId" :class="['avatar', { 'avatar-spacer': !isGroupStart(index) }]"><!---->
                                         <img v-if="isGroupStart(index)" :src="msg.userProfileImageUrl || userDefault" alt="user" @error="onAvatarError($event)" />
@@ -182,6 +184,36 @@
                             </div>
                         </div>
                         </transition>
+                        <transition name="slide-user">
+                        <div v-if="isSearchOpen" class="user-panel search-mode">
+                            <div class="user-panel-header docs-header">
+                                <img src="@/assets/icons/chat/magnify.svg" alt="search" class="user-panel-icon" />
+                                <span class="user-panel-title">검색</span>
+                                <v-btn class="banner-btn menu" variant="text" size="small" icon @click="toggleSearch(false)" style="justify-self:end">
+                                    <img src="@/assets/icons/user/close.svg" alt="close" class="menu-icon" />
+                                </v-btn>
+                            </div>
+                            <div class="docs-panel-body">
+                                <div class="search-bar">
+                                    <input class="search-input" type="text" v-model="searchQuery" placeholder="메시지 내용 검색" @keyup.enter="doSearch" />
+                                    <button class="search-btn" @click="doSearch">검색</button>
+                                </div>
+                                <div class="search-results" :key="searchVersion">
+                                    <div v-if="searching" class="search-empty">검색 중…</div>
+                                    <template v-else>
+                                        <div v-if="!searchResults.length" class="search-empty">검색 결과가 없습니다</div>
+                                        <div v-else>
+                                            <div v-for="r in searchResults" :key="r.index" class="result-row" @click="scrollToMessage(r.index)">
+                                                <div class="result-sender" :title="r.sender">{{ r.sender }}</div>
+                                                <div class="result-text">{{ r.snippet }}</div>
+                                                <div class="result-meta">{{ formatChatTime(r.time) }}</div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        </transition>
                     </v-card>
 
                 </v-col>
@@ -259,6 +291,13 @@ import axios from 'axios';
                 filesList: [],
                 isImageModalOpen: false,
                 imageModalSrc: '',
+                // search
+                isSearchOpen: false,
+                searchQuery: '',
+                searchResults: [],
+                searching: false,
+                searchVersion: 0,
+                highlightIndex: -1,
             }
         },
         created() {
@@ -510,19 +549,75 @@ import axios from 'axios';
                 this.isHeaderMenuOpen = false;
                 // TODO: 실제 라우팅/동작 연결 지점
                 if (what === 'search') {
-                    // 검색 오버레이/다이얼로그 연결 포인트
+                    this.isDocsPanelOpen = false;
+                    this.isUserPanelOpen = false;
+                    this.toggleSearch(true);
                 } else if (what === 'users') {
                     // 사용자 목록 패널 토글
+                    this.isSearchOpen = false;
+                    this.isDocsPanelOpen = false;
                     this.isUserPanelOpen = !this.isUserPanelOpen;
                     if (this.isUserPanelOpen) {
                         this.fetchParticipants();
                     }
                 } else if (what === 'docs') {
+                    this.isSearchOpen = false;
+                    this.isUserPanelOpen = false;
                     this.isDocsPanelOpen = !this.isDocsPanelOpen;
                     if (this.isDocsPanelOpen) {
                         this.fetchFiles();
                     }
                 }
+            },
+            toggleSearch(open){
+                this.isSearchOpen = open;
+                if (!open) {
+                    this.searchQuery = '';
+                    this.searchResults = [];
+                    this.searching = false;
+                    this.highlightIndex = -1;
+                }
+                this.$nextTick(() => {
+                    if (open) {
+                        try { document.querySelector('.search-input')?.focus(); } catch(_) {}
+                    }
+                });
+            },
+            doSearch(){
+                const q = (this.searchQuery || '').trim().toLowerCase();
+                this.searchVersion++;
+                if (!q) { this.searchResults = []; return; }
+                this.searching = true;
+                this.$nextTick(() => {
+                    const results = [];
+                    for (let i = 0; i < this.messages.length; i++) {
+                        const m = this.messages[i];
+                        const text = String(m?.message || '').toLowerCase();
+                        if (!text) continue;
+                        if (text.includes(q)) {
+                            const snippet = m.message.length > 120 ? (m.message.slice(0, 117) + '...') : m.message;
+                            const sender = m.senderName || m.senderId || '익명';
+                            results.push({ index: i, snippet, time: m.lastSendTime, sender });
+                        }
+                    }
+                    this.searchResults = results;
+                    this.searching = false;
+                });
+            },
+            scrollToMessage(index){
+                if (typeof index !== 'number') return;
+                this.highlightIndex = index;
+                this.$nextTick(() => {
+                    try {
+                        const box = this.$el.querySelector('.chat-box');
+                        const target = this.$el.querySelector(`[data-msg-idx="${index}"]`);
+                        if (box && target) {
+                            const top = target.offsetTop - 24; // some padding
+                            box.scrollTo({ top, behavior: 'smooth' });
+                        }
+                    } catch(_) {}
+                    setTimeout(() => { this.highlightIndex = -1; }, 1500);
+                });
             },
             closeUserPanel(){
                 this.isUserPanelOpen = false;
@@ -648,6 +743,7 @@ import axios from 'axios';
 }
 .chat-card{ --v-card-border-radius: 15px; border-radius: 15px !important; overflow: hidden; margin: 24px 0; border: 1px solid #E5E5E5; --chat-accent: #FFE364; --banner-height: 56px; }
 .chat-banner{ height: var(--banner-height); background: var(--chat-accent); display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; position: sticky; top: 0; z-index: 2; }
+.search-banner{ grid-template-columns: 40px 1fr 40px; }
 .chat-banner.with-user-panel, .chat-banner.with-side-panel{ margin-right: 280px; transition: margin-right 200ms ease; }
 .banner-title{ color: #1C0F0F; font-weight: 700; font-size: 18px; line-height: 22px; text-align: center; }
 .banner-btn{ min-width: 32px; height: 32px; padding: 0; }
@@ -674,6 +770,16 @@ import axios from 'axios';
     padding: 8px 12px;
     position: relative;
 }
+.search-bar{ display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 8px 8px; border-bottom: 1px solid #E5E5E5; background: #FFF; width: 100%; box-sizing: border-box; }
+.search-input{ height: 36px; border: 1px solid #E3E3E3; border-radius: 8px; padding: 0 12px; box-sizing: border-box; outline: none; min-width: 0; }
+.search-btn{ height: 36px; border-radius: 8px; border: 1px solid #E3E3E3; background: #FFE364; color: #2A2828; font-weight: 700; padding: 0 12px; min-width: 72px; box-sizing: border-box; white-space: nowrap; }
+.search-results{ max-height: 220px; overflow-y: auto; border-bottom: 1px solid #EEE; background: #FFF; }
+.result-row{ display: grid; grid-template-columns: 84px 1fr auto; gap: 8px; padding: 8px 12px; border-top: 1px solid #F7F7F7; cursor: pointer; align-items: center; }
+.result-sender{ font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-row:hover{ background: #FAFAFA; }
+.result-text{ font-size: 12px; color: #333; }
+.result-meta{ font-size: 11px; color: #999; }
+.chat-row.highlight .bubble{ outline: 2px solid #FFE364; box-shadow: 0 0 0 3px rgba(255,227,100,0.35); }
 .back-btn{ position: absolute; top: 4px; left: 4px; min-width: 28px; height: 28px; padding: 0; }
 .chat-header{ display: flex; align-items: center; gap: 8px; }
 .chat-header .title-text{ flex: 1; text-align: left; }

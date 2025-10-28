@@ -15,54 +15,55 @@ export const userRouter = [
         path: "/login",
         name: "UserLogin",
         component: UserLogin,
-        meta: { hideLayout: true }
+        meta: { hideLayout: true, hideChatbot: true }
     },
     {
         path: "/oauth/kakao/redirect",
         name: "KakaoRedirect",
         component: KakaoRedirect,
-        meta: { hideLayout: true }
+        meta: { hideLayout: true, hideChatbot: true }
     },
     {
         path: "/oauth/google/redirect",
         name: "GoogleRedirect",
-        component: GoogleRedirect
+        component: GoogleRedirect,
+        meta: { hideChatbot: true }
     },
     {
         path: "/new-user/input-email",
         name: "UserCreate_InputEmail",
         component: UserCreate_InputEmail,
-        meta: { hideLayout: true }
+        meta: { hideLayout: true, hideChatbot: true }
     },
     {
         path: "/new-user/validate-email",
         name: "UserCreate_ValidateEmail",
         component: UserCreate_ValidateEmail,
-        meta: { hideLayout: true }
+        meta: { hideLayout: true, hideChatbot: true }
     },
     {
         path: "/new-user/input-info",
         name: "UserCreate_InputInfo",
         component: UserCreate_InputInfo,
-        meta: { hideLayout: true }
+        meta: { hideLayout: true, hideChatbot: true }
     },
     {
         path: "/forgot-password/input-email",
         name: "ForgotPassword_InputEmail",
         component: ForgotPassword_InputEmail,
-        meta: { hideLayout: true }
+        meta: { hideLayout: true, hideChatbot: true }
     },
     {
         path: "/forgot-password/validate-email",
         name: "ForgotPassword_ValidateEmail",
         component: ForgotPassword_ValidateEmail,
-        meta: { hideLayout: true }
+        meta: { hideLayout: true, hideChatbot: true }
     },
     {
         path: "/forgot-password/input-info",
         name: "ForgotPassword_InputInfo",
         component: ForgotPassword_InputInfo,
-        meta: { hideLayout: true }
+        meta: { hideLayout: true, hideChatbot: true }
     },
     {
         path: "/my-info",

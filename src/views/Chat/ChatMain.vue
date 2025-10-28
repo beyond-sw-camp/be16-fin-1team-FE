@@ -13,15 +13,6 @@
             </div>
         </div>
     </div>
-    
-    <!-- 우하단 챗봇 버튼 및 오버레이 -->
-    <v-btn class="chatbot-fab" icon @click="isChatBotOpen = true">
-        <v-icon>mdi-robot-outline</v-icon>
-    </v-btn>
-    <v-overlay :model-value="isChatBotOpen" scrim="rgba(0,0,0,0.25)" @click:outside="isChatBotOpen = false" class="align-end justify-end" persistent>
-        <ChatBotPage />
-    </v-overlay>
-
     <!-- 요약 미리보기 다이얼로그 -->
     <v-dialog v-model="isSummaryDialogOpen" max-width="520px">
         <v-card class="summary-card">
@@ -44,11 +35,10 @@
 import ChatRoomList from './ChatRoomList.vue';
 import StompChatPage from './StompChatPage.vue';
 import stompManager from '@/services/stompService.js';
-import ChatBotPage from '../ChatBot/ChatBotPage.vue';
 import axios from 'axios';
 
 export default {
-    components: { ChatRoomList, StompChatPage, ChatBotPage },
+    components: { ChatRoomList, StompChatPage },
     data() {
         return {
             selectedRoomId: null,
@@ -59,7 +49,6 @@ export default {
             summaryTopic: null,
             _offClose: null,
             _reconnectTimerSummary: null,
-            isChatBotOpen: false,
             isSummaryDialogOpen: false,
             summaryDialogLoading: false,
             summaryDialogText: '',
