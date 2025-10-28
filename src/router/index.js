@@ -8,6 +8,7 @@ import { adminRouter } from './AdminRouter';
 import { projectRouter } from './ProjectRouter';
 import { documentRouter } from './DocumentRouter';
 import { chatBotRouter } from './ChatBotRouter';
+import driveRouter from './DriveRouter';
 import { scheduleRouter } from './ScheduleRouter';
 
 const routes = [
@@ -20,6 +21,7 @@ const routes = [
     ...projectRouter,
     ...documentRouter,
     ...chatBotRouter,
+    ...driveRouter,
     ...scheduleRouter,
 ];
 
