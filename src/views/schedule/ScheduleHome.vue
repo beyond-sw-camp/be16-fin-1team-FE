@@ -38,11 +38,11 @@ function prevMs() {
 
 <template>
   <div class="wrap">
-    <div class="tabs">
+    <!-- <div class="tabs">
       <button class="tab active">일정 홈</button>
       <button class="tab" @click="$router.push('/schedule/project')">프로젝트 캘린더</button>
       <button class="tab" @click="$router.push('/schedule/shared')">공유 캘린더</button>
-    </div>
+    </div> -->
 
     <div class="today">
       <span>Today</span>
@@ -128,26 +128,47 @@ function prevMs() {
   color: #000;
 }
 
-/* ✅ 2x2 카드 그리드 */
+/* ✅ 2x2 고정형 카드 그리드 */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(2, 1fr); /* 두 개씩 균등 배치 */
+  grid-auto-rows: 340px; /* 각 카드의 고정 높이 */
+  gap: 28px; /* 카드 간 간격 */
+  justify-content: center;
+  align-items: stretch;
 }
 
-/* ✅ 카드 */
+/* ✅ 카드 스타일 */
 .card {
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 320px; /* 높이 자동 조절 */
-  overflow: hidden;
   text-align: center;
+
+  /* 고정 크기 보정 */
+  min-height: 340px;
+  max-height: 340px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ✅ hover 시 살짝 뜨는 효과 */
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* ✅ 반응형 (태블릿 이하일 때 1열로 전환) */
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+    grid-auto-rows: 320px;
+  }
 }
 
 /* 카드 내용이 없을 때 */
