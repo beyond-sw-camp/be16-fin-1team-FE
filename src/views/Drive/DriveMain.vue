@@ -338,10 +338,10 @@ export default {
         
         if (rootType && rootId && folderId) {
           // 폴더 내부로 이동
-          this.loadFolderContents(folderId, rootType, rootId);
+          this.initializeDrive(folderId, rootType, rootId);
         } else if (rootType && rootId) {
           // 루트로 이동
-          this.loadFolderContents(null, rootType, rootId);
+          this.initializeDrive(null, rootType, rootId);
         } else if (folderId) {
           // deprecated
           this.loadFolderContents(folderId);
@@ -384,7 +384,7 @@ export default {
             // 메인 콘텐츠 업데이트
             this.items = this.parseItems(response.result);
             this.currentFolderId = null;
-            this.updateBreadcrumbs(null, response.result, rootType);
+            this.updateBreadcrumbs(null, response.result, rootType || this.currentRootType);
             
             // 폴더 트리 업데이트 (폴더만 추출)
             const folders = [];
@@ -600,7 +600,7 @@ export default {
                 });
                 
                 // 빈 폴더의 경우 여기서 브레드크럼 업데이트
-                this.updateBreadcrumbs(folderId, items, rootType);
+                this.updateBreadcrumbs(folderId, items, rootType || this.currentRootType);
               }
             } catch (error) {
               console.error('폴더 정보 조회 실패:', error);
@@ -611,7 +611,7 @@ export default {
           
           // 하위 요소가 있는 경우에만 여기서 브레드크럼 업데이트
           if (items.length > 0) {
-            this.updateBreadcrumbs(folderId, items, rootType);
+            this.updateBreadcrumbs(folderId, items, rootType || this.currentRootType);
           }
         } else {
           this.items = [];
@@ -682,6 +682,7 @@ export default {
 
     // 브레드크럼 업데이트
     updateBreadcrumbs(folderId, data, rootType) {
+      console.log('updateBreadcrumbs - rootType:', rootType, 'currentRootType:', this.currentRootType);
       const rootName = rootType === 'WORKSPACE' ? '내 드라이브' : 
                        rootType === 'PROJECT' ? '프로젝트 문서함' : 
                        rootType === 'STONE' ? '스톤 문서함' : '내 드라이브';
