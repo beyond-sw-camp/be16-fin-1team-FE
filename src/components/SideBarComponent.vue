@@ -182,6 +182,9 @@ export default {
     
     // 워크스페이스 로드 (이 과정에서 setCurrentWorkspace가 호출되어 watch가 트리거됨)
     await this.loadWorkspaces();
+
+    // 프로젝트 목록 로드
+    await this.loadProjectList();
     
     // 프로젝트 생성 이벤트 리스너 추가
     window.addEventListener('projectCreated', this.onProjectCreated);
@@ -334,23 +337,41 @@ export default {
           return;
         }
         
+        const userId = localStorage.getItem('id') || 'user123';
+        const token = localStorage.getItem('accessToken');
         console.log('스토리지 사용량 조회 시작:', currentWorkspace.workspaceId);
+
+        // 1. 워크스페이스 API - maxStorage 가져오기
+        const workspaceResponse = await axios.get(
+          `http://localhost:8080/workspace-service/workspace/${currentWorkspace.workspaceId}`,
+          {
+            headers: {
+              'X-User-Id': userId,
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
         
-        // workspaceId는 헤더(X-Workspace-Id)로 자동 전송됨
-        const response = await driveService.getStorageUsage();
-        console.log('스토리지 사용량 조회 성공:', response);
+        // 2. 드라이브 API - 실제 파일 사용량 가져오기
+        const driveResponse = await driveService.getStorageUsage();
         
-        if (response.statusCode === 200 && response.result) {
-          // API 응답 구조에 맞게 수정 (result가 숫자 값일 것으로 예상)
-          this.currentStorage = response.result || 0;
-          // maxStorage는 워크스페이스 정보에서 가져와야 할 수도 있음
-          // 임시로 50GB 고정 (필요시 워크스페이스 API에서 가져오기)
-          this.maxStorage = 50 * 1024 * 1024 * 1024; // 50GB in bytes
-          console.log('스토리지 정보 업데이트:', { 
-            current: this.formatStorage(this.currentStorage), 
-            max: this.formatStorage(this.maxStorage) 
-          });
+        console.log('워크스페이스 정보:', workspaceResponse.data);
+        console.log('드라이브 사용량:', driveResponse);
+        
+        // 워크스페이스 API에서 maxStorage 가져오기
+        if (workspaceResponse.data.statusCode === 200 && workspaceResponse.data.result) {
+          this.maxStorage = workspaceResponse.data.result.maxStorage || (50 * 1024 * 1024 * 1024);
         }
+        
+        // 드라이브 API에서 currentStorage 가져오기
+        if (driveResponse.statusCode === 200 && driveResponse.result !== undefined) {
+          this.currentStorage = driveResponse.result || 0;
+        }
+        
+        console.log('스토리지 정보 업데이트:', { 
+          current: this.formatStorage(this.currentStorage), 
+          max: this.formatStorage(this.maxStorage) 
+        });
       } catch (error) {
         console.error('스토리지 사용량 조회 실패:', error);
         console.error('Error details:', error.response?.data || error.message);
