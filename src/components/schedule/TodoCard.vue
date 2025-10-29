@@ -226,12 +226,19 @@ const openCreateModal = async () => {
   newBookmark.value = false;
   showCreateModal.value = true;
 
-  // 모든 To-Do 불러오기
-  await todoStore.loadAllTodos(workspaceId);
+  try {
+    const userId = localStorage.getItem("id");
+    const res = await axios.get(`/user-service/todo/${workspaceId}/all`, {
+      headers: { "X-User-Id": userId },
+    });
 
-  // 북마크 항목만 필터링
-  bookmarkList.value = todoStore.todos.filter((t) => t.bookmark);
-};
+    // store가 아닌 local state에만 저장
+    const allTodos = Array.isArray(res.data) ? res.data : res.data.result || [];
+    bookmarkList.value = allTodos.filter((t) => t.bookmark);
+  } catch (e) {
+    console.error("❌ 북마크 목록 조회 실패:", e);
+  }
+}
 
 const closeCreateModal = () => (showCreateModal.value = false);
 
