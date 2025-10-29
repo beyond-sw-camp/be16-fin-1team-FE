@@ -1,16 +1,32 @@
-import ScheduleHome from "@/views/schedule/ScheduleHome.vue";
-import ProjectCalendar from "@/views/schedule/ProjectCalendar.vue";
+import ProjectCalendar from '../views/schedule/ProjectCalendar.vue';
+import ScheduleHome from '../views/schedule/ScheduleHome.vue';
+import ScheduleLayout from '../views/schedule/ScheduleLayout.vue';
+
 
 export const scheduleRouter = [
-  {
-    path: "/schedule",
-    name: "MySchedule",
-    component: ScheduleHome,
-    meta: { title: "내 일정" },
-  },
-  { 
-    path: "/schedule/project", 
-    name: "ProjectCalendar", 
-    component: ProjectCalendar,
-  },
+    {
+        path: '/schedule',
+        component : ScheduleLayout,
+        children: [
+            {
+                path: 'home',
+                name: 'ScheduleHome',
+                component: ScheduleHome,
+            },
+            {
+                path: 'project',
+                name: 'ScheduleProject',
+                component: ProjectCalendar,
+            },
+            // {
+            //     path: 'shared',
+            //     name: 'ScheduleShared',
+            //     component: SharedCalendar,
+            // },
+            {
+                path: '',
+                redirect: '/schedule/home',
+            },
+        ],
+    }
 ];

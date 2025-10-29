@@ -1,11 +1,11 @@
-// src/stores/schedule.js
 import { defineStore } from "pinia";
+import axios from "axios";
 import scheduleApi from "@/api/schedule";
 
 export const useScheduleStore = defineStore("schedule", {
   state: () => ({
     loading: false,
-    workspaceId: null,
+    workspaceId: "",
     milestones: [],
     tasks: [],
     todos: [],
@@ -21,33 +21,57 @@ export const useScheduleStore = defineStore("schedule", {
       this.workspaceId = id;
     },
 
-    async loadAll() {
-      if (!this.workspaceId) return;
-      this.loading = true;
-      this.error = null;
-
+    /** ✅ 마일스톤 로드 */
+    async loadMilestones() {
       try {
-        const [ms, tasks, todos] = await Promise.all([
-          scheduleApi.fetchMyMilestones(this.workspaceId),
-          scheduleApi.fetchMyTasks(this.workspaceId),
-          scheduleApi.fetchPersonalTodos(this.workspaceId),
-        ]);
-        this.milestones = ms;
-        this.tasks = tasks;
-        this.todos = todos;
-      } catch (e) {
-        this.error = e?.message || String(e);
-      } finally {
-        this.loading = false;
+        const userId = localStorage.getItem("id");
+        const workspaceId = localStorage.getItem("selectedWorkspaceId");
+        const workspaceType = localStorage.getItem("selectedWorkspaceType");
+
+        if (!userId || !workspaceId) {
+          console.warn("⚠️ workspaceId 또는 userId 없음");
+          return;
+        }
+
+        if (workspaceType === "PERSONAL") {
+          console.info("ℹ️ 개인 워크스페이스에서는 마일스톤 표시 안 함");
+          this.milestones = [];
+          return;
+        }
+
+        const res = await axios.get(`/stone/milestone/${workspaceId}`, {
+          headers: { "X-User-Id": userId },
+        });
+
+        console.log("✅ milestone response:", res.data);
+
+        // 안전하게 데이터 추출
+        const data = res.data?.result ?? res.data?.data?.result ?? [];
+        const result = Array.isArray(data) ? data : [];
+
+        const allStones = result.flatMap((p) => p.milestoneResDtoList || []);
+
+        const calcDday = (endTime) => {
+          const end = new Date(endTime);
+          const now = new Date();
+          const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+          return diff >= 0 ? diff : 0;
+        };
+
+        this.milestones = allStones.map((stone) => ({
+          name: stone.stoneName,
+          dday: calcDday(stone.endTime),
+          progress: Math.round(stone.milestone),
+        }));
+
+        console.log("✅ parsed milestones:", this.milestones);
+      } catch (err) {
+        console.error("❌ 마일스톤 조회 실패:", err);
       }
     },
 
-    async toggleTodo(id, done) {
-      await scheduleApi.toggleTodo(id, done);
-      const t = this.todos.find((x) => x.id === id);
-      if (t) t.done = done;
-    },
 
+    /** ✅ 태스크 토글 */
     async toggleTask(id, done) {
       await scheduleApi.toggleTask(id, done);
       const t = this.tasks.find((x) => x.id === id);
