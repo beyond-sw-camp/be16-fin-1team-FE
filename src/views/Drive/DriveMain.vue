@@ -132,29 +132,27 @@
             </template>
 
             <template v-slot:item.actions="{ item }">
-              <v-menu offset-y @click.stop>
-                <template v-slot:activator="{ on, attrs }">
-                  <v-btn
-                    icon
-                    small
-                    v-bind="attrs"
-                    v-on="on"
-                    @click.stop
-                  >
-                    <v-icon small>mdi-dots-vertical</v-icon>
-                  </v-btn>
-                </template>
-                <v-list dense>
-                  <v-list-item v-if="item.type === 'folder'" @click="openRenameDialog(item)">
-                    <v-list-item-icon><v-icon small>mdi-pencil</v-icon></v-list-item-icon>
-                    <v-list-item-title>이름 변경</v-list-item-title>
-                  </v-list-item>
-                  <v-list-item @click="deleteItem(item)" class="error--text">
-                    <v-list-item-icon><v-icon small color="error">mdi-delete</v-icon></v-list-item-icon>
-                    <v-list-item-title>삭제</v-list-item-title>
-                  </v-list-item>
-                </v-list>
-              </v-menu>
+              <!-- PROJECT, STONE 타입은 액션 버튼 표시 안 함 -->
+              <div v-if="item.type !== 'PROJECT' && item.type !== 'STONE'" @click.stop class="d-flex">
+                <v-btn
+                  v-if="item.type === 'folder'"
+                  icon
+                  x-small
+                  @click.stop="openRenameDialog(item)"
+                  title="이름 변경"
+                >
+                  <v-icon small>mdi-pencil</v-icon>
+                </v-btn>
+                <v-btn
+                  icon
+                  x-small
+                  @click.stop="deleteItem(item)"
+                  color="error"
+                  title="삭제"
+                >
+                  <v-icon small>mdi-delete</v-icon>
+                </v-btn>
+              </div>
             </template>
 
             <template v-slot:no-data>
@@ -841,9 +839,9 @@ export default {
           createdBy: userId,
         };
         
-        await driveService.createFolder(folderData);
+        const response = await driveService.createFolder(folderData);
         
-        showSnackbar('폴더가 생성되었습니다.', 'success');
+        showSnackbar(response.statusMessage || '폴더가 생성되었습니다.', 'success');
         this.createFolderDialog = false;
         this.newFolderName = '';
         
@@ -875,15 +873,18 @@ export default {
       }
 
       try {
-        await driveService.updateFolderName(this.renameItem.id, {
+        const response = await driveService.updateFolderName(this.renameItem.id, {
           name: this.renameName,
         });
         
-        showSnackbar('이름이 변경되었습니다.', 'success');
+        showSnackbar(response.statusMessage || '이름이 변경되었습니다.', 'success');
         this.renameDialog = false;
         
+        // 현재 루트 정보를 유지하면서 새로고침
         await Promise.all([
-          this.loadFolderContents(this.currentFolderId),
+          this.currentRootType && this.currentRootId 
+            ? this.loadFolderContents(this.currentFolderId, this.currentRootType, this.currentRootId)
+            : this.loadFolderContents(this.currentFolderId),
           this.refreshFolderTree()
         ]);
       } catch (error) {
@@ -897,17 +898,24 @@ export default {
       if (!confirm(`"${item.name}"을(를) 삭제하시겠습니까?`)) return;
 
       try {
+        let response;
         if (item.type === 'folder') {
-          await driveService.deleteFolder(item.id);
+          response = await driveService.deleteFolder(item.id);
           await this.refreshFolderTree();
         } else if (item.type === 'document') {
-          await driveService.deleteDocument(item.id);
+          response = await driveService.deleteDocument(item.id);
         } else {
-          await driveService.deleteFile(item.id);
+          response = await driveService.deleteFile(item.id);
         }
         
-        showSnackbar('삭제되었습니다.', 'success');
-        await this.loadFolderContents(this.currentFolderId);
+        showSnackbar(response.statusMessage || '삭제되었습니다.', 'success');
+        
+        // 현재 루트 정보를 유지하면서 새로고침
+        if (this.currentRootType && this.currentRootId) {
+          await this.loadFolderContents(this.currentFolderId, this.currentRootType, this.currentRootId);
+        } else {
+          await this.loadFolderContents(this.currentFolderId);
+        }
       } catch (error) {
         console.error('삭제 실패:', error);
         showSnackbar('삭제에 실패했습니다.', 'error');
