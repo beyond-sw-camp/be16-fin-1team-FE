@@ -27,9 +27,14 @@ searchApi.interceptors.request.use(
     }
     
     console.log('Search API Request:', {
+      method: config.method.toUpperCase(),
       url: config.baseURL + config.url,
       params: config.params,
-      headers: config.headers
+      headers: {
+        Authorization: config.headers.Authorization ? 'Bearer ***' : 'None',
+        'X-User-Id': config.headers['X-User-Id'],
+        'X-Workspace-Id': config.headers['X-Workspace-Id']
+      }
     });
     
     return config;
@@ -42,13 +47,20 @@ searchApi.interceptors.request.use(
 // 응답 인터셉터
 searchApi.interceptors.response.use(
   (response) => {
-    console.log('Search API Response:', response.data);
+    console.log('Search API Response:', {
+      status: response.status,
+      statusCode: response.data?.statusCode,
+      statusMessage: response.data?.statusMessage,
+      resultCount: Array.isArray(response.data?.result) ? response.data.result.length : 0
+    });
     return response.data;
   },
   (error) => {
-    console.error('Search API Error:', error);
-    console.error('Error response:', error.response);
-    console.error('Error config:', error.config);
+    console.error('Search API Error:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
     return Promise.reject(error);
   }
 );

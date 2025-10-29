@@ -311,10 +311,63 @@ export default {
   methods: {
     // 드라이브 초기화
     async initializeDrive(folderId) {
-      await Promise.all([
-        this.loadFolderTree(),
-        this.loadFolderContents(folderId)
-      ]);
+      // 워크스페이스 루트인 경우 한 번만 API 호출하고 결과 공유
+      if (!folderId || this.isWorkspaceId(folderId)) {
+        const workspaceId = folderId || localStorage.getItem('selectedWorkspaceId');
+        console.log('워크스페이스 루트 초기화:', workspaceId);
+        
+        try {
+          this.loading = true;
+          this.loadingTree = true;
+          
+          const response = await driveService.getContentsByRoot('WORKSPACE', workspaceId);
+          
+          if (response.result) {
+            // 메인 콘텐츠 업데이트
+            this.items = this.parseItems(response.result);
+            this.currentFolderId = null;
+            this.updateBreadcrumbs(folderId, response.result);
+            
+            // 폴더 트리 업데이트 (폴더만 추출)
+            const folders = [];
+            const items = Array.isArray(response.result) ? response.result : [];
+            
+            for (const item of items) {
+              if (item.type === 'folder') {
+                folders.push({
+                  id: item.id,
+                  name: item.name,
+                  children: [],
+                });
+              }
+            }
+            
+            this.folderCache['root'] = folders;
+            const rootFolder = {
+              id: 'root',
+              name: '내 드라이브',
+              children: folders,
+            };
+            this.folderTree = [rootFolder];
+          } else {
+            this.items = [];
+            this.folderTree = [{ id: 'root', name: '내 드라이브', children: [] }];
+          }
+        } catch (error) {
+          console.error('드라이브 초기화 실패:', error);
+          this.items = [];
+          this.folderTree = [{ id: 'root', name: '내 드라이브', children: [] }];
+        } finally {
+          this.loading = false;
+          this.loadingTree = false;
+        }
+      } else {
+        // 일반 폴더인 경우 기존 로직 사용
+        await Promise.all([
+          this.loadFolderTree(),
+          this.loadFolderContents(folderId)
+        ]);
+      }
     },
 
     // 폴더 트리 로드 (폴더만)
@@ -343,7 +396,16 @@ export default {
           return this.folderCache[folderId];
         }
 
-        const response = await driveService.getFolderContents(folderId || 'root');
+        let response;
+        
+        // 루트인 경우 워크스페이스 API 사용
+        if (!folderId || folderId === 'root' || this.isWorkspaceId(folderId)) {
+          const workspaceId = localStorage.getItem('selectedWorkspaceId');
+          response = await driveService.getContentsByRoot('WORKSPACE', workspaceId);
+        } else {
+          response = await driveService.getFolderContents(folderId);
+        }
+        
         const folders = [];
         
         if (response.result) {
@@ -389,13 +451,23 @@ export default {
     async loadFolderContents(folderId) {
       try {
         this.loading = true;
-        const targetFolderId = folderId || 'root';
+        let response;
         
-        const response = await driveService.getFolderContents(targetFolderId);
+        // folderId가 없거나 워크스페이스 ID인 경우
+        if (!folderId || this.isWorkspaceId(folderId)) {
+          const workspaceId = folderId || localStorage.getItem('selectedWorkspaceId');
+          console.log('워크스페이스 루트 로드:', workspaceId);
+          response = await driveService.getContentsByRoot('WORKSPACE', workspaceId);
+          this.currentFolderId = null; // 루트이므로 null
+        } else {
+          // 일반 폴더인 경우
+          console.log('폴더 내용 로드:', folderId);
+          response = await driveService.getFolderContents(folderId);
+          this.currentFolderId = folderId;
+        }
         
         if (response.result) {
           this.items = this.parseItems(response.result);
-          this.currentFolderId = folderId;
           this.updateBreadcrumbs(folderId, response.result);
         } else {
           this.items = [];
@@ -407,6 +479,12 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+
+    // 워크스페이스 ID인지 확인
+    isWorkspaceId(id) {
+      // 워크스페이스 ID는 'ws_'로 시작하고 폴더 ID 패턴이 아닌 경우
+      return id && !id.includes('_fol_') && !id.includes('_file_') && !id.includes('_doc_');
     },
 
     // API 응답 파싱
@@ -542,9 +620,14 @@ export default {
       }
 
       try {
+        const workspaceId = localStorage.getItem('selectedWorkspaceId');
+        const userId = localStorage.getItem('id');
+        
         await driveService.createFolder({
           name: this.newFolderName,
-          parentFolderId: this.currentFolderId || null,
+          workspaceId: workspaceId,
+          parentId: this.currentFolderId || null,
+          createdBy: userId,
         });
         
         showSnackbar('폴더가 생성되었습니다.', 'success');
