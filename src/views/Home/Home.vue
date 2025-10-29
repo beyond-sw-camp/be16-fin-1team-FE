@@ -269,30 +269,13 @@ export default {
       return labels;
     },
     
-    // 프로젝트 기간 범위
-    projectDateRange() {
-      if (this.myProjects.length === 0) {
-        return { start: new Date(), end: new Date() };
-      }
-      
-      const allDates = [];
-      this.myProjects.forEach(project => {
-        allDates.push(new Date(project.startTime));
-        allDates.push(new Date(project.endTime));
-      });
-      
-      return {
-        start: new Date(Math.min(...allDates)),
-        end: new Date(Math.max(...allDates))
-      };
-    },
     
     // Today 라인 위치 계산 (프로젝트 기간 기준)
     todayLinePosition() {
       if (this.myProjects.length === 0) return '0%';
       
       const today = new Date();
-      const range = this.projectDateRange;
+      const range = this.getProjectDateRange();
       
       // 프로젝트 기간 내에 오늘이 있는지 확인
       if (today < range.start || today > range.end) {
@@ -312,7 +295,7 @@ export default {
       if (this.myProjects.length === 0) return false;
       
       const today = new Date();
-      const range = this.projectDateRange;
+      const range = this.getProjectDateRange();
       
       return today >= range.start && today <= range.end;
     },
@@ -338,6 +321,35 @@ export default {
   },
   
   methods: {
+    // 프로젝트 기간 범위 계산 메서드
+    getProjectDateRange() {
+      if (this.myProjects.length === 0) {
+        console.log('프로젝트가 없음, 기본 날짜 반환');
+        return { start: new Date(), end: new Date() };
+      }
+      
+      const allDates = [];
+      this.myProjects.forEach(project => {
+        allDates.push(new Date(project.startTime));
+        allDates.push(new Date(project.endTime));
+      });
+      
+      const minDate = new Date(Math.min(...allDates));
+      const maxDate = new Date(Math.max(...allDates));
+      
+      console.log('projectDateRange 계산:', {
+        projectCount: this.myProjects.length,
+        allDates: allDates.map(d => d.toISOString().split('T')[0]),
+        minDate: minDate.toISOString().split('T')[0],
+        maxDate: maxDate.toISOString().split('T')[0]
+      });
+      
+      return {
+        start: minDate,
+        end: maxDate
+      };
+    },
+    
     // 워크스페이스 변경 감지 메서드 오버라이드
     onWorkspaceChanged(workspaceData) {
       console.log('Home: 워크스페이스 변경됨', workspaceData);
@@ -361,6 +373,7 @@ export default {
         const response = await getMyProjects(workspaceId);
         
         if (response.statusCode === 200) {
+          // 먼저 기본 프로젝트 데이터 설정
           this.myProjects = response.result.map(project => {
             const startDate = new Date(project.startTime);
             const endDate = new Date(project.endTime);
@@ -380,6 +393,18 @@ export default {
               progress: progress,
               totalDays: totalDays,
               elapsedDays: elapsedDays,
+              style: {} // 임시로 빈 객체 설정
+            };
+          });
+          
+          // myProjects 설정 후 스타일 계산
+          this.myProjects = this.myProjects.map(project => {
+            const startDate = new Date(project.startTime);
+            const endDate = new Date(project.endTime);
+            const now = new Date();
+            
+            return {
+              ...project,
               style: this.calculateProjectStyle(startDate, endDate, now)
             };
           });
@@ -482,9 +507,17 @@ export default {
     
     // 프로젝트 간트 차트 스타일 계산 (프로젝트 기간 기준)
     calculateProjectStyle(startDate, endDate, now) {
-      const range = this.projectDateRange;
+      const range = this.getProjectDateRange();
+      
+      console.log('calculateProjectStyle 호출:', {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+        rangeStart: range.start.toISOString().split('T')[0],
+        rangeEnd: range.end.toISOString().split('T')[0]
+      });
       
       if (range.start.getTime() === range.end.getTime()) {
+        console.log('동일한 날짜 범위, 0% 위치 반환');
         return {
           left: '0%',
           width: '100%',
@@ -499,6 +532,14 @@ export default {
       
       const leftPercent = (projectStartOffset / totalRangeDays) * 100;
       const widthPercent = (projectDuration / totalRangeDays) * 100;
+      
+      console.log('계산 결과:', {
+        totalRangeDays,
+        projectStartOffset,
+        projectDuration,
+        leftPercent,
+        widthPercent
+      });
       
       return {
         left: `${Math.max(0, leftPercent)}%`,

@@ -155,27 +155,126 @@
       <!-- 대시보드 -->
       <div v-if="activeTab === 'dashboard'" class="tab-content">
         <div class="content-header">
-          <h1 class="main-title">오늘의 일정</h1>
-          <p class="sub-title">적을 거 있으면 적으십쇼</p>
+          <h1 class="main-title">대시보드</h1>
+          <p class="sub-title">워크스페이스의 현황을 확인하세요</p>
         </div>
         
-        <div class="admin-cards">
-          <div class="admin-card">
-            <h3>사용자 통계</h3>
-            <p>총 사용자: 1,234명</p>
-            <p>활성 사용자: 856명</p>
+        <!-- 프로젝트 스톤 마일스톤 섹션 -->
+        <div class="dashboard-section milestone-section">
+          <div class="section-header">
+            <h2 class="section-title">프로젝트 스톤 마일스톤</h2>
+            <p class="section-subtitle">프로젝트별 마일스톤 트리 구조</p>
           </div>
           
-          <div class="admin-card">
-            <h3>워크스페이스 통계</h3>
-            <p>총 워크스페이스: 45개</p>
-            <p>활성 워크스페이스: 38개</p>
+          <div v-if="loadingMilestones" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>마일스톤 데이터를 불러오는 중...</p>
           </div>
           
-          <div class="admin-card">
-            <h3>시스템 상태</h3>
-            <p>서버 상태: 정상</p>
-            <p>데이터베이스: 정상</p>
+          <div v-else-if="projectMilestones.length === 0" class="no-data">
+            <p>마일스톤 데이터가 없습니다.</p>
+          </div>
+          
+          <!-- D3 트리 차트 -->
+          <d3-tree-chart
+            v-else
+            :project-milestones="projectMilestones"
+            class="tree-chart-wrapper"
+          />
+        </div>
+        
+        <!-- 워크스페이스별 프로젝트 현황 섹션 -->
+        <div class="dashboard-section workspace-section">
+          <div class="section-header">
+            <h2 class="section-title">워크스페이스별 프로젝트 현황</h2>
+            <p class="section-subtitle">프로젝트별 스톤 진행률 및 현황</p>
+          </div>
+          
+          <!-- 로딩 상태 -->
+          <div v-if="loadingWorkspaceProjects" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>프로젝트 현황을 불러오는 중...</p>
+          </div>
+          
+          <!-- 데이터가 없을 때 -->
+          <div v-else-if="!workspaceProjects || workspaceProjects.length === 0" class="no-data">
+            <p>프로젝트 현황 데이터가 없습니다.</p>
+          </div>
+          
+          <!-- 프로젝트 현황 카드들 -->
+          <div v-else class="workspace-projects">
+            <div class="project-cards-container">
+              <div class="project-card">
+                <div class="project-card-header">
+                  <button class="nav-btn prev-btn">◀</button>
+                  <button class="nav-btn next-btn">▶</button>
+                </div>
+                <div class="project-stats">
+                  <div 
+                    v-for="(project, index) in workspaceProjects" 
+                    :key="project.projectId" 
+                    class="stat-item"
+                  >
+                    <div class="circular-progress">
+                      <div class="progress-ring">
+                        <div 
+                          class="progress-fill-ring" 
+                          :style="{ '--progress': Math.round(project.milestone) + '%' }"
+                        ></div>
+                        <span class="progress-text">{{ Math.round(project.milestone) }}%</span>
+                      </div>
+                    </div>
+                    <div class="stat-info">
+                      <span class="stat-label">스톤 {{ project.stoneCount }}개</span>
+                      <span class="project-name">{{ project.projectName }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 사용자 그룹별 프로젝트 현황 섹션 -->
+        <div class="dashboard-section user-group-section">
+          <div class="section-header">
+            <h2 class="section-title">사용자 그룹별 프로젝트 현황</h2>
+            <p class="section-subtitle">사용자 그룹별 프로젝트 수 및 진행 상태</p>
+          </div>
+          
+          <!-- 로딩 상태 -->
+          <div v-if="loadingUserGroupProgress" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>사용자 그룹별 프로젝트 현황을 불러오는 중...</p>
+          </div>
+          
+          <!-- 데이터가 없을 때 -->
+          <div v-else-if="!userGroupProgress || userGroupProgress.length === 0" class="no-data">
+            <p>사용자 그룹별 프로젝트 현황 데이터가 없습니다.</p>
+          </div>
+          
+          <!-- 사용자 그룹별 프로젝트 현황 -->
+          <div v-else class="user-group-stats">
+            <div 
+              v-for="(group, index) in userGroupProgress" 
+              :key="group.groupName" 
+              class="group-stat-item"
+            >
+              <div class="group-circular-progress">
+                <div class="group-progress-ring">
+                  <div 
+                    class="group-progress-fill-ring" 
+                    :class="getGroupProgressClass(group.averageProgress)"
+                    :style="{ '--progress': Math.round(group.averageProgress) + '%' }"
+                  ></div>
+                  <span class="group-progress-text">{{ Math.round(group.averageProgress) }}%</span>
+                </div>
+              </div>
+              <div class="group-info">
+                <span class="group-name">{{ group.groupName }}</span>
+                <span class="group-count">{{ group.projectCount }}개 프로젝트</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -308,13 +407,17 @@ import { useWorkspaceStore } from '@/stores/workspace';
 import { workspaceWatcher } from '@/mixins/workspaceWatcher';
 import MemberManagement from './MemberManagement.vue';
 import DeleteWorkspaceModal from '../Workspace/DeleteWorkspaceModal.vue';
+import StoneTreeNode from './StoneTreeNode.vue';
+import D3TreeChart from './D3TreeChart.vue';
 
 export default {
   name: "AdminDashboard",
   mixins: [workspaceWatcher],
   components: {
     MemberManagement,
-    DeleteWorkspaceModal
+    DeleteWorkspaceModal,
+    StoneTreeNode,
+    D3TreeChart
   },
   data() {
     return {
@@ -351,6 +454,18 @@ export default {
       groupSearchQuery: '',
       userGroups: [],
       filteredUserGroups: [],
+      
+      // 마일스톤 관련 데이터
+      projectMilestones: [],
+      loadingMilestones: false,
+      
+      // 워크스페이스 프로젝트 현황 관련 데이터
+      workspaceProjects: [],
+      loadingWorkspaceProjects: false,
+      
+      // 사용자 그룹별 프로젝트 현황 관련 데이터
+      userGroupProgress: [],
+      loadingUserGroupProgress: false,
       
     };
   },
@@ -419,6 +534,14 @@ export default {
       if (tab === 'user') {
         console.log('사용자 그룹 탭 활성화, loadUserGroups 호출');
         this.loadUserGroups();
+      }
+      
+      // 대시보드 탭이 활성화되면 모든 데이터 로드
+      if (tab === 'dashboard') {
+        console.log('대시보드 탭 활성화, 데이터 로드 시작');
+        this.loadProjectMilestones();
+        this.loadWorkspaceProjects();
+        this.loadUserGroupProgress();
       }
       
     },
@@ -1078,6 +1201,253 @@ export default {
     // 권한 그룹 상세 조회
     viewGroupDetail(group) {
       this.$router.push(`/admin/permission-group/${group.accessGroupId}/detail`);
+    },
+    
+    // 프로젝트 마일스톤 데이터 로드
+    async loadProjectMilestones() {
+      try {
+        console.log('loadProjectMilestones 시작');
+        this.loadingMilestones = true;
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId') || 'user123';
+        const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_2';
+        console.log('워크스페이스 ID:', workspaceId);
+        
+        const response = await axios.get(
+          `http://localhost:8080/workspace-service/workspace/admin/tree/${workspaceId}`,
+          {
+            headers: {
+              'X-User-Id': userId,
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
+        if (response.data.statusCode === 200) {
+          console.log('API 응답 성공:', response.data.result);
+          this.projectMilestones = response.data.result;
+          console.log('projectMilestones 설정됨:', this.projectMilestones);
+        }
+      } catch (error) {
+        console.error('마일스톤 데이터 로드 실패:', error);
+        // 테스트용 예시 데이터
+        this.projectMilestones = [
+          {
+            projectId: 'pjt_1',
+            projectName: '3번째 프로젝트!',
+            milestoneResDtoList: [
+              {
+                stoneId: 'pjt_s_1',
+                stoneName: '3번째 프로젝트',
+                milestone: 75.0,
+                endTime: '2025-11-15T18:00:00',
+                children: [
+                  {
+                    stoneId: 'pjt_s_2',
+                    stoneName: '백엔드5 수정 스톤',
+                    milestone: 100.0,
+                    endTime: '2025-10-20T18:00:00',
+                    children: [
+                      {
+                        stoneId: 'pjt_s_3',
+                        stoneName: '수정된 스톤 명',
+                        milestone: 100.0,
+                        endTime: '2025-10-23T18:00:00',
+                        children: []
+                      }
+                    ]
+                  },
+                  {
+                    stoneId: 'pjt_s_4',
+                    stoneName: '개발',
+                    milestone: 0.0,
+                    endTime: '2025-10-30T18:00:00',
+                    children: []
+                  },
+                  {
+                    stoneId: 'pjt_s_5',
+                    stoneName: '프론트',
+                    milestone: 0.0,
+                    endTime: '2025-10-30T18:00:00',
+                    children: []
+                  },
+                  {
+                    stoneId: 'pjt_s_6',
+                    stoneName: '네트워크',
+                    milestone: 100.0,
+                    endTime: '2025-11-06T18:00:00',
+                    children: [
+                      {
+                        stoneId: 'pjt_s_9',
+                        stoneName: 'ㅎㅎㅎㅎㅎ',
+                        milestone: 100.0,
+                        endTime: '2025-10-31T18:00:00',
+                        children: []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ];
+        console.log('예시 데이터 설정됨:', this.projectMilestones);
+      } finally {
+        this.loadingMilestones = false;
+        console.log('로딩 완료, loadingMilestones:', this.loadingMilestones);
+      }
+    },
+    
+    // 프로젝트 전체 진행률 계산
+    getProjectProgress(project) {
+      if (!project.milestoneResDtoList || project.milestoneResDtoList.length === 0) {
+        return 0;
+      }
+      
+      let totalProgress = 0;
+      let totalCount = 0;
+      
+      const calculateProgress = (milestones) => {
+        milestones.forEach(milestone => {
+          totalProgress += milestone.milestone || 0;
+          totalCount++;
+          
+          if (milestone.children && milestone.children.length > 0) {
+            calculateProgress(milestone.children);
+          }
+        });
+      };
+      
+      calculateProgress(project.milestoneResDtoList);
+      
+      return totalCount > 0 ? totalProgress / totalCount : 0;
+    },
+    
+    // 워크스페이스 프로젝트 현황 데이터 로드
+    async loadWorkspaceProjects() {
+      try {
+        console.log('loadWorkspaceProjects 시작');
+        this.loadingWorkspaceProjects = true;
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId') || 'user123';
+        const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_2';
+        console.log('워크스페이스 ID:', workspaceId);
+        
+        const response = await axios.get(
+          `http://localhost:8080/workspace-service/workspace/admin/${workspaceId}`,
+          {
+            headers: {
+              'X-User-Id': userId,
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
+        if (response.data.statusCode === 200) {
+          console.log('워크스페이스 프로젝트 API 응답 성공:', response.data.result);
+          this.workspaceProjects = response.data.result;
+          console.log('workspaceProjects 설정됨:', this.workspaceProjects);
+        }
+      } catch (error) {
+        console.error('워크스페이스 프로젝트 데이터 로드 실패:', error);
+        // 테스트용 예시 데이터
+        this.workspaceProjects = [
+          {
+            projectId: 'pjt_1',
+            projectName: '3번째 프로젝트!',
+            milestone: 0.0,
+            stoneCount: 6,
+            completedCount: 0
+          },
+          {
+            projectId: 'pjt_2',
+            projectName: '새로운 프로젝트',
+            milestone: 75.5,
+            stoneCount: 10,
+            completedCount: 7
+          },
+          {
+            projectId: 'pjt_3',
+            projectName: '완료된 프로젝트',
+            milestone: 100.0,
+            stoneCount: 5,
+            completedCount: 5
+          }
+        ];
+        console.log('예시 워크스페이스 프로젝트 데이터 설정됨:', this.workspaceProjects);
+      } finally {
+        this.loadingWorkspaceProjects = false;
+        console.log('워크스페이스 프로젝트 로딩 완료, loadingWorkspaceProjects:', this.loadingWorkspaceProjects);
+      }
+    },
+    
+    // 사용자 그룹별 프로젝트 현황 데이터 로드
+    async loadUserGroupProgress() {
+      try {
+        console.log('loadUserGroupProgress 시작');
+        this.loadingUserGroupProgress = true;
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId') || 'user123';
+        const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_2';
+        console.log('워크스페이스 ID:', workspaceId);
+        
+        const response = await axios.get(
+          `http://localhost:8080/workspace-service/workspace/admin/group-progress/${workspaceId}`,
+          {
+            headers: {
+              'X-User-Id': userId,
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
+        if (response.data.statusCode === 200) {
+          console.log('사용자 그룹별 프로젝트 현황 API 응답 성공:', response.data.result);
+          this.userGroupProgress = response.data.result;
+          console.log('userGroupProgress 설정됨:', this.userGroupProgress);
+        }
+      } catch (error) {
+        console.error('사용자 그룹별 프로젝트 현황 데이터 로드 실패:', error);
+        // 테스트용 예시 데이터
+        this.userGroupProgress = [
+          {
+            groupName: '관리팀',
+            projectCount: 1,
+            averageProgress: 75.0
+          },
+          {
+            groupName: '생산팀',
+            projectCount: 1,
+            averageProgress: 75.0
+          },
+          {
+            groupName: '개발팀',
+            projectCount: 3,
+            averageProgress: 60.5
+          },
+          {
+            groupName: '디자인팀',
+            projectCount: 2,
+            averageProgress: 45.0
+          }
+        ];
+        console.log('예시 사용자 그룹별 프로젝트 현황 데이터 설정됨:', this.userGroupProgress);
+      } finally {
+        this.loadingUserGroupProgress = false;
+        console.log('사용자 그룹별 프로젝트 현황 로딩 완료, loadingUserGroupProgress:', this.loadingUserGroupProgress);
+      }
+    },
+    
+    // 그룹 진행률에 따른 색상 클래스 결정
+    getGroupProgressClass(progress) {
+      const roundedProgress = Math.round(progress);
+      if (roundedProgress === 100) {
+        return 'progress-completed';
+      } else if (roundedProgress === 0) {
+        return 'progress-not-started';
+      } else {
+        return 'progress-in-progress';
+      }
     }
   }
 };
@@ -2199,5 +2569,450 @@ export default {
   color: #666666;
   font-size: 14px;
   font-family: 'Pretendard', sans-serif;
+}
+
+/* 대시보드 섹션 스타일 */
+.dashboard-section {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  margin-bottom: 25px;
+}
+
+.section-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 29px;
+  color: #1C0F0F;
+  margin: 0 0 8px 0;
+}
+
+.section-subtitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #666666;
+  margin: 0;
+}
+
+/* 프로젝트 스톤 마일스톤 섹션 */
+.milestone-section {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+}
+
+.milestone-tree {
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.project-node {
+  flex: 1;
+  min-width: 300px;
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  padding: 20px;
+  position: relative;
+}
+
+.project-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.project-progress-bar {
+  width: 100%;
+  height: 20px;
+  background: #E3F2FD;
+  border: 2px solid #2196F3;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-right: 15px;
+  position: relative;
+}
+
+.project-progress-bar .progress-fill {
+  height: 100%;
+  background: #2196F3;
+  border-radius: 8px;
+  transition: width 0.3s ease;
+}
+
+.project-name {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 17px;
+  color: #1976D2;
+  text-align: center;
+  z-index: 1;
+}
+
+.stones-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.stone-tree {
+  margin-bottom: 15px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px;
+  color: #666666;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+}
+
+.tree-chart-wrapper {
+  width: 100%;
+  height: 800px; /* 세로 트리에 맞게 높이 증가 */
+  margin-top: 20px;
+}
+
+/* 워크스페이스별 프로젝트 현황 섹션 */
+.workspace-section {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+}
+
+.workspace-projects {
+  display: flex;
+  justify-content: center;
+}
+
+.project-cards-container {
+  width: 100%;
+  max-width: 800px;
+}
+
+.project-card {
+  background: #F8F9FA;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.project-card-header {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.nav-btn {
+  width: 40px;
+  height: 40px;
+  background: #F5F5F5;
+  border: 1px solid #DDDDDD;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  color: #666666;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  background: #E9ECEF;
+}
+
+.project-stats {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 200px;
+  position: relative;
+  padding: 20px 10px;
+  box-sizing: border-box;
+}
+
+.circular-progress {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  order: 1;
+}
+
+.progress-ring {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #F8F9FA;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 8px solid #E0E0E0;
+  box-sizing: border-box;
+}
+
+.progress-fill-ring {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  border-radius: 50%;
+  background: conic-gradient(from -90deg, #4CAF50 0deg, #4CAF50 calc(var(--progress) * 3.6deg), #E0E0E0 calc(var(--progress) * 3.6deg), #E0E0E0 360deg);
+  mask: radial-gradient(circle at center, transparent 40%, black 40%);
+  -webkit-mask: radial-gradient(circle at center, transparent 40%, black 40%);
+  z-index: 1;
+}
+
+/* 프로젝트별 색상 (동적으로 적용) */
+.stat-item:nth-child(1) .progress-fill-ring {
+  background: conic-gradient(from -90deg, #4CAF50 0deg, #4CAF50 calc(var(--progress) * 3.6deg), #E0E0E0 calc(var(--progress) * 3.6deg), #E0E0E0 360deg);
+}
+
+.stat-item:nth-child(2) .progress-fill-ring {
+  background: conic-gradient(from -90deg, #FF9800 0deg, #FF9800 calc(var(--progress) * 3.6deg), #E0E0E0 calc(var(--progress) * 3.6deg), #E0E0E0 360deg);
+}
+
+.stat-item:nth-child(3) .progress-fill-ring {
+  background: conic-gradient(from -90deg, #9C27B0 0deg, #9C27B0 calc(var(--progress) * 3.6deg), #E0E0E0 calc(var(--progress) * 3.6deg), #E0E0E0 360deg);
+}
+
+.stat-item:nth-child(4) .progress-fill-ring {
+  background: conic-gradient(from -90deg, #2196F3 0deg, #2196F3 calc(var(--progress) * 3.6deg), #E0E0E0 calc(var(--progress) * 3.6deg), #E0E0E0 360deg);
+}
+
+.stat-item:nth-child(5) .progress-fill-ring {
+  background: conic-gradient(from -90deg, #F44336 0deg, #F44336 calc(var(--progress) * 3.6deg), #E0E0E0 calc(var(--progress) * 3.6deg), #E0E0E0 360deg);
+}
+
+.progress-text {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 22px;
+  color: #000000;
+  z-index: 2;
+  position: relative;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+  order: 2;
+}
+
+.stat-label {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14px;
+  color: #666666;
+}
+
+.project-name {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 16px;
+  color: #1C0F0F;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  text-align: center;
+  margin-top: 15px;
+  order: 3;
+}
+
+/* 사용자 그룹별 프로젝트 현황 섹션 */
+.user-group-section {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+}
+
+.user-group-stats {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.group-stat-item {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 20px;
+  background: #F8F9FA;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  min-height: 140px;
+  text-align: center;
+}
+
+
+.group-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  order: 2;
+}
+
+.group-name {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 17px;
+  color: #1C0F0F;
+  text-align: center;
+}
+
+.group-count {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14px;
+  color: #666666;
+  text-align: center;
+}
+
+.group-progress {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 16px;
+  text-align: center;
+  color: #1C0F0F;
+  margin-top: 4px;
+  display: block;
+}
+
+/* 그룹별 도넛 모양 진행률 게이지 */
+.group-circular-progress {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  order: 1;
+}
+
+.group-progress-ring {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #F8F9FA;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 6px solid #E0E0E0;
+  box-sizing: border-box;
+}
+
+.group-progress-fill-ring {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 12px);
+  border-radius: 50%;
+  mask: radial-gradient(circle at center, transparent 40%, black 40%);
+  -webkit-mask: radial-gradient(circle at center, transparent 40%, black 40%);
+  z-index: 1;
+}
+
+.group-progress-text {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 16px;
+  color: #000000;
+  z-index: 2;
+  position: relative;
+}
+
+/* 그룹 진행률에 따른 동적 색상 */
+.group-progress-fill-ring.progress-completed {
+  background: conic-gradient(from -90deg, #4CAF50 0deg, #4CAF50 calc(var(--progress) * 3.6deg), #E0E0E0 calc(var(--progress) * 3.6deg), #E0E0E0 360deg);
+}
+
+.group-progress-fill-ring.progress-in-progress {
+  background: conic-gradient(from -90deg, #FF9800 0deg, #FF9800 calc(var(--progress) * 3.6deg), #E0E0E0 calc(var(--progress) * 3.6deg), #E0E0E0 360deg);
+}
+
+.group-progress-fill-ring.progress-not-started {
+  background: conic-gradient(from -90deg, #F44336 0deg, #F44336 calc(var(--progress) * 3.6deg), #E0E0E0 calc(var(--progress) * 3.6deg), #E0E0E0 360deg);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1200px) {
+  .milestone-tree {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .project-stats {
+    justify-content: center;
+  }
+  
+  .user-group-stats {
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-section {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .section-title {
+    font-size: 20px;
+    line-height: 24px;
+  }
+  
+  
+  .project-stats {
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+  }
+  
+  .group-stat-item {
+    min-width: auto;
+  }
 }
 </style>
