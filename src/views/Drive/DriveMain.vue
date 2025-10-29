@@ -416,8 +416,13 @@ export default {
           }
         } catch (error) {
           console.error('드라이브 초기화 실패:', error);
-          this.items = [];
-          this.folderTree = [{ id: 'root', name: '내 드라이브', children: [] }];
+          
+          // 접근 권한 에러 등의 경우 이전 페이지로 이동
+          const errorMessage = error.response?.data?.statusMessage || '접근 권한이 없거나 문서함을 불러올 수 없습니다.';
+          showSnackbar(errorMessage, 'error');
+          
+          // 이전 페이지로 이동
+          this.$router.back();
         } finally {
           this.loading = false;
           this.loadingTree = false;
@@ -618,8 +623,17 @@ export default {
         }
       } catch (error) {
         console.error('폴더 내용 로드 실패:', error);
-        showSnackbar('폴더 내용을 불러오는데 실패했습니다.', 'error');
-        this.items = [];
+        
+        // 접근 권한 에러 등의 경우
+        const errorMessage = error.response?.data?.statusMessage || '폴더 내용을 불러오는데 실패했습니다.';
+        showSnackbar(errorMessage, 'error');
+        
+        // 권한 에러인 경우 이전 페이지로 이동
+        if (error.response?.status === 403 || error.response?.status === 401) {
+          this.$router.back();
+        } else {
+          this.items = [];
+        }
       } finally {
         this.loading = false;
       }
