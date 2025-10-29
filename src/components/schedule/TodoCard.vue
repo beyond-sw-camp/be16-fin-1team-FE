@@ -1,12 +1,12 @@
 <template>
   <div class="todo-card">
-    <!-- ✅ 헤더 영역 -->
+    <!-- 헤더 영역 -->
     <div class="todo-header">
         <div class="left-group">
         <span class="todo-title">개인 To-Do</span>
         <button class="calendar-btn" @click="toggleCalendar">📅</button>
 
-            <!-- 📅 날짜 선택 팝업 (📅 버튼 바로 밑으로 이동) -->
+            <!-- 날짜 선택 팝업 (📅 버튼 바로 밑으로 이동) -->
             <div v-if="showCalendar" class="calendar-popup" @click.stop>
                 <input
                 type="date"
@@ -20,10 +20,10 @@
       <button class="add-btn" @click="openCreateModal">＋ To-Do 추가</button>
     </div>
 
-    <!-- 📅 현재 날짜 표시 -->
+    <!-- 현재 날짜 표시 -->
     <div class="selected-date">{{ formatDate(selectedDate) }}</div>
 
-    <!-- ✅ To-Do 목록 -->
+    <!-- To-Do 목록 -->
     <div v-if="todoStore.todos.length === 0" class="empty">
       등록된 To-Do가 없습니다.
     </div>
@@ -45,7 +45,7 @@
       </li>
     </ul>
 
-    <!-- ✅ To-Do 추가 모달 -->
+    <!-- To-Do 추가 모달 -->
     <teleport to="body">
       <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
         <div class="modal-box add-modal">
@@ -75,7 +75,7 @@
               <span>북마크 등록 (자주 사용하는 To-Do)</span>
             </label>
 
-            <!-- 🌟 북마크 리스트 (스크롤 가능) -->
+            <!-- 북마크 리스트 (스크롤 가능) -->
             <div class="bookmark-list" v-if="bookmarkList.length > 0">
               <p class="bookmark-title">📌 북마크 목록</p>
               <ul>
@@ -108,7 +108,7 @@
       </div>
     </teleport>
 
-    <!-- ⚠️ 북마크 해제 확인 모달 -->
+    <!-- 북마크 해제 확인 모달 -->
     <teleport to="body">
       <div v-if="showUnbookmarkConfirm" class="modal-overlay" @click.self="showUnbookmarkConfirm = false">
         <div class="confirm-box shake">
@@ -123,7 +123,7 @@
       </div>
     </teleport>
 
-    <!-- ✅ 수정 모달 -->
+    <!-- 수정 모달 -->
     <teleport to="body">
       <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
         <div class="modal-box edit-modal">
@@ -156,7 +156,7 @@
       </div>
     </teleport>
 
-    <!-- ⚠️ 삭제 확인 모달 -->
+    <!-- 삭제 확인 모달 -->
     <teleport to="body">
       <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="closeDeleteConfirm">
         <div class="confirm-box shake">
@@ -212,14 +212,14 @@ const filterByDate = async () => {
   showCalendar.value = false;
 };
 
-/** ✅ 완료 토글 */
+/** 완료 토글 */
 const toggleCompletion = async (todo) => {
   if (todo.isCompleted) await todoStore.uncompleteTodo(todo.id);
   else await todoStore.completeTodo(todo.id);
   await todoStore.loadTodosByDate(workspaceId, selectedDate.value);
 };
 
-/** ✅ To-Do 추가 */
+/** To-Do 추가 */
 const openCreateModal = async () => {
   newName.value = "";
   newDate.value = today;
@@ -240,13 +240,13 @@ const selectBookmark = (bm) => {
   newDate.value = selectedDate.value;
 };
 
-/** 🗑️ 북마크 해제 확인 모달 열기 */
+/** 북마크 해제 확인 모달 열기 */
 const confirmUnbookmark = (todoId) => {
   targetUnbookmarkId.value = todoId;
   showUnbookmarkConfirm.value = true;
 };
 
-/** ✅ 실제 북마크 해제 수행 */
+/** 실제 북마크 해제 수행 */
 const unbookmark = async () => {
   try {
     const todoId = targetUnbookmarkId.value;
@@ -280,7 +280,7 @@ const createTodo = async () => {
   await todoStore.loadTodosByDate(workspaceId, selectedDate.value);
 };
 
-/** ✅ 수정 */
+/** 수정 */
 const openEditModal = (todo) => {
   editId.value = todo.id;
   editName.value = todo.calendarName;
@@ -306,7 +306,7 @@ const updateTodo = async () => {
   }
 };
 
-/** ✅ 삭제 */
+/** 삭제 */
 const openDeleteConfirm = () => (showDeleteConfirm.value = true);
 const closeDeleteConfirm = () => (showDeleteConfirm.value = false);
 const deleteTodo = async () => {
@@ -359,7 +359,7 @@ const deleteTodo = async () => {
   transition: all 0.25s ease;
 }
 
-/* 🌟 hover 시 노란색 강조 효과 */
+/* hover 시 노란색 강조 효과 */
 .calendar-btn:hover {
   background: #f4ce53;
   transform: scale(1.1);
@@ -380,7 +380,7 @@ const deleteTodo = async () => {
   cursor: pointer;
 }
 
-/* 📅 달력 팝업 */
+/* 달력 팝업 */
 .calendar-popup {
   position: absolute;
   top: 50%; /* 버튼 세로 중앙 기준 */
@@ -393,7 +393,7 @@ const deleteTodo = async () => {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-/* ✅ To-Do 리스트 */
+/* To-Do 리스트 */
 .todo-list {
   margin-top: 10px;
   flex: 1;
@@ -434,7 +434,7 @@ const deleteTodo = async () => {
   font-size: 15px;
 }
 
-/* 🪶 모달 공통 */
+/* 모달 공통 */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -459,7 +459,7 @@ const deleteTodo = async () => {
   gap: 20px;
 }
 
-/* ⚠️ 삭제 확인 모달 */
+/* 삭제 확인 모달 */
 .confirm-box {
   background: #fff;
   border-radius: 12px;
@@ -502,7 +502,7 @@ const deleteTodo = async () => {
   border-radius: 6px;
 }
 
-/* 💫 애니메이션 */
+/* 애니메이션 */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-6px); }
@@ -510,7 +510,7 @@ const deleteTodo = async () => {
   75% { transform: translateX(-4px); }
 }
 
-/* ✅ 추가 모달 리디자인 */
+/* 추가 모달 리디자인 */
 .add-modal {
   width: 500px;
   padding: 36px 40px;
@@ -579,7 +579,7 @@ const deleteTodo = async () => {
   margin-top: 8px;
 }
 
-/* 🌟 북마크 리스트 */
+/* 북마크 리스트 */
 .bookmark-list {
   border-top: 1px solid #eee;
   padding-top: 12px;
@@ -658,7 +658,7 @@ const deleteTodo = async () => {
 }
 
 
-/* ✅ 수정 모달 전체 스타일 */
+/* 수정 모달 전체 스타일 */
 .modal-box.edit-modal {
   width: 440px;
   padding: 32px 36px;
@@ -671,7 +671,7 @@ const deleteTodo = async () => {
   animation: fadeIn 0.25s ease;
 }
 
-/* ✨ 제목 영역 */
+/* 제목 영역 */
 .edit-modal .modal-title {
   font-size: 20px;
   font-weight: 700;
@@ -681,7 +681,7 @@ const deleteTodo = async () => {
   padding-bottom: 10px;
 }
 
-/* 📝 입력 필드 스타일 */
+/* 입력 필드 스타일 */
 .edit-modal .modal-body {
   display: flex;
   flex-direction: column;
@@ -711,7 +711,7 @@ const deleteTodo = async () => {
   outline: none;
 }
 
-/* ✅ 하단 버튼 정렬 */
+/* 하단 버튼 정렬 */
 .edit-modal .modal-footer {
   display: flex;
   justify-content: space-between;
@@ -719,7 +719,7 @@ const deleteTodo = async () => {
   margin-top: 10px;
 }
 
-/* 🗑 삭제 버튼 */
+/* 삭제 버튼 */
 .edit-modal .delete {
   background: #fff3f3;
   color: #ff5858;
@@ -762,7 +762,7 @@ const deleteTodo = async () => {
   background: #ffdb5c;
 }
 
-/* 🌟 체크박스 영역 */
+/* 체크박스 영역 */
 .edit-modal .field.checkbox {
   display: flex;
   align-items: center;
@@ -772,7 +772,7 @@ const deleteTodo = async () => {
   color: #444;
 }
 
-/* ✨ 부드러운 fade-in 효과 */
+/* 부드러운 fade-in 효과 */
 @keyframes fadeIn {
   from {
     opacity: 0;
