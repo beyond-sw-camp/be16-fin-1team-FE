@@ -1,6 +1,6 @@
 <template>
   <div class="schedule-layout">
-    <!-- 🟡 상단 고정 탭 -->
+    <!-- 상단 고정 탭 -->
     <div class="schedule-tabs">
       <button
         :class="['tab', active === 'home' ? 'active' : '']"
@@ -65,7 +65,7 @@ const underlineStyle = computed(() => {
   width: 100%;
 }
 
-/* 🟡 탭 헤더 컨테이너 */
+/* 탭 헤더 컨테이너 */
 .schedule-tabs {
   position: relative;
   display: flex;
