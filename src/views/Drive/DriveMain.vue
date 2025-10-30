@@ -421,8 +421,15 @@ export default {
           const errorMessage = error.response?.data?.statusMessage || '접근 권한이 없거나 문서함을 불러올 수 없습니다.';
           showSnackbar(errorMessage, 'error');
           
-          // 이전 페이지로 이동
-          this.$router.back();
+          // 워크스페이스 드라이브 루트로 리디렉션
+          const workspaceId = localStorage.getItem('selectedWorkspaceId');
+          this.$router.replace({ 
+            name: 'driveRoot',
+            params: { 
+              rootType: 'WORKSPACE',
+              rootId: workspaceId
+            }
+          });
         } finally {
           this.loading = false;
           this.loadingTree = false;
@@ -628,9 +635,16 @@ export default {
         const errorMessage = error.response?.data?.statusMessage || '폴더 내용을 불러오는데 실패했습니다.';
         showSnackbar(errorMessage, 'error');
         
-        // 권한 에러인 경우 이전 페이지로 이동
+        // 권한 에러인 경우 워크스페이스 드라이브 루트로 리디렉션
         if (error.response?.status === 403 || error.response?.status === 401) {
-          this.$router.back();
+          const workspaceId = localStorage.getItem('selectedWorkspaceId');
+          this.$router.replace({ 
+            name: 'driveRoot',
+            params: { 
+              rootType: 'WORKSPACE',
+              rootId: workspaceId
+            }
+          });
         } else {
           this.items = [];
         }
