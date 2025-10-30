@@ -42,26 +42,30 @@
           <!-- API에서 가져온 권한 그룹들 -->
           <div v-for="group in permissionGroups" :key="group.accessGroupId" class="permission-group-card" :class="{ 'default-group': isDefaultGroup(group.accessGroupName) }">
             <div class="group-header" @click="viewPermissionGroupDetail(group)">
-              <div class="group-icon">
-                <img 
-                  :src="group.accessGroupName === '관리자 그룹' ? '/src/assets/icons/sidebar/admin.svg' : '/src/assets/icons/user/user_default_icon.svg'" 
-                  :alt="group.accessGroupName"
-                  class="group-icon-img"
-                />
-              </div>
-              <div class="group-info">
-                <h3 class="group-title" :class="{ 'default-group-title': isDefaultGroup(group.accessGroupName) }">
-                  {{ group.accessGroupName }}
-                  <span v-if="isDefaultGroup(group.accessGroupName)" class="default-badge">기본 그룹</span>
-                </h3>
-              </div>
-              <div class="group-actions">
-                <div class="action-menu" @click.stop="toggleActionMenu(group.accessGroupId)">
-                  <span>⋯</span>
+              <div class="left">
+                <div class="group-icon">
+                  <img 
+                    :src="group.accessGroupName === '관리자 그룹' ? '/src/assets/icons/sidebar/admin.svg' : '/src/assets/icons/user/user_default_icon.svg'" 
+                    :alt="group.accessGroupName"
+                    class="group-icon-img"
+                  />
+                </div>
+                <div class="group-info">
+                  <h3 class="group-title" :class="{ 'default-group-title': isDefaultGroup(group.accessGroupName) }">
+                    {{ group.accessGroupName }}
+                    <span v-if="isDefaultGroup(group.accessGroupName)" class="default-badge">기본 그룹</span>
+                  </h3>
                 </div>
               </div>
-              <div class="group-member-count">
-                <span class="member-count">{{ group.groupParticipantCount }}명</span>
+              <div class="right" @click.stop>
+                <div class="group-member-count">
+                  <span class="member-count">{{ group.groupParticipantCount }}명</span>
+                </div>
+                <div class="group-actions">
+                  <div class="action-menu" @click.stop="toggleActionMenu(group.accessGroupId)">
+                    <span>⋯</span>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -568,8 +572,9 @@ export default {
         );
         
         if (response.data.statusCode === 200) {
-          this.permissionGroups = response.data.result.content;
+          this.permissionGroups = response.data.result.content || [];
           this.totalPages = response.data.result.totalPages;
+          this.permissionGroups = this.sortPermissionGroups(this.permissionGroups);
         }
       } catch (error) {
         console.error('권한 그룹 목록 로드 실패:', error);
@@ -588,6 +593,7 @@ export default {
             groupParticipantCount: 1
           }
         ];
+        this.permissionGroups = this.sortPermissionGroups(this.permissionGroups);
       } finally {
         this.loading = false;
       }
@@ -598,6 +604,23 @@ export default {
         this.currentPage++;
         await this.loadPermissionGroups();
       }
+    },
+    
+    // 권한 그룹 정렬: 관리자 그룹 → 일반 유저 그룹 → 기타(이름 오름차순)
+    sortPermissionGroups(groups) {
+      const getPriority = (name) => {
+        if (name === '관리자 그룹') return 0;
+        if (name === '일반 유저 그룹') return 1;
+        return 2;
+      };
+      return [...(groups || [])].sort((a, b) => {
+        const pa = getPriority(a.accessGroupName);
+        const pb = getPriority(b.accessGroupName);
+        if (pa !== pb) return pa - pb;
+        const an = a.accessGroupName || '';
+        const bn = b.accessGroupName || '';
+        return an.localeCompare(bn, 'ko');
+      });
     },
     
     async loadWorkspaceDetail() {
@@ -1687,11 +1710,21 @@ export default {
 .group-header {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 16px;
+  justify-content: space-between;
   padding: 16px 20px;
   cursor: pointer;
   transition: background-color 0.2s;
+}
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .group-header:hover {
@@ -1705,7 +1738,6 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  order: 1;
 }
 
 .group-icon-img {
@@ -1721,7 +1753,6 @@ export default {
 
 .group-info {
   flex-grow: 1;
-  order: 2;
   text-align: left;
 }
 
@@ -1752,8 +1783,7 @@ export default {
 }
 
 .group-member-count {
-  order: 4;
-  margin-left: 16px;
+  margin-left: 0;
 }
 
 .member-count {
@@ -1775,8 +1805,6 @@ export default {
 
 .group-actions {
   position: relative;
-  margin-left: auto;
-  order: 3;
 }
 
 .action-menu {
