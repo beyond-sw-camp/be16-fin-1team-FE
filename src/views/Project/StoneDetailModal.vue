@@ -36,7 +36,7 @@
         <!-- 스톤/프로젝트 제목 -->
         <div class="stone-title-container">
           <div class="stone-title-section">
-            <div class="stone-title">{{ currentStoneData?.stoneName }}</div>
+            <div class="stone-title">{{ currentStoneData?.isProject ? (currentStoneData?.projectName || currentStoneData?.stoneName) : currentStoneData?.stoneName }}</div>
             <div class="stone-status" :class="getStoneStatusClass(currentStoneData?.stoneStatus)">
               {{ getStoneStatusText(currentStoneData?.stoneStatus) }}
             </div>
@@ -50,10 +50,20 @@
             >
               완료
             </button>
-            <button class="edit-stone-btn" @click="editStone" title="스톤 수정">
+            <button 
+              v-if="!currentStoneData?.isProject" 
+              class="edit-stone-btn" 
+              @click="editStone" 
+              title="스톤 수정"
+            >
               수정
             </button>
-            <button class="delete-stone-btn" @click="deleteStone" title="스톤 삭제">
+            <button 
+              v-if="!currentStoneData?.isProject" 
+              class="delete-stone-btn" 
+              @click="deleteStone" 
+              title="스톤 삭제"
+            >
               삭제
             </button>
           </div>

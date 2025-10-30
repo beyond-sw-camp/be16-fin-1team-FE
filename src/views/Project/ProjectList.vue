@@ -37,7 +37,7 @@
     
     <!-- 프로젝트 설명 -->
     <div class="project-description-section">
-      <p class="project-description-text">{{ projectDescrinpption }}</p>
+      <p class="project-description-text">{{ projectDescription }}</p>
     </div>
     
     <!-- 탭 메뉴 -->
@@ -1322,7 +1322,7 @@ export default {
           try {
             // 루트 스톤의 경우 프로젝트 ID를 사용
             // 현재 프로젝트의 ID를 사용하거나 stone.id를 프로젝트 ID로 사용
-            const projectId = this.$route.params.projectId || 'pjt_1';
+            const projectId = stone.projectId || this.$route.query.id;
             console.log('프로젝트 ID:', projectId);
             console.log('스톤 ID:', stone.id);
             
@@ -1342,7 +1342,7 @@ export default {
               // 프로젝트 상세 데이터를 모달에 맞는 형태로 변환
               this.selectedStoneData = {
                 stoneId: stone.id,
-                stoneName: projectDetail.projectName,
+                stoneName: stone.stoneName,
                 startTime: projectDetail.startTime,
                 endTime: projectDetail.endTime,
                 manager: '프로젝트 담당자', // API에 담당자 정보가 없으므로 기본값
@@ -1351,6 +1351,8 @@ export default {
                 chatCreation: false,
                 tasks: [],
                 // 프로젝트 전용 데이터
+                projectId: stone.projectId || projectDetail.projectId || projectId,
+                projectName: projectDetail.projectName,
                 projectObjective: projectDetail.projectObjective,
                 projectDescription: projectDetail.projectDescription,
                 stoneCount: projectDetail.stoneCount,
@@ -2817,6 +2819,16 @@ export default {
           this.projectDetail.startTime = startTime;
           this.projectDetail.endTime = endTime;
           this.projectDetail.managerId = this.editForm.managerId;
+          
+          // 루트 스톤(스톤 트리) 최신화 - 수정된 프로젝트명이 트리에도 반영되도록 재조회
+          try {
+            const refreshedProjectId = this.$route.query.id;
+            if (refreshedProjectId) {
+              await this.loadStones(refreshedProjectId);
+            }
+          } catch (e) {
+            console.warn('스톤 트리 재조회 실패(무시 가능):', e);
+          }
           
           // 사이드바 프로젝트 목록 업데이트를 위한 이벤트 발생
           window.dispatchEvent(new CustomEvent('projectUpdated', {
