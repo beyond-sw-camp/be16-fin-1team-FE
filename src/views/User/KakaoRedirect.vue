@@ -42,7 +42,7 @@ export default {
       const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
       const { data } = await axios.post(
         `${baseURL}/user-service/user/kakao/login`,
-        { code, isRemember: remember },
+        { code, rememberMe: remember },
         { headers: { "Content-Type": "application/json" } }
       );
       const accessToken = data?.result?.accessToken;

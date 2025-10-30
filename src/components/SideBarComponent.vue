@@ -53,7 +53,7 @@
       </div>
       
       <!-- 채팅 -->
-      <div class="nav-item">
+      <div class="nav-item" :class="{ active: currentRoute.startsWith('/chat') }" @click="navigateToChat">
         <img src="@/assets/icons/sidebar/chat.svg" alt="채팅" class="nav-icon" />
         <div class="nav-text">스톤 메신저</div>
         <div v-if="chatUnreadCount > 0" class="badge">{{ chatUnreadCount }}</div>
@@ -329,6 +329,9 @@ export default {
         // 워크스페이스 ID가 없으면 기본 드라이브로
         this.$router.push('/drive');
       }
+    },
+    navigateToChat() {
+      this.$router.push('/chat/main');
     },
     
     selectProject(project) {
@@ -767,7 +770,7 @@ export default {
   height: 18px;
   padding: 0 6px;
   border-radius: 9px;
-  background: #FF3B30;
+  background: #EF5350;
   color: #FFFFFF;
   font-size: 11px;
   font-weight: 700;

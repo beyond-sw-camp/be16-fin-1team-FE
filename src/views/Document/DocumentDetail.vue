@@ -1,7 +1,5 @@
 <template>
   <div class="document-page">
-    <h1>문서 상세 페이지 (Vue 3)</h1>
-    <p>문서 ID: {{ documentId }}</p>
     <hr>
     <RealTimeEditor
       v-if="isContentLoaded"
@@ -9,6 +7,8 @@
       :documentId="documentId"
       :initial-locked-lines="lockedLinesMap"
       :user-id="userId"
+      :user-name="userName"
+      :profile-image="profileImage"
     />
     <div v-else>
       문서 내용을 불러오는 중입니다...
@@ -22,6 +22,7 @@ import { useRoute, onBeforeRouteLeave } from 'vue-router';
 import axios from 'axios';
 import RealTimeEditor from '@/components/document/RealTimeEditor.vue';
 import { disconnectStomp } from '@/services/editorStompService.js';
+import driveService from '@/services/driveService';
 
 // data() 대신 ref/reactive 사용
 const route = useRoute();
@@ -29,8 +30,11 @@ const documentId = ref(route.params.documentId);
 const editorInitialContent = ref('');
 const isContentLoaded = ref(false);
 const lockedLinesMap = ref(new Map());
-// 랜덤 사용자 ID 생성
-const userId = ref('User_' + Math.floor(Math.random() * 1000));
+const documentTitle = ref('문서 로딩 중...');
+// 사용자 정보
+const userId = ref('');
+const userName = ref('');
+const profileImage = ref('');
 
 const handleDisconnect = () => {
   if (documentId.value && userId.value) {
@@ -39,6 +43,44 @@ const handleDisconnect = () => {
 };
 
 // methods 대신 const 함수 선언
+const fetchUserInfo = async () => {
+  try {
+    const localUserId = localStorage.getItem('id');
+    const token = localStorage.getItem('accessToken');
+    
+    const response = await axios.get('http://localhost:8080/drive-service/documentLine/userInfo', {
+      headers: {
+        'X-User-Id': localUserId,
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const userInfo = response.data.result;
+    userId.value = userInfo.userId;
+    userName.value = userInfo.userName;
+    profileImage.value = userInfo.profileImage;
+    
+    console.log('사용자 정보 로드 성공:', userInfo);
+  } catch (error) {
+    console.error('사용자 정보 로드 실패:', error);
+    // 실패 시 localStorage에서 fallback
+    userId.value = localStorage.getItem('id') || 'Guest';
+    userName.value = localStorage.getItem('name') || '게스트';
+  }
+};
+
+const fetchDocumentInfo = async () => {
+  try {
+    const response = await driveService.getDocument(documentId.value);
+    if (response.result) {
+      documentTitle.value = response.result.name || '제목 없음';
+    }
+  } catch (error) {
+    console.error('문서 정보 로딩 실패:', error);
+    documentTitle.value = '제목 없음';
+  }
+};
+
 const fetchDocumentLines = async () => {
   try {
     const response = await axios.get(`http://localhost:8080/drive-service/documentLine/document/${documentId.value}/documentLines`);
@@ -62,6 +104,8 @@ const fetchDocumentLines = async () => {
 
 // created() 훅 대신 onMounted() 사용
 onMounted(async () => {
+  await fetchUserInfo();
+  await fetchDocumentInfo();
   await fetchDocumentLines();
   window.addEventListener('beforeunload', handleDisconnect);
 });
