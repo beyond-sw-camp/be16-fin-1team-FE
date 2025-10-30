@@ -55,7 +55,7 @@
       <!-- 채팅 -->
       <div class="nav-item">
         <img src="@/assets/icons/sidebar/chat.svg" alt="채팅" class="nav-icon" />
-        <div class="nav-text">채팅</div>
+        <div class="nav-text">스톤 메신저</div>
         <div v-if="chatUnreadCount > 0" class="badge">{{ chatUnreadCount }}</div>
       </div>
       
@@ -125,7 +125,7 @@ import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { workspaceWatcher } from '@/mixins/workspaceWatcher';
 import { scheduleRouter } from '../router/ScheduleRouter';
-import { notificationState } from '@/services/notificationState.js';
+import { notificationState, setChatUnreadCount } from '@/services/notificationState.js';
 import driveService from '@/services/driveService';
 
 export default {
@@ -187,6 +187,8 @@ export default {
     
     // 워크스페이스 로드 (이 과정에서 setCurrentWorkspace가 호출되어 watch가 트리거됨)
     await this.loadWorkspaces();
+    // 워크스페이스의 안 읽은 채팅 수 로드
+    await this.fetchWorkspaceUnreadCount();
 
     // 프로젝트 목록 로드
     await this.loadProjectList();
@@ -212,12 +214,25 @@ export default {
         if (newWorkspace && newWorkspace.workspaceId !== oldWorkspace?.workspaceId) {
           this.loadWorkspaceStorage();
           this.loadProjectList(); // 워크스페이스 변경 시 프로젝트 목록 새로고침
+          this.fetchWorkspaceUnreadCount(); // 워크스페이스 변경 시 안읽은 개수 새로고침
         }
       },
       deep: true
     }
   },
   methods: {
+    async fetchWorkspaceUnreadCount(){
+      try {
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const storeWs = this.workspaceStore.getCurrentWorkspace?.workspaceId;
+        const lsWs = localStorage.getItem('selectedWorkspaceId');
+        const workspaceId = storeWs || lsWs;
+        if (!workspaceId) return;
+        const { data } = await axios.get(`${baseURL}/chat-service/chat/${workspaceId}/message-count`);
+        const count = (data && typeof data.result === 'number') ? data.result : 0;
+        setChatUnreadCount(count);
+      } catch(_) {}
+    },
     async loadWorkspaces() {
       try {
         // localStorage에서 사용자 ID 가져오기 (id 키 사용)
@@ -980,9 +995,7 @@ export default {
 }
 
 /* 관리자 페이지 메뉴 */
-.admin-nav-item {
-  /* 일반 nav-item과 동일한 스타일 사용 */
-}
+/* .admin-nav-item는 nav-item 기본 스타일을 그대로 사용 */
 
 .admin-nav-item.active {
   background: #554C2E;
