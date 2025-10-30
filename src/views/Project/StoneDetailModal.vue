@@ -36,14 +36,14 @@
         <!-- 스톤/프로젝트 제목 -->
         <div class="stone-title-container">
           <div class="stone-title-section">
-            <div class="stone-title">{{ stoneData.stoneName }}</div>
-            <div class="stone-status" :class="getStoneStatusClass(stoneData.stoneStatus)">
-              {{ getStoneStatusText(stoneData.stoneStatus) }}
+            <div class="stone-title">{{ currentStoneData?.stoneName }}</div>
+            <div class="stone-status" :class="getStoneStatusClass(currentStoneData?.stoneStatus)">
+              {{ getStoneStatusText(currentStoneData?.stoneStatus) }}
             </div>
           </div>
           <div class="action-buttons">
             <button 
-              v-if="stoneData.stoneStatus === 'PROGRESS'" 
+              v-if="currentStoneData?.stoneStatus === 'PROGRESS'" 
               class="complete-stone-btn" 
               @click="completeStone" 
               title="스톤 완료"
@@ -60,7 +60,7 @@
         </div>
         
         <!-- 프로젝트 전용 정보 -->
-        <div v-if="stoneData.isProject" class="project-info">
+        <div v-if="currentStoneData?.isProject" class="project-info">
           <!-- 디버깅용 콘솔 로그 -->
           {{ console.log('모달에서 받은 프로젝트 데이터:', stoneData) }}
           <!-- 프로젝트 목표 -->
@@ -73,7 +73,7 @@
               </svg>
               <span>목표</span>
             </div>
-            <div class="info-value">{{ stoneData.projectObjective || '목표 미설정' }}</div>
+            <div class="info-value">{{ currentStoneData?.projectObjective || '목표 미설정' }}</div>
           </div>
           
           <!-- 프로젝트 설명 -->
@@ -86,7 +86,7 @@
               </svg>
               <span>설명</span>
             </div>
-            <div class="info-value">{{ stoneData.projectDescription || '설명 없음' }}</div>
+            <div class="info-value">{{ currentStoneData?.projectDescription || '설명 없음' }}</div>
           </div>
           
           <!-- 스톤 개수 -->
@@ -98,7 +98,7 @@
               </svg>
               <span>스톤 개수</span>
             </div>
-            <div class="info-value">{{ stoneData.stoneCount || 0 }}개</div>
+            <div class="info-value">{{ currentStoneData?.stoneCount || 0 }}개</div>
           </div>
         </div>
         
@@ -111,11 +111,11 @@
             </svg>
             <span>기간</span>
           </div>
-          <div class="info-value">{{ formatDateRange(stoneData.startTime, stoneData.endTime) }}</div>
+          <div class="info-value">{{ formatDateRange(currentStoneData?.startTime, currentStoneData?.endTime) }}</div>
         </div>
 
         <!-- 스톤 정보 (일반 스톤인 경우에만 표시) -->
-        <div v-if="!stoneData.isProject">
+        <div v-if="!currentStoneData?.isProject">
           <!-- 담당자 정보 -->
           <div class="info-section">
             <div class="info-label">
@@ -126,17 +126,17 @@
               <span>담당자</span>
             </div>
             <div class="info-value-with-action">
-              <span class="info-value" :class="{ 'empty-value': !stoneData.manager || stoneData.manager === '김올빗' }">{{ stoneData.manager || '김올빗' }}</span>
+              <span class="info-value" :class="{ 'empty-value': !currentStoneData?.manager || currentStoneData?.manager === '김올빗' }">{{ currentStoneData?.manager || '김올빗' }}</span>
               <button class="edit-user-btn" @click="editManager" title="담당자 수정">
                 <div class="icon-with-plus">
                   <!-- 담당자 아이콘 -->
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" :stroke="stoneData.manager && stoneData.manager !== '김올빗' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="7" r="4" :stroke="stoneData.manager && stoneData.manager !== '김올빗' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" :stroke="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="7" r="4" :stroke="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <!-- + 기호 (오른쪽에 별도 위치) -->
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 5V19M5 12H19" :stroke="stoneData.manager && stoneData.manager !== '김올빗' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 5V19M5 12H19" :stroke="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
               </button>
@@ -145,29 +145,29 @@
 
           <!-- 참여자 정보 -->
           <div class="info-section">
-            <div class="info-label" :class="{ 'empty-label': !stoneData.participants || stoneData.participants === '비어 있음' }">
+            <div class="info-label" :class="{ 'empty-label': !currentStoneData?.participants || currentStoneData?.participants === '비어 있음' }">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" :stroke="stoneData.participants && stoneData.participants !== '비어 있음' ? 'rgba(244, 206, 83, 0.4)' : 'rgba(102, 102, 102, 0.4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="9" cy="7" r="4" :stroke="stoneData.participants && stoneData.participants !== '비어 있음' ? 'rgba(244, 206, 83, 0.4)' : 'rgba(102, 102, 102, 0.4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? 'rgba(244, 206, 83, 0.4)' : 'rgba(102, 102, 102, 0.4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="9" cy="7" r="4" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? 'rgba(244, 206, 83, 0.4)' : 'rgba(102, 102, 102, 0.4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M23 21V19C23 17.9391 22.5786 16.9217 21.8284 16.1716C21.0783 15.4214 20.0609 15 19 15H16" stroke="rgba(102, 102, 102, 0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45768C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="rgba(102, 102, 102, 0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span>참여자</span>
             </div>
             <div class="info-value-with-action">
-              <span class="info-value" :class="{ 'empty-value': !stoneData.participants || stoneData.participants === '비어 있음' }">{{ stoneData.participants || '비어 있음' }}</span>
+              <span class="info-value" :class="{ 'empty-value': !currentStoneData?.participants || currentStoneData?.participants === '비어 있음' }">{{ currentStoneData?.participants || '비어 있음' }}</span>
               <button class="edit-user-btn" @click="editParticipants" title="참여자 수정">
                 <div class="icon-with-plus">
                   <!-- 참여자 아이콘 -->
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" :stroke="stoneData.participants && stoneData.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="9" cy="7" r="4" :stroke="stoneData.participants && stoneData.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M23 21V19C23 17.9391 22.5786 16.9217 21.8284 16.1716C21.0783 15.4214 20.0609 15 19 15H16" :stroke="stoneData.participants && stoneData.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="19" cy="7" r="3" :stroke="stoneData.participants && stoneData.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="9" cy="7" r="4" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M23 21V19C23 17.9391 22.5786 16.9217 21.8284 16.1716C21.0783 15.4214 20.0609 15 19 15H16" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="19" cy="7" r="3" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <!-- + 기호 (오른쪽에 별도 위치) -->
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 5V19M5 12H19" :stroke="stoneData.participants && stoneData.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 5V19M5 12H19" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
               </button>
@@ -176,17 +176,17 @@
 
           <!-- 채팅방 -->
           <div class="info-section">
-            <div class="info-label" :class="{ 'empty-label': !stoneData.chatCreation }">
+            <div class="info-label" :class="{ 'empty-label': !currentStoneData?.chatCreation }">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" :stroke="stoneData.chatCreation ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M13 8H13.01M9 8H9.01M17 8H17.01" :stroke="stoneData.chatCreation ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" :stroke="currentStoneData?.chatCreation ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13 8H13.01M9 8H9.01M17 8H17.01" :stroke="currentStoneData?.chatCreation ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span>채팅방</span>
             </div>
             <div class="info-value">
-              <div class="chat-link" :class="{ 'disabled': !stoneData.chatCreation }">
-                <span :class="{ 'empty-value': !stoneData.chatCreation }">{{ stoneData.chatCreation ? '바로가기' : '채팅방 없음' }}</span>
-                <svg v-if="stoneData.chatCreation" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <div class="chat-link" :class="{ 'disabled': !currentStoneData?.chatCreation }">
+                <span :class="{ 'empty-value': !currentStoneData?.chatCreation }">{{ currentStoneData?.chatCreation ? '바로가기' : '채팅방 없음' }}</span>
+                <svg v-if="currentStoneData?.chatCreation" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M15 3H21V9" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M10 14L21 3" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -207,7 +207,7 @@
             </div>
             <div class="info-value">
               <div class="document-link">
-                <span>{{ stoneData.documentLink || '바로가기' }}</span>
+                <span>{{ currentStoneData?.documentLink || '바로가기' }}</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M15 3H21V9" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -219,7 +219,7 @@
         </div>
 
         <!-- 태스크 섹션 (일반 스톤인 경우에만 표시) -->
-        <div v-if="!stoneData.isProject">
+        <div v-if="!currentStoneData?.isProject">
           <!-- 구분선 -->
           <div class="divider"></div>
 
@@ -584,7 +584,7 @@
         <div class="delete-modal-content">
           <div class="delete-modal-body">
             <div class="stone-name-container">
-              <strong class="stone-name">{{ stoneData.stoneName }}</strong>
+              <strong class="stone-name">{{ currentStoneData?.stoneName }}</strong>
             </div>
             <p class="delete-modal-message">스톤을 삭제하시겠습니까?</p>
           </div>
@@ -726,47 +726,13 @@ export default {
       type: Boolean,
       default: false
     },
+    stoneId: {
+      type: [String, Number],
+      default: null
+    },
     stoneData: {
       type: Object,
-      default: () => ({
-        stoneName: '오늘의 일정',
-        startTime: '2025-09-12',
-        endTime: '2025-09-17',
-        manager: '김올빗',
-        participants: '비어 있음',
-        documentLink: '바로가기',
-        stoneStatus: 'PROGRESS',
-        tasks: [
-          {
-            id: 1,
-            name: '채팅방',
-            completed: true,
-            startTime: '2025-09-12',
-            endTime: '2025-09-17'
-          },
-          {
-            id: 2,
-            name: '기획안 작성',
-            completed: true,
-            startTime: '2025-09-12',
-            endTime: '2025-09-14'
-          },
-          {
-            id: 3,
-            name: '요구사항 정의',
-            completed: false,
-            startTime: '2025-09-14',
-            endTime: '2025-09-16'
-          },
-          {
-            id: 4,
-            name: 'WBS 작성',
-            completed: false,
-            startTime: '2025-09-16',
-            endTime: '2025-09-17'
-          }
-        ]
-      })
+      default: null
     },
     workspaceId: {
       type: String,
@@ -825,22 +791,58 @@ export default {
       taskToComplete: null,
       completeLoading: false,
       showStoneCompleteConfirmModal: false,
-      stoneCompleteLoading: false
+      stoneCompleteLoading: false,
+      loadedStoneData: null
     }
   },
   computed: {
+    // 현재 사용할 스톤 데이터 (stoneData가 있으면 사용, 없으면 stoneId로 로드)
+    currentStoneData() {
+      return this.stoneData || this.loadedStoneData;
+    },
+    
     // 채팅방 생성 체크박스 비활성화 여부
     isChatCreationDisabled() {
       // 스톤에 이미 채팅방이 생성되어 있으면 비활성화
-      return this.stoneData?.chatCreation === true;
+      return this.currentStoneData?.chatCreation === true;
     },
     
     // 스톤이 완료되었는지 확인
     isStoneCompleted() {
-      return this.stoneData?.stoneStatus === 'COMPLETED' || this.stoneData?.milestone === 100;
+      return this.currentStoneData?.stoneStatus === 'COMPLETED' || this.currentStoneData?.milestone === 100;
     }
   },
   methods: {
+    // stoneId로 스톤 데이터 로드
+    async loadStoneData(stoneId) {
+      try {
+        this.isLoading = true;
+        
+        // 스톤 상세 정보 조회 API 호출
+        const response = await fetch(`/api/stones/${stoneId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('스톤 데이터를 불러올 수 없습니다.');
+        }
+        
+        const stoneData = await response.json();
+        this.loadedStoneData = stoneData;
+        
+      } catch (error) {
+        console.error('스톤 데이터 로드 실패:', error);
+        showSnackbar(error.message || '스톤 데이터를 불러올 수 없습니다.', { color: 'error' });
+        this.$emit('close');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    
     closeModal() {
       this.$emit('close')
     },
@@ -874,7 +876,7 @@ export default {
       try {
         this.stoneCompleteLoading = true;
         
-        const stoneId = this.stoneData.stoneId || this.stoneData.id;
+        const stoneId = this.currentStoneData?.stoneId || this.currentStoneData?.id;
         if (!stoneId) {
           showSnackbar('스톤 ID를 찾을 수 없습니다.', { color: 'error' });
           return;
@@ -888,7 +890,7 @@ export default {
         // 부모 컴포넌트에 스톤 완료 이벤트 전달
         this.$emit('stone-completed', {
           stoneId: stoneId,
-          stoneName: this.stoneData.stoneName
+          stoneName: this.currentStoneData?.stoneName
         });
         
         // 모달 닫기
@@ -920,10 +922,10 @@ export default {
       
       // 현재 스톤 데이터로 폼 초기화
       this.editForm = {
-        stoneName: this.stoneData.stoneName || '',
-        startDate: this.formatDateForInput(this.stoneData.startTime),
-        endDate: this.formatDateForInput(this.stoneData.endTime),
-        createChat: this.stoneData.chatCreation || false
+        stoneName: this.currentStoneData?.stoneName || '',
+        startDate: this.formatDateForInput(this.currentStoneData?.startTime),
+        endDate: this.formatDateForInput(this.currentStoneData?.endTime),
+        createChat: this.currentStoneData?.chatCreation || false
       };
       
       console.log('초기화된 editForm:', this.editForm);
@@ -976,7 +978,7 @@ export default {
           this.editForm.createChat = false;
         }
         
-        const stoneId = this.stoneData.stoneId || this.stoneData.id;
+        const stoneId = this.currentStoneData?.stoneId || this.currentStoneData?.id;
         if (!stoneId) {
           throw new Error('스톤 ID를 찾을 수 없습니다.');
         }
@@ -1046,7 +1048,7 @@ export default {
         this.isDeleting = true;
         
         // 스톤 ID 확인
-        const stoneId = this.stoneData.stoneId || this.stoneData.id;
+        const stoneId = this.currentStoneData?.stoneId || this.currentStoneData?.id;
         if (!stoneId) {
           showSnackbar('스톤 ID를 찾을 수 없습니다.', { color: 'error' });
           return;
@@ -1061,7 +1063,7 @@ export default {
         // 부모 컴포넌트에 삭제 완료 알림
         this.$emit('stone-deleted', {
           stoneId: stoneId,
-          stoneName: this.stoneData.stoneName
+          stoneName: this.currentStoneData?.stoneName
         });
         
         // 모달 닫기
@@ -1097,8 +1099,8 @@ export default {
       // 현재 스톤의 기간으로 기본값 설정
       this.taskForm = {
         title: '',
-        startDate: this.formatDateForInput(this.stoneData.startTime),
-        endDate: this.formatDateForInput(this.stoneData.endTime)
+        startDate: this.formatDateForInput(this.currentStoneData?.startTime),
+        endDate: this.formatDateForInput(this.currentStoneData?.endTime)
       };
       
       console.log('초기화된 taskForm:', this.taskForm);
@@ -1141,7 +1143,7 @@ export default {
     // 태스크 담당자 목록 로드 (스톤 참여자 목록 사용)
     async loadAvailableTaskAssignees() {
       try {
-        const stoneId = this.stoneData.stoneId || this.stoneData.id;
+        const stoneId = this.currentStoneData?.stoneId || this.currentStoneData?.id;
         if (!stoneId) {
           throw new Error('스톤 ID가 없습니다.');
         }
@@ -1291,7 +1293,7 @@ export default {
         
         // 부모 컴포넌트에 태스크 완료 이벤트 전달
         this.$emit('task-completed', {
-          stoneId: this.stoneData.stoneId || this.stoneData.id,
+          stoneId: this.currentStoneData?.stoneId || this.currentStoneData?.id,
           taskId: this.taskToComplete.id,
           taskName: this.taskToComplete.name
         });
@@ -1366,7 +1368,7 @@ export default {
     // 태스크 담당자 변경용 목록 로드 (스톤 참여자 목록 사용)
     async loadAvailableTaskAssigneeEdits() {
       try {
-        const stoneId = this.stoneData.stoneId || this.stoneData.id;
+        const stoneId = this.currentStoneData?.stoneId || this.currentStoneData?.id;
         if (!stoneId) {
           throw new Error('스톤 ID가 없습니다.');
         }
@@ -1489,7 +1491,7 @@ export default {
         this.isLoadingTasks = true;
         console.log('=== 태스크 목록 로드 시작 ===');
         
-        const stoneId = this.stoneData.stoneId || this.stoneData.id;
+        const stoneId = this.currentStoneData?.stoneId || this.currentStoneData?.id;
         if (!stoneId) {
           console.warn('스톤 ID가 없어서 태스크 목록을 로드할 수 없습니다.');
           this.taskList = [];
@@ -1560,7 +1562,7 @@ export default {
         
         // 실제 태스크 생성 API 호출
         const response = await createTask({
-          stoneId: this.stoneData.stoneId || this.stoneData.id,
+          stoneId: this.currentStoneData?.stoneId || this.currentStoneData?.id,
           managerId: this.taskForm.assigneeUserId, // UUID 형태의 사용자 ID
           taskName: this.taskForm.title,
           startTime: this.taskForm.startDate + 'T09:00:00',
@@ -1577,7 +1579,7 @@ export default {
         
         // 부모 컴포넌트에 태스크 생성 완료 알림
         this.$emit('task-created', {
-          stoneId: this.stoneData.stoneId || this.stoneData.id,
+          stoneId: this.currentStoneData?.stoneId || this.currentStoneData?.id,
           title: this.taskForm.title,
           startTime: this.taskForm.startDate,
           endTime: this.taskForm.endDate,
@@ -1730,7 +1732,7 @@ export default {
       try {
         this.isUpdating = true;
         
-        const stoneId = this.stoneData.stoneId || this.stoneData.id;
+        const stoneId = this.currentStoneData?.stoneId || this.currentStoneData?.id;
         if (!stoneId) {
           throw new Error('스톤 ID를 찾을 수 없습니다.');
         }
@@ -1761,8 +1763,29 @@ export default {
     }
   },
   watch: {
+    // stoneId가 변경될 때 스톤 데이터 로드
+    stoneId: {
+      handler(newStoneId) {
+        if (newStoneId && !this.stoneData) {
+          this.loadStoneData(newStoneId);
+        }
+      },
+      immediate: true
+    },
+    
     // 스톤 데이터가 변경될 때 태스크 목록 다시 로드
     stoneData: {
+      handler(newStoneData) {
+        if (newStoneData && (newStoneData.stoneId || newStoneData.id)) {
+          this.loadTaskList();
+        }
+      },
+      immediate: true,
+      deep: true
+    },
+    
+    // 로드된 스톤 데이터가 변경될 때 태스크 목록 다시 로드
+    loadedStoneData: {
       handler(newStoneData) {
         if (newStoneData && (newStoneData.stoneId || newStoneData.id)) {
           this.loadTaskList();
