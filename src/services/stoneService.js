@@ -45,7 +45,7 @@ export const deleteStone = async (stoneId) => {
         case 404:
           throw new Error('스톤을 찾을 수 없습니다.');
         case 500:
-          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         default:
           throw new Error(message);
       }
@@ -99,7 +99,7 @@ export const getStoneDetail = async (stoneId) => {
         case 404:
           throw new Error('스톤을 찾을 수 없습니다.');
         case 500:
-          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         default:
           throw new Error(message);
       }
@@ -163,7 +163,7 @@ export const modifyStoneManager = async (stoneId, newManagerId) => {
         case 404:
           throw new Error('스톤 또는 담당자를 찾을 수 없습니다.');
         case 500:
-          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         default:
           throw new Error(message);
       }
@@ -246,7 +246,7 @@ export const modifyStone = async (stoneData) => {
         case 409:
           throw new Error('이미 생성된 채팅방은 비활성화할 수 없습니다.');
         case 500:
-          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         default:
           throw new Error(message);
       }
@@ -306,7 +306,7 @@ export const searchWorkspaceParticipants = async (workspaceId, searchKeyword = '
         case 404:
           throw new Error('워크스페이스를 찾을 수 없습니다.');
         case 500:
-          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         default:
           throw new Error(message);
       }
@@ -360,7 +360,7 @@ export const getTaskList = async (stoneId) => {
         case 404:
           throw new Error('스톤을 찾을 수 없습니다.');
         case 500:
-          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         default:
           throw new Error(message);
       }
@@ -443,7 +443,7 @@ export const createTask = async (taskData) => {
         case 409:
           throw new Error('최상위 스톤은 태스크 생성이 불가합니다.');
         case 500:
-          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         default:
           throw new Error(message);
       }
@@ -497,7 +497,7 @@ export const getStoneParticipantList = async (stoneId) => {
         case 404:
           throw new Error('스톤을 찾을 수 없습니다.');
         case 500:
-          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         default:
           throw new Error(message);
       }
@@ -578,7 +578,7 @@ export const modifyTask = async (taskData) => {
         case 404:
           throw new Error('태스크 또는 담당자를 찾을 수 없습니다.');
         case 500:
-          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         default:
           throw new Error(message);
       }
@@ -632,7 +632,7 @@ export const deleteTask = async (taskId) => {
         case 404:
           throw new Error('태스크를 찾을 수 없습니다.');
         case 500:
-          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         default:
           throw new Error(message);
       }
@@ -688,7 +688,7 @@ export const completeTask = async (taskId) => {
         case 409:
           throw new Error('이미 완료된 태스크입니다.');
         case 500:
-          throw new Error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
         default:
           throw new Error(message);
       }
