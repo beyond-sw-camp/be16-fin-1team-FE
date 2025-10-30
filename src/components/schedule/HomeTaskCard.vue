@@ -1,92 +1,148 @@
-<script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+<script setup>
+import { ref, computed } from "vue";
 import { useScheduleStore } from "@/stores/schedule";
-import { completeTask, deleteTask } from "@/services/stoneService";
 import TaskCompleteConfirmModal from "@/components/modal/TaskCompleteConfirmModal.vue";
 import TaskDeleteConfirmModal from "@/components/modal/TaskDeleteConfirmModal.vue";
+import TrashIcon from "@/assets/icons/calendar/trash-can.svg";
 
 const store = useScheduleStore();
+const tasks = computed(() => store.myTasks);
 
 // ✅ 모달 상태
-const showComplete = ref(false);
-const showDelete = ref(false);
-const selectedTask = ref<{ id: string; title: string } | null>(null);
+const showCompleteModal = ref(false);
+const showDeleteModal = ref(false);
+const selectedTask = ref(null);
+const loading = ref(false);
 
-// ✅ 모달 핸들러
-const openCompleteModal = (task) => {
+// ✅ 체크박스 상태 관리 (완료 안 된 태스크만)
+const checkedTasks = ref({});
+
+// ✅ 체크박스 클릭 시
+function onToggleComplete(task) {
+  // 완료된 태스크는 클릭 불가
+  if (task.isDone) return;
+
+  // 체크 시 임시로 상태 반영
+  checkedTasks.value[task.taskId] = true;
   selectedTask.value = task;
-  showComplete.value = true;
-};
-const openDeleteModal = (task) => {
+  showCompleteModal.value = true;
+}
+
+// ✅ 완료 처리 확정
+async function confirmComplete() {
+  try {
+    loading.value = true;
+    await store.completeTask(selectedTask.value.taskId);
+    await store.loadMyTasks();
+    showCompleteModal.value = false;
+  } catch (e) {
+    console.error("❌ 태스크 완료 처리 실패:", e);
+  } finally {
+    loading.value = false;
+  }
+}
+
+// ✅ 완료 모달 취소 (체크 복원)
+function cancelCompleteModal() {
+  if (selectedTask.value) {
+    checkedTasks.value[selectedTask.value.taskId] = false;
+  }
+  showCompleteModal.value = false;
+  selectedTask.value = null;
+}
+
+// ✅ 삭제 클릭
+function onDelete(task) {
   selectedTask.value = task;
-  showDelete.value = true;
-};
+  showDeleteModal.value = true;
+}
 
-// ✅ 완료 처리
-const confirmComplete = async () => {
-  if (!selectedTask.value) return;
-  await completeTask(selectedTask.value.id);
-  const t = store.tasks.find((x) => x.id === selectedTask.value.id);
-  if (t) t.done = true;
-  showComplete.value = false;
-};
-
-// ✅ 삭제 처리
-const confirmDelete = async () => {
-  if (!selectedTask.value) return;
-  await deleteTask(selectedTask.value.id);
-  store.tasks = store.tasks.filter((x) => x.id !== selectedTask.value.id);
-  showDelete.value = false;
-};
-
-// ✅ 마운트 시 내 담당 태스크 불러오기
-onMounted(async () => {
-  await store.loadMyTasks();
-});
-
-// ✅ 정렬 (미완 → 완료 순)
-const sortedTasks = computed(() =>
-  [...store.tasks].sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1))
-);
+// ✅ 삭제 확정
+async function confirmDelete() {
+  try {
+    loading.value = true;
+    await store.removeTask(selectedTask.value.taskId);
+    await store.loadMyTasks();
+    showDeleteModal.value = false;
+  } catch (e) {
+    console.error("❌ 태스크 삭제 실패:", e);
+  } finally {
+    loading.value = false;
+  }
+}
 </script>
 
 <template>
   <div class="task-card">
-    <div class="header">
-      <h3>내 태스크</h3>
-    </div>
+    <h3 class="title">내 태스크</h3>
 
     <div v-if="store.loading" class="loading">불러오는 중...</div>
+    <div v-else-if="!tasks || tasks.length === 0" class="empty">
+      담당 중인 태스크가 없습니다.
+    </div>
 
-    <ul v-else-if="sortedTasks.length" class="task-list">
-      <li v-for="t in sortedTasks" :key="t.id" class="task-row">
-        <label class="check">
-          <input type="checkbox" :checked="t.done" @change="openCompleteModal(t)" />
-          <span></span>
-        </label>
-        <div class="meta">
-          <div class="title" :class="{ done: t.done }">{{ t.title }}</div>
-          <div v-if="t.startAt || t.endAt" class="date">
-            {{ t.startAt?.slice(0, 10) }} ~ {{ t.endAt?.slice(0, 10) }}
+    <!-- ✅ 태스크 목록 -->
+    <div v-else class="task-list-container">
+      <ul class="task-list">
+        <li
+          v-for="t in tasks"
+          :key="t.taskId"
+          class="task-item"
+          :class="{ done: t.isDone }"
+        >
+          <div class="task-left">
+            <input
+              type="checkbox"
+              class="task-checkbox"
+              :checked="t.isDone || checkedTasks[t.taskId]"
+              :disabled="t.isDone"
+              @change="onToggleComplete(t)"
+            />
+            <div class="task-info">
+              <div class="task-name" :class="{ done: t.isDone }">
+                {{ t.taskName }}
+              </div>
+              <div class="task-meta">
+                <span class="project">{{ t.projectName }}</span>
+                <span class="stone">｜{{ t.stoneName }}</span>
+                <span class="date">
+                  {{ new Date(t.startTime).toLocaleDateString() }} ~
+                  {{ new Date(t.endTime).toLocaleDateString() }}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-        <button class="delete-btn" @click="openDeleteModal(t)">🗑</button>
-      </li>
-    </ul>
 
-    <div v-else class="empty">담당 중인 태스크가 없습니다.</div>
+          <div class="task-actions">
+            <span class="status" :class="{ complete: t.isDone }">
+              {{ t.isDone ? "완료" : "진행중" }}
+            </span>
+            <img
+              :src="TrashIcon"
+              class="trash-icon"
+              alt="삭제"
+              @click="onDelete(t)"
+            />
+          </div>
+        </li>
+      </ul>
+    </div>
 
-    <!-- ✅ 완료/삭제 모달 -->
+    <!-- ✅ 완료 처리 모달 -->
     <TaskCompleteConfirmModal
-      :show="showComplete"
-      :taskName="selectedTask?.title || ''"
-      @close="showComplete = false"
+      :show="showCompleteModal"
+      :taskName="selectedTask?.taskName"
+      :loading="loading"
+      @close="cancelCompleteModal"
       @confirm="confirmComplete"
     />
+
+    <!-- ✅ 삭제 모달 -->
     <TaskDeleteConfirmModal
-      :show="showDelete"
-      :taskName="selectedTask?.title || ''"
-      @close="showDelete = false"
+      :show="showDeleteModal"
+      :taskName="selectedTask?.taskName"
+      :loading="loading"
+      @close="showDeleteModal = false"
       @confirm="confirmDelete"
     />
   </div>
@@ -94,83 +150,143 @@ const sortedTasks = computed(() =>
 
 <style scoped>
 .task-card {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  padding: 20px;
   width: 100%;
-  height: 100%;
+  text-align: left;
   display: flex;
   flex-direction: column;
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 24px; /* ✅ 좌우 유지, 상하 동일하게 여유 */
+  box-sizing: border-box;
 }
 
-.header {
+/* ✅ 타이틀 */
+.title {
+  font-weight: 700;
+  font-size: 18px;
+  margin-top: 40px;
+  margin-bottom: 10px; /* 🔹 타이틀 아래 여백 늘림 */
+  color: #333;
+  flex-shrink: 0;
+}
+
+/* ✅ 리스트 스크롤 */
+.task-list-container {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px 6px 12px 6px; /* 🔹 위·아래 여백 추가 (기존보다 넉넉하게) */
+}
+.task-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+.task-list-container::-webkit-scrollbar-thumb {
+  background: #dcdcdc;
+  border-radius: 4px;
+}
+
+/* ✅ 로딩 / 비어있을 때 */
+.loading,
+.empty {
+  color: #888;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 40px;
+}
+
+/* ✅ 리스트 내부 여백 및 간격 */
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* 🔹 카드 간 간격 살짝 확대 */
+  width: 100%;
+  padding: 20px 6px;
+}
+
+/* ✅ 태스크 카드 */
+.task-item {
+  border-radius: 12px;
+  padding: 14px 18px;
+  transition: 0.25s ease;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: 700;
-  margin-bottom: 10px;
-  font-size: 18px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.task-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+/* ✅ 진행중 / 완료 색상 구분 */
+.task-item:not(.done) {
+  background-color: #f4ce53;
+}
+.task-item.done {
+  background-color: #f5f5f5;
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+
+/* ✅ hover 시 */
+.task-item:not(.done):hover {
+  background-color: #f6d969;
+  transform: translateY(-2px);
+}
+.task-item.done:hover {
+  background-color: #f5f5f5;
+  transform: none;
+}
+
+/* ✅ 내부 레이아웃 */
+.task-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.task-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #f4ce53;
+  cursor: pointer;
+}
+.task-checkbox:disabled {
+  cursor: not-allowed;
+}
+.task-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
 }
-
-.task-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.check {
-  position: relative;
-  width: 20px;
-  height: 20px;
-}
-.check input {
-  display: none;
-}
-.check span {
-  position: absolute;
-  inset: 0;
-  border-radius: 6px;
-  border: 2px solid #c9c9c9;
-}
-.check input:checked + span {
-  background: #f3c403;
-  border-color: #f3c403;
-}
-
-.meta {
-  flex: 1;
-}
-.title {
+.task-name {
   font-weight: 600;
+  color: #222;
 }
-.title.done {
+.task-name.done {
   color: #999;
   text-decoration: line-through;
 }
-.date {
-  color: #888;
-  font-size: 12px;
+.task-meta {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
 }
-.delete-btn {
-  background: none;
-  border: none;
+
+/* ✅ 오른쪽 액션 영역 */
+.task-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.status {
+  font-weight: 600;
+  font-size: 13px;
+  color: #666;
+}
+.status.complete {
+  color: #40916c;
+}
+.trash-icon {
+  width: 20px;
+  height: 20px;
   cursor: pointer;
-  font-size: 18px;
+  transition: 0.2s;
 }
-.empty {
-  color: #aaa;
-  text-align: center;
-  margin-top: 30px;
+.trash-icon:hover {
+  transform: scale(1.1);
 }
 </style>

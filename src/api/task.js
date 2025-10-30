@@ -1,12 +1,21 @@
 import http from '@/utils/http.js';
 
-// 나의 Task 목록 조회
-export const getMyTasks = async (workspaceId) => {
+// 나의 태스크 목록 조회 API
+export const getMyTasks = async () => {
   try {
-    const response = await http.get(`/workspace-service/workspace/${workspaceId}/my-tasks`);
+    const userId = localStorage.getItem("id");
+    const workspaceId = localStorage.getItem("selectedWorkspaceId");
+
+    const response = await http.get(
+      `/workspace-service/workspace/${workspaceId}/my-tasks`,
+      {
+        headers: { "X-User-Id": userId },
+      }
+    );
+
     return response.data;
   } catch (error) {
-    console.error('나의 Task 조회 실패:', error);
+    console.error("❌ 나의 Task 조회 실패:", error);
     throw error;
   }
 };
