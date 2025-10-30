@@ -1,44 +1,128 @@
-<script setup lang="ts">
-defineProps<{ name: string; dday: number; progress: number }>();
-
-const dText = (dday: number) => {
-  if (dday > 0) return `D - ${dday}`;
-  if (dday === 0) return "D - DAY";
-  return `D + ${Math.abs(dday)}`;
-};
-</script>
-
 <template>
-  <div class="card">
-    <div class="card-header">
-      <span class="title">마일스톤</span>
-      <span class="name">{{ name }}</span>
-    </div>
-    <div class="ring-wrap">
-      <svg viewBox="0 0 120 120" class="ring">
-        <circle cx="60" cy="60" r="42" class="ring-bg"/>
-        <circle :stroke-dasharray="`${progress * 2.64} 999`" cx="60" cy="60" r="42" class="ring-fg"/>
-        <circle cx="60" cy="60" r="28" class="ring-bg secondary"/>
+  <div class="milestone-card" :class="{ completed: progress === 100 }">
+    <!-- 스톤명 -->
+    <div class="milestone-title">{{ name }}</div>
+
+    <!-- 겹쳐진 링 구조 -->
+    <div class="ring-wrapper">
+      <svg class="ring" viewBox="0 0 160 160">
+        <!-- 회색 배경 링 -->
+        <circle class="bg-ring" cx="80" cy="80" r="70" stroke-width="12" fill="none" />
+        <!-- 진행률 링 -->
+        <circle
+          class="progress-ring"
+          cx="80"
+          cy="80"
+          r="70"
+          stroke-width="12"
+          fill="none"
+          :stroke-dasharray="circumference"
+          :stroke-dashoffset="offset"
+        />
       </svg>
+
+      <!-- 중앙 내용 -->
       <div class="center">
-        <div class="d-text">{{ dText(dday) }}</div>
+        <div class="dday">D-{{ dday }}</div>
         <div class="percent">{{ progress }}%</div>
       </div>
     </div>
   </div>
 </template>
 
+<script setup lang="ts">
+import { computed } from "vue";
+
+const props = defineProps({
+  name: { type: String, required: true },
+  dday: { type: Number, default: 0 },
+  progress: { type: Number, default: 0 },
+});
+
+// 원형 둘레 계산 (r=70 기준)
+const circumference = 2 * Math.PI * 70;
+const offset = computed(() => circumference - (circumference * props.progress) / 100);
+</script>
+
 <style scoped>
-.card { background:#fff; border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,0.06); padding:16px 20px; }
-.card-header { display:flex; align-items:baseline; gap:12px; }
-.title { font-weight:700; font-size:14px; color:#555; }
-.name { font-weight:600; font-size:14px; color:#111; }
-.ring-wrap { position:relative; width:100%; height:220px; display:grid; place-items:center; }
-.ring { width:220px; height:220px; transform:rotate(-90deg); }
-.ring-bg { fill:none; stroke:#e6e6e6; stroke-width:14; }
-.ring-bg.secondary { stroke:#d9d9d9; stroke-width:12; r:28; }
-.ring-fg { fill:none; stroke:#f3c403; stroke-linecap:round; stroke-width:14; }
-.center { position:absolute; text-align:center; }
-.d-text { font-weight:800; font-size:22px; color:#333; letter-spacing:0.5px; }
-.percent { margin-top:6px; color:#888; font-size:14px; }
+/* 전체 카드 */
+.milestone-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.milestone-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* 스톤명 */
+.milestone-title {
+  font-weight: 600;
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #222;
+}
+
+/* 링 컨테이너 */
+.ring-wrapper {
+  position: relative;
+  width: 180px;
+  height: 180px;
+}
+
+/* SVG 기본 */
+.ring {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+/* 회색 배경 링 */
+.bg-ring {
+  stroke: #e5e5e5;
+}
+
+/* 진행률 링 */
+.progress-ring {
+  stroke: #f5c518; /* Orbit 포인트 노랑 */
+  transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease;
+  stroke-linecap: round;
+}
+
+/* hover 시 약간 밝은 노랑 */
+.milestone-card:hover .progress-ring {
+  stroke: #ffdd55;
+}
+
+/* 완료된 스톤(100%) 색상 변경 */
+.milestone-card.completed .progress-ring {
+  stroke: #4caf50; /* 초록색 */
+}
+
+/* 중앙 내용 */
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.dday {
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+}
+
+.percent {
+  margin-top: 4px;
+  font-size: 15px;
+  color: #666;
+}
 </style>

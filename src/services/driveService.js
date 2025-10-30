@@ -27,6 +27,16 @@ driveApi.interceptors.request.use(
       config.headers['X-Workspace-Id'] = workspaceId;
     }
     
+    console.log('Drive API Request:', {
+      method: config.method.toUpperCase(),
+      url: config.baseURL + config.url,
+      headers: {
+        Authorization: config.headers.Authorization ? 'Bearer ***' : 'None',
+        'X-User-Id': config.headers['X-User-Id'],
+        'X-Workspace-Id': config.headers['X-Workspace-Id']
+      }
+    });
+    
     return config;
   },
   (error) => {
@@ -37,10 +47,19 @@ driveApi.interceptors.request.use(
 // 응답 인터셉터: 에러 처리
 driveApi.interceptors.response.use(
   (response) => {
+    console.log('Drive API Response:', {
+      status: response.status,
+      statusCode: response.data?.statusCode,
+      statusMessage: response.data?.statusMessage
+    });
     return response.data;
   },
   (error) => {
-    console.error('Drive API Error:', error);
+    console.error('Drive API Error:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
     return Promise.reject(error);
   }
 );
@@ -101,6 +120,17 @@ export default {
   // 문서 조회
   getDocument(documentId) {
     return driveApi.get(`/document/${documentId}`);
+  },
+
+  // 스토리지 사용량 조회
+  getStorageUsage() {
+    // workspaceId는 헤더(X-Workspace-Id)로 자동 전송됨
+    return driveApi.get('/files/storage');
+  },
+
+  // 루트별 상위 항목들 가져오기
+  getContentsByRoot(rootType, rootId) {
+    return driveApi.get(`/${rootType}/${rootId}`);
   },
 };
 

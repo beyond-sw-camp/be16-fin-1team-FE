@@ -49,11 +49,11 @@ function toggleVisibility(item: any) { item.visible = !item.visible; }
 <template>
   <div class="project-calendar-wrap">
     <!-- 탭 -->
-    <div class="tabs">
+    <!-- <div class="tabs">
       <button class="tab" @click="goScheduleHome">일정 홈</button>
       <button class="tab active">프로젝트 캘린더</button>
       <button class="tab" @click="goSharedCalendar">공유 캘린더</button>
-    </div>
+    </div> -->
 
     <!-- 툴바 -->
     <div class="toolbar">

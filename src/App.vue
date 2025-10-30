@@ -33,7 +33,7 @@
     <!-- 프로젝트 생성 모달 (전체 화면에서 렌더링) -->
     <CreateProjectModal v-model="showProjectModal" />
     <!-- 전역 캘린더 상세 모달 -->
-    <CalendarDetailModal v-model="isCalendarModalOpen" :details="calendarModalDetails" />
+    <CalendarDetailModal v-model="isCalendarModalOpen" :details="calendarModalDetails" @save="onCalendarModalSave" />
   </v-app>
 </template>
 
@@ -45,6 +45,8 @@ import CreateProjectModal from './views/Project/CreateProjectModal.vue';
 import GlobalSnackbar from './components/GlobalSnackbar.vue';
 import ChatBotPage from './views/ChatBot/ChatBotPage.vue';
 import CalendarDetailModal from './components/CalendarDetailModal.vue';
+import axios from 'axios';
+import { showSnackbar } from './services/snackbar.js';
 
 export default {
   name: "App",
@@ -191,6 +193,47 @@ export default {
     },
     closeCreateModal() {
       this.showCreateModal = false;
+    },
+    async onCalendarModalSave(form){
+      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+      const workspaceId = localStorage.getItem('selectedWorkspaceId') || 'ws_1';
+      try {
+        if (form.calendarType === 'ToDo' || form.calendarType === 'TODO') {
+          const body = {
+            workspaceId,
+            calendarName: form.calendarName || '',
+            calendarType: 'TODO',
+            date: form.startedAtDate || (form.startedAt ? String(form.startedAt).slice(0,10) : ''),
+            bookmark: !!form.bookmark,
+          };
+          await axios.post(`${baseURL}/user-service/todo`, body, { headers: { 'Content-Type': 'application/json' } });
+          showSnackbar('ToDo가 등록되었습니다.', { color: 'success' });
+        } else { // 개인 일정
+          // repeatEndAt은 날짜+시간으로 전송: 날짜는 repeatEndAtDate, 시간은 endedAt의 시간부 사용(없으면 00:00:00)
+          const endedAtStr = form.endedAt ? String(form.endedAt) : '';
+          let timePart = '00:00:00';
+          if (endedAtStr.includes('T')) {
+            const t = endedAtStr.split('T')[1] || '';
+            timePart = t.length === 5 ? `${t}:00` : (t || '00:00:00');
+          }
+          const repeatEndAtFull = form.repeatEndAtDate
+            ? `${form.repeatEndAtDate}T${timePart}`
+            : (endedAtStr || '');
+          const body = {
+            workspaceId,
+            calendarName: form.calendarName || '',
+            startedAt: form.startedAt || '',
+            endedAt: form.endedAt || '',
+            repeatCycle: form.recurrence || 'NONE',
+            repeatEndAt: repeatEndAtFull,
+            isShared: !!form.isShared,
+          };
+          await axios.post(`${baseURL}/user-service/shared-calendars`, body, { headers: { 'Content-Type': 'application/json' } });
+          showSnackbar('일정이 등록되었습니다.', { color: 'success' });
+        }
+      } catch (e) {
+        showSnackbar('등록에 실패했습니다. 다시 시도해 주세요.', { color: 'error' });
+      }
     },
   },
 }
