@@ -130,7 +130,7 @@
               <div 
                 class="d-flex align-center py-2 clickable-row" 
                 :class="{ 'drag-over': dragOverItem && dragOverItem.id === item.id }"
-                :draggable="item.type === 'folder'"
+                :draggable="item.type !== 'PROJECT' && item.type !== 'STONE'"
                 @click="handleItemClick(item)"
                 @dragstart="onDragStart($event, item)"
                 @dragend="onDragEnd"
@@ -1020,8 +1020,6 @@ export default {
           rootType: this.currentRootType || 'WORKSPACE',
         };
         
-        console.log('문서 생성 데이터:', { folderId, documentData });
-        
         const response = await driveService.createDocument(folderId, documentData);
         
         showSnackbar(response.statusMessage || '문서가 생성되었습니다.', 'success');
@@ -1100,16 +1098,6 @@ export default {
         const rootId = this.currentRootId || localStorage.getItem('selectedWorkspaceId');
         const rootType = this.currentRootType || 'WORKSPACE';
         
-        // 디버깅 로그
-        console.log('=== 파일 업로드 디버깅 ===');
-        console.log('currentFolderId:', this.currentFolderId);
-        console.log('currentRootId:', this.currentRootId);
-        console.log('currentRootType:', this.currentRootType);
-        console.log('folderId:', folderId);
-        console.log('rootId:', rootId);
-        console.log('rootType:', rootType);
-        console.log('workspaceId:', localStorage.getItem('selectedWorkspaceId'));
-        
         // 파일 배열로 변환
         const fileArray = Array.from(files);
         
@@ -1137,9 +1125,11 @@ export default {
       }
     },
 
-    // 드래그 앤 드롭 - 폴더 이동
+    // 드래그 앤 드롭 - 아이템 이동 (폴더, 문서, 파일)
     onDragStart(e, item) {
-      if (item.type !== 'folder') return;
+      // PROJECT, STONE 타입은 드래그 불가
+      if (item.type === 'PROJECT' || item.type === 'STONE') return;
+      
       this.draggingItem = item;
       e.dataTransfer.effectAllowed = 'move';
     },
@@ -1150,7 +1140,7 @@ export default {
     },
 
     onDragOver(e, item) {
-      if (!this.draggingItem || item.type !== 'folder') return;
+      if (!this.draggingItem || item.type !== 'folder') return; // 폴더에만 드롭 가능
       if (this.draggingItem.id === item.id) return; // 자기 자신에게는 드롭 불가
       
       e.preventDefault();
@@ -1169,7 +1159,7 @@ export default {
       if (this.draggingItem.id === targetFolder.id) return; // 자기 자신에게는 드롭 불가
       
       // 로컬 변수로 저장 (나중에 null이 되어도 사용 가능)
-      const sourceFolder = this.draggingItem;
+      const sourceItem = this.draggingItem;
       const destFolder = targetFolder;
       
       // 즉시 초기화
@@ -1177,11 +1167,20 @@ export default {
       this.dragOverItem = null;
       
       try {
-        await driveService.moveFolder(sourceFolder.id, {
-          parentId: destFolder.id
-        });
+        // 타입에 따라 적절한 API 호출
+        if (sourceItem.type === 'folder') {
+          await driveService.moveFolder(sourceItem.id, {
+            parentId: destFolder.id
+          });
+        } else if (sourceItem.type === 'document' || sourceItem.type === 'file') {
+          // 문서/파일은 통합 API 사용 (ElementMoveDto)
+          await driveService.moveElement(sourceItem.id, {
+            folderId: destFolder.id,
+            type: sourceItem.type  // 'document' 또는 'file'
+          });
+        }
         
-        showSnackbar(`"${sourceFolder.name}"을(를) "${destFolder.name}"(으)로 이동했습니다.`, 'success');
+        showSnackbar(`"${sourceItem.name}"을(를) "${destFolder.name}"(으)로 이동했습니다.`, 'success');
         
         // 현재 루트 정보를 유지하면서 새로고침
         if (this.currentRootType && this.currentRootId) {
@@ -1189,10 +1188,15 @@ export default {
         } else {
           await this.loadFolderContents(this.currentFolderId);
         }
-        await this.refreshFolderTree();
+        
+        // 폴더 이동인 경우 트리도 새로고침
+        if (sourceItem.type === 'folder') {
+          await this.refreshFolderTree();
+        }
       } catch (error) {
-        console.error('폴더 이동 실패:', error);
-        showSnackbar('폴더 이동에 실패했습니다.', 'error');
+        console.error('이동 실패:', error);
+        const errorMessage = error.response?.data?.statusMessage || '이동에 실패했습니다.';
+        showSnackbar(errorMessage, 'error');
       }
     },
 

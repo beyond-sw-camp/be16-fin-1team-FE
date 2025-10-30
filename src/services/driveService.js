@@ -114,19 +114,6 @@ export default {
     if (rootType) formData.append('rootType', rootType);
     if (workspaceId) formData.append('workspaceId', workspaceId);
     
-    // 디버깅: FormData 내용 확인
-    console.log('=== FormData 내용 ===');
-    console.log('folderId (URL):', folderId);
-    console.log('rootId:', rootId);
-    console.log('rootType:', rootType);
-    console.log('workspaceId:', workspaceId);
-    console.log('files count:', Array.isArray(files) ? files.length : 1);
-    
-    // FormData 내용 출력
-    for (let pair of formData.entries()) {
-      console.log(pair[0] + ':', pair[1]);
-    }
-    
     return driveApi.post(`/folder/${folderId}/file`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -137,6 +124,11 @@ export default {
   // 파일 삭제
   deleteFile(fileId) {
     return driveApi.delete(`/file/${fileId}`);
+  },
+
+  // 파일/문서 이동 (통합)
+  moveElement(elementId, data) {
+    return driveApi.put(`/element/${elementId}/move`, data);
   },
 
   // 문서 생성
