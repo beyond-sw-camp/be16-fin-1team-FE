@@ -39,6 +39,7 @@
           type="checkbox"
           class="todo-checkbox"
           :checked="todo.isCompleted"
+          @click.stop
           @change.stop="toggleCompletion(todo)"
         />
         <span class="todo-text">{{ todo.calendarName }}</span>

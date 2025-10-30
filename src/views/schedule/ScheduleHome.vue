@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
 import MilestoneCard from "@/components/schedule/MilestoneCard.vue";
-import TaskList from "@/components/schedule/TaskList.vue";
+// import TaskList from "@/components/schedule/TaskList.vue";
 // import PersonalTodo from "@/components/schedule/PersonalTodo.vue";
 import Todo from "@/components/schedule/TodoCard.vue";
 import { useScheduleStore } from "@/stores/schedule";
+import HomeTaskCard from "../../components/schedule/HomeTaskCard.vue";
 
 const store = useScheduleStore();
 const workspaceId = localStorage.getItem("workspaceId") || "";
@@ -12,6 +13,7 @@ store.setWorkspace(workspaceId);
 
 onMounted(async () => {
   await store.loadMilestones();
+  await store.loadMyTasks();
 });
 
 const today = computed(() => {
@@ -65,7 +67,7 @@ function prevMs() {
 
       <!-- Task -->
       <div class="card task">
-        <TaskList :items="store.tasks" @toggle="store.toggleTask" />
+        <HomeTaskCard />
       </div>
 
       <!-- 추가 기능 -->

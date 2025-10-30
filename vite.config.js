@@ -11,7 +11,13 @@ export default defineConfig({
         target: "http://localhost:8080",
         changeOrigin: true,
       },
-      // 백엔드 프록시 설정
+      "/workspace-service": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+        secure: false,
+        // rewrite는 생략 (그대로 유지)
+      },
+      // 필요 시 유지
       '/stone': {
         target: 'http://localhost:8080',
         changeOrigin: true,
