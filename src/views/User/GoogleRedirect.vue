@@ -34,8 +34,9 @@ export default {
   },
   methods: {
     async googleLoginRequest() {
-      const code = new URL(window.location.href).searchParams.get("code");
-      const remember = new URL(window.location.href).searchParams.get("remember") === "true";
+      const urlObj = new URL(window.location.href);
+      const code = urlObj.searchParams.get("code");
+      const remember = urlObj.searchParams.get("remember") === "true";
       
       if (!code) {
         this.loading = false;
@@ -44,9 +45,11 @@ export default {
       }
       try {
         const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+        const endpoint = `${baseURL}/user-service/user/google/login`;
+        const payload = { code, rememberMe: remember };
         const { data } = await axios.post(
-          `${baseURL}/user-service/user/google/login`,
-          { code, isRemember: remember },
+          endpoint,
+          payload,
           { headers: { "Content-Type": "application/json" } }
         );
         const accessToken = data?.result?.accessToken;

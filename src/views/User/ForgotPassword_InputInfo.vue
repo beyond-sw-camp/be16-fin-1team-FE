@@ -158,6 +158,7 @@ export default {
   position: fixed;
   inset: 0;
   background-color: #F5F5F5;
+  overflow-y: auto;
 }
 .fill-container {
   height: 100%;

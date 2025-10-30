@@ -66,6 +66,8 @@ export default {
       isChatBotOpen: false,
       fabX: 0,
       fabY: 0,
+      fabXPct: null,
+      fabYPct: null,
       isFabDragging: false,
       hasFabMoved: false,
       dragOffsetX: 0,
@@ -80,7 +82,7 @@ export default {
   mounted() {
     this.$nextTick(() => {
       this.loadFabPosition();
-      window.addEventListener('mousemove', this.onFabPointerMove, { passive: true });
+      window.addEventListener('mousemove', this.onFabPointerMove, { passive: false });
       window.addEventListener('mouseup', this.onFabPointerUp, { passive: true });
       window.addEventListener('touchmove', this.onFabPointerMove, { passive: false });
       window.addEventListener('touchend', this.onFabPointerUp, { passive: true });
@@ -139,6 +141,16 @@ export default {
               if (String(payload.type).toUpperCase() === 'NEW_CHAT_MESSAGE') {
                 setChatUnreadCount(title);
               }
+              // Broadcast for header notification list (fallback createdAt: now)
+              const nowIso = new Date().toISOString();
+              const notif = {
+                id: payload.id,
+                title: title || '알림',
+                content: body || '',
+                readStatus: (payload.readStatus || 'UNREAD'),
+                createdAt: payload.createdAt || nowIso,
+              };
+              window.dispatchEvent(new CustomEvent('pushNotification', { detail: notif }));
             } else {
               text = '새 알림이 도착했습니다.';
             }
@@ -175,7 +187,8 @@ export default {
       }
       this.fabX = clamped.x;
       this.fabY = clamped.y;
-      if (e.cancelable) e.preventDefault();
+      // 스크롤 방지를 위해 touchmove 에서만 기본 동작 취소
+      if (e.cancelable && (e.type === 'touchmove' || (e.touches && e.touches.length))) e.preventDefault();
     },
     onFabPointerUp() {
       if (!this.isFabDragging) return;
@@ -197,35 +210,66 @@ export default {
       return { x: clampedX, y: clampedY };
     },
     onWindowResize() {
-      const clamped = this.clampToViewport(this.fabX, this.fabY);
+      // 상대값(퍼센트) 기준으로 다시 픽셀 위치 환산
+      const baseXPct = (this.fabXPct != null) ? this.fabXPct : (this.fabX / window.innerWidth);
+      const baseYPct = (this.fabYPct != null) ? this.fabYPct : (this.fabY / window.innerHeight);
+      const nextX = baseXPct * window.innerWidth;
+      const nextY = baseYPct * window.innerHeight;
+      const clamped = this.clampToViewport(nextX, nextY);
       this.fabX = clamped.x;
       this.fabY = clamped.y;
-      this.saveFabPosition();
     },
     loadFabPosition() {
       try {
+        // 1) 우선 최신 방식: 퍼센트 저장값을 사용
+        const xp = Number(localStorage.getItem('chatbotFabXPct'));
+        const yp = Number(localStorage.getItem('chatbotFabYPct'));
+        if (Number.isFinite(xp) && Number.isFinite(yp) && xp >= 0 && xp <= 1 && yp >= 0 && yp <= 1) {
+          this.fabXPct = xp;
+          this.fabYPct = yp;
+          const pxX = xp * window.innerWidth;
+          const pxY = yp * window.innerHeight;
+          const clamped = this.clampToViewport(pxX, pxY);
+          this.fabX = clamped.x;
+          this.fabY = clamped.y;
+          return;
+        }
+
+        // 2) 레거시: 픽셀 저장값이 있으면 그것을 사용 후 퍼센트로 승격 저장
         const x = Number(localStorage.getItem('chatbotFabX'));
         const y = Number(localStorage.getItem('chatbotFabY'));
         if (Number.isFinite(x) && Number.isFinite(y)) {
-          // 레거시/이상치 보정: 좌상단에 너무 붙어있다면 기본값으로 재설정
-          if (x <= 24 && y <= 24) {
-            // fall through to default
-          } else {
+          if (!(x <= 24 && y <= 24)) {
             const clampedStored = this.clampToViewport(x, y);
             this.fabX = clampedStored.x;
             this.fabY = clampedStored.y;
+            this.fabXPct = this.fabX / window.innerWidth;
+            this.fabYPct = this.fabY / window.innerHeight;
+            this.saveFabPosition();
             return;
           }
         }
       } catch (_) {}
+      // 3) 기본: 우하단 기준 상대값으로 배치
       const defX = window.innerWidth - 24 - this.fabSize;
       const defY = window.innerHeight - 24 - this.fabSize;
       const clampedDefault = this.clampToViewport(defX, defY);
       this.fabX = clampedDefault.x;
       this.fabY = clampedDefault.y;
+      this.fabXPct = this.fabX / window.innerWidth;
+      this.fabYPct = this.fabY / window.innerHeight;
+      this.saveFabPosition();
     },
     saveFabPosition() {
       try {
+        // 퍼센트(상대값)로 저장
+        const xp = Math.min(Math.max(this.fabX / window.innerWidth, 0), 1);
+        const yp = Math.min(Math.max(this.fabY / window.innerHeight, 0), 1);
+        this.fabXPct = xp;
+        this.fabYPct = yp;
+        localStorage.setItem('chatbotFabXPct', String(xp));
+        localStorage.setItem('chatbotFabYPct', String(yp));
+        // 레거시 호환을 위해 픽셀 값도 함께 저장
         localStorage.setItem('chatbotFabX', String(this.fabX));
         localStorage.setItem('chatbotFabY', String(this.fabY));
       } catch (_) {}
