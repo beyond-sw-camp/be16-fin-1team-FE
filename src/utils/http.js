@@ -9,12 +9,18 @@ const http = axios.create({
   },
 });
 
-// 요청 인터셉터 (JWT 토큰 자동 포함)
+// 요청 인터셉터 (JWT 토큰과 User ID 자동 포함)
 http.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  const userId = localStorage.getItem("userId");
+  if (userId) {
+    config.headers["X-User-Id"] = userId;
+  }
+  
   return config;
 });
 

@@ -1,63 +1,56 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
 import MilestoneCard from "@/components/schedule/MilestoneCard.vue";
-import TaskList from "@/components/schedule/TaskList.vue";
-import PersonalTodo from "@/components/schedule/PersonalTodo.vue";
+// import TaskList from "@/components/schedule/TaskList.vue";
+// import PersonalTodo from "@/components/schedule/PersonalTodo.vue";
+import Todo from "@/components/schedule/TodoCard.vue";
 import { useScheduleStore } from "@/stores/schedule";
+import HomeTaskCard from "../../components/schedule/HomeTaskCard.vue";
 
 const store = useScheduleStore();
-
 const workspaceId = localStorage.getItem("workspaceId") || "";
 store.setWorkspace(workspaceId);
 
-onMounted(() => {
-  store.loadAll();
+onMounted(async () => {
+  await store.loadMilestones();
+  await store.loadMyTasks();
 });
 
 const today = computed(() => {
   const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}.${mm}.${dd}`;
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
 });
 
-const activeMilestoneIdx = ref(0);
-const activeMilestone = computed(
-  () => store.milestones[activeMilestoneIdx.value]
-);
+const activeIdx = ref(0);
+const activeMilestone = computed(() => store.milestones[activeIdx.value]);
 
 function nextMs() {
-  if (activeMilestoneIdx.value < store.milestones.length - 1)
-    activeMilestoneIdx.value++;
+  if (activeIdx.value < store.milestones.length - 1) activeIdx.value++;
 }
 function prevMs() {
-  if (activeMilestoneIdx.value > 0) activeMilestoneIdx.value--;
+  if (activeIdx.value > 0) activeIdx.value--;
 }
 </script>
 
 <template>
   <div class="wrap">
-    <div class="tabs">
-      <button class="tab active">일정 홈</button>
-      <button class="tab" @click="$router.push('/schedule/project')">프로젝트 캘린더</button>
-      <button class="tab" @click="$router.push('/schedule/shared')">공유 캘린더</button>
-    </div>
-
     <div class="today">
       <span>Today</span>
       <strong>{{ today }}</strong>
     </div>
 
-    <!-- ✅ 2x2 카드 레이아웃 -->
+    <!-- 2x2 카드 레이아웃 -->
     <div class="grid">
-      <!-- 마일스톤 -->
+      <!-- 마일스톤 카드 -->
       <div class="card milestone">
         <div class="nav">
           <button @click="prevMs">◀</button>
           <div class="spacer"></div>
           <button @click="nextMs">▶</button>
         </div>
+
         <MilestoneCard
           v-if="activeMilestone"
           :name="activeMilestone.name"
@@ -69,17 +62,17 @@ function prevMs() {
 
       <!-- 개인 To-Do -->
       <div class="card todo">
-        <PersonalTodo :items="store.todos" @toggle="store.toggleTodo" />
+        <Todo :items="store.todos" @toggle="store.toggleTodo" />
       </div>
 
       <!-- Task -->
       <div class="card task">
-        <TaskList :items="store.tasks" @toggle="store.toggleTask" />
+        <HomeTaskCard />
       </div>
 
       <!-- 추가 기능 -->
       <div class="card summary">
-        <div class="empty">추가 기능 준비 중입니다.</div>
+        <div class="personal schedule">개인 일정</div>
       </div>
     </div>
   </div>
@@ -128,26 +121,47 @@ function prevMs() {
   color: #000;
 }
 
-/* ✅ 2x2 카드 그리드 */
+/* 2x2 고정형 카드 그리드 */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(2, 1fr); /* 두 개씩 균등 배치 */
+  grid-auto-rows: 340px; /* 각 카드의 고정 높이 */
+  gap: 28px; /* 카드 간 간격 */
+  justify-content: center;
+  align-items: stretch;
 }
 
-/* ✅ 카드 */
+/* 카드 스타일 */
 .card {
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 320px; /* 높이 자동 조절 */
-  overflow: hidden;
   text-align: center;
+
+  /* 고정 크기 보정 */
+  min-height: 340px;
+  max-height: 340px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* hover 시 살짝 뜨는 효과 */
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* 반응형 (태블릿 이하일 때 1열로 전환) */
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+    grid-auto-rows: 320px;
+  }
 }
 
 /* 카드 내용이 없을 때 */
@@ -178,7 +192,7 @@ function prevMs() {
   cursor: pointer;
 }
 
-/* ✅ 반응형 */
+/* 반응형 */
 @media (max-width: 900px) {
   .grid {
     grid-template-columns: 1fr;

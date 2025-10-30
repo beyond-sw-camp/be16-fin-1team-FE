@@ -246,6 +246,9 @@
                   <div class="task-period">{{ formatDateRange(task.startTime, task.endTime) }}</div>
                 </div>
                   <div class="task-assignee">
+                    <div class="assignee-info">
+                      <div class="assignee-name">{{ task.assigneeName || '담당자 없음' }}</div>
+                    </div>
                     <div class="assignee-icons">
                       <div class="icon-button" @click="openTaskAssigneeEditModal(task)" title="담당자 변경">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="user-icon">
@@ -274,11 +277,16 @@
             
             <!-- 태스크 추가 버튼 -->
             <div class="add-task-section">
-              <button class="add-task-btn" @click="addTask">
+              <button 
+                class="add-task-btn" 
+                :class="{ 'disabled': isStoneCompleted }"
+                :disabled="isStoneCompleted"
+                @click="addTask"
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 5V19M5 12H19" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <span>태스크 추가</span>
+                <span>{{ isStoneCompleted ? '완료된 스톤' : '태스크 추가' }}</span>
               </button>
             </div>
           </div>
@@ -683,6 +691,15 @@
       @close="closeCompleteConfirmModal"
       @confirm="confirmCompleteTask"
     />
+    
+    <!-- 스톤 완료 확인 모달 -->
+    <StoneCompleteConfirmModal
+      :show="showStoneCompleteConfirmModal"
+      :stone-name="stoneData?.stoneName || ''"
+      :loading="stoneCompleteLoading"
+      @close="closeStoneCompleteConfirmModal"
+      @confirm="confirmStoneComplete"
+    />
   </div>
 </template>
 
@@ -691,12 +708,14 @@ import { deleteStone, modifyStoneManager, searchWorkspaceParticipants, modifySto
 import { showSnackbar } from '@/services/snackbar.js';
 import TaskDeleteConfirmModal from '@/components/modal/TaskDeleteConfirmModal.vue';
 import TaskCompleteConfirmModal from '@/components/modal/TaskCompleteConfirmModal.vue';
+import StoneCompleteConfirmModal from '@/components/modal/StoneCompleteConfirmModal.vue';
 
 export default {
   name: 'StoneDetailModal',
   components: {
     TaskDeleteConfirmModal,
-    TaskCompleteConfirmModal
+    TaskCompleteConfirmModal,
+    StoneCompleteConfirmModal
   },
   props: {
     isVisible: {
@@ -804,7 +823,9 @@ export default {
       deleteLoading: false,
       showCompleteConfirmModal: false,
       taskToComplete: null,
-      completeLoading: false
+      completeLoading: false,
+      showStoneCompleteConfirmModal: false,
+      stoneCompleteLoading: false
     }
   },
   computed: {
@@ -812,6 +833,11 @@ export default {
     isChatCreationDisabled() {
       // 스톤에 이미 채팅방이 생성되어 있으면 비활성화
       return this.stoneData?.chatCreation === true;
+    },
+    
+    // 스톤이 완료되었는지 확인
+    isStoneCompleted() {
+      return this.stoneData?.stoneStatus === 'COMPLETED' || this.stoneData?.milestone === 100;
     }
   },
   methods: {
@@ -829,22 +855,28 @@ export default {
       this.openEditModal()
     },
     
-    // 스톤 완료 처리
-    async completeStone() {
+    // 스톤 완료 처리 (확인 모달 열기)
+    completeStone() {
+      // 태스크 완료 상태 확인
+      const incompleteTasks = this.taskList.filter(task => !task.completed);
+      if (incompleteTasks.length > 0) {
+        const taskNames = incompleteTasks.map(task => task.name).join(', ');
+        showSnackbar(`모든 태스크가 완료되어야 스톤을 완료할 수 있습니다. 미완료 태스크: ${taskNames}`, { color: 'warning' });
+        return;
+      }
+      
+      // 스톤 완료 확인 모달 열기
+      this.showStoneCompleteConfirmModal = true;
+    },
+    
+    // 스톤 완료 확인 처리
+    async confirmStoneComplete() {
       try {
-        console.log('스톤 완료 버튼 클릭됨!', this.stoneData)
+        this.stoneCompleteLoading = true;
         
         const stoneId = this.stoneData.stoneId || this.stoneData.id;
         if (!stoneId) {
           showSnackbar('스톤 ID를 찾을 수 없습니다.', { color: 'error' });
-          return;
-        }
-        
-        // 태스크 완료 상태 확인
-        const incompleteTasks = this.taskList.filter(task => !task.completed);
-        if (incompleteTasks.length > 0) {
-          const taskNames = incompleteTasks.map(task => task.name).join(', ');
-          showSnackbar(`모든 태스크가 완료되어야 스톤을 완료할 수 있습니다. 미완료 태스크: ${taskNames}`, { color: 'warning' });
           return;
         }
         
@@ -860,6 +892,7 @@ export default {
         });
         
         // 모달 닫기
+        this.closeStoneCompleteConfirmModal();
         this.closeModal();
         
       } catch (error) {
@@ -871,7 +904,14 @@ export default {
         } else {
           showSnackbar(error.message || '스톤 완료 처리에 실패했습니다.', { color: 'error' });
         }
+      } finally {
+        this.stoneCompleteLoading = false;
       }
+    },
+    
+    // 스톤 완료 확인 모달 닫기
+    closeStoneCompleteConfirmModal() {
+      this.showStoneCompleteConfirmModal = false;
     },
     
     openEditModal() {
@@ -1040,6 +1080,13 @@ export default {
     },
     addTask() {
       console.log('태스크 추가 버튼 클릭됨!', this.stoneData)
+      
+      // 완료된 스톤인지 확인
+      if (this.isStoneCompleted) {
+        alert('완료된 스톤에는 태스크를 추가할 수 없습니다.');
+        return;
+      }
+      
       this.openTaskAddModal()
     },
     
@@ -1241,6 +1288,13 @@ export default {
         
         // 태스크 목록 새로고침
         await this.loadTaskList();
+        
+        // 부모 컴포넌트에 태스크 완료 이벤트 전달
+        this.$emit('task-completed', {
+          stoneId: this.stoneData.stoneId || this.stoneData.id,
+          taskId: this.taskToComplete.id,
+          taskName: this.taskToComplete.name
+        });
         
         this.closeCompleteConfirmModal();
       } catch (error) {
@@ -1457,7 +1511,8 @@ export default {
             startTime: task.startTime,
             endTime: task.endTime,
             assigneeId: task.taskManagerId,
-            assigneeUserId: task.taskManagerUserId
+            assigneeUserId: task.taskManagerUserId,
+            assigneeName: task.taskManagerName || '담당자 없음'
           }));
           
           console.log('변환된 태스크 목록:', this.taskList);
@@ -2169,8 +2224,27 @@ export default {
 .task-assignee {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   flex-shrink: 0;
+  gap: 12px;
+}
+
+.task-assignee .assignee-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.task-assignee .assignee-name {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 18px;
+  color: #374151;
+  background: #F3F4F6;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #E5E7EB;
 }
 
 .assignee-icons {
@@ -2239,6 +2313,24 @@ export default {
 
 .add-task-btn:active {
   transform: translateY(1px);
+}
+
+.add-task-btn.disabled {
+  background: #F3F4F6;
+  color: #9CA3AF;
+  border-color: #E5E7EB;
+  cursor: not-allowed;
+}
+
+.add-task-btn.disabled:hover {
+  background: #F3F4F6;
+  color: #9CA3AF;
+  border-color: #E5E7EB;
+  transform: none;
+}
+
+.add-task-btn.disabled:active {
+  transform: none;
 }
 
 /* 로딩 상태 스타일 */

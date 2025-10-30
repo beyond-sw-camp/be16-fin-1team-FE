@@ -105,7 +105,10 @@
         <!-- 스톤 노드들 -->
             <g v-for="stone in stoneNodes" :key="stone.id" class="stone-group">
               <!-- 도넛형 진척도 스톤 -->
-              <g class="donut-stone" :class="{ 'root-stone': stone.isRoot }" @click="onStoneClick(stone, $event)">
+              <g class="donut-stone" :class="{ 
+                'root-stone': stone.isRoot,
+                'completed-stone': stone.stoneStatus === 'COMPLETED' || stone.milestone === 100
+              }" @click="onStoneClick(stone, $event)">
                 <!-- 루트 스톤 배경 그라데이션 -->
                 <defs v-if="stone.isRoot">
                   <radialGradient id="rootStoneGradient" cx="40%" cy="40%">
@@ -225,7 +228,11 @@
               </g>
               
               <!-- 스톤 생성 텍스트 버튼 -->
-              <g class="create-stone-text stone-add-text" @click="openCreateStoneModal(stone, $event)">
+              <g 
+                class="create-stone-text stone-add-text" 
+                :class="{ 'disabled': isStoneCompleted(stone) }"
+                @click="openCreateStoneModal(stone, $event)"
+              >
                 <!-- 클릭 영역을 넓히기 위한 투명한 원 -->
                 <circle
                   :cx="calculateTextPosition(stone).x"
@@ -556,6 +563,8 @@
       @edit-manager="editStoneManager"
       @edit-participants="editStoneParticipants"
       @manager-changed="handleManagerChanged"
+      @task-created="handleTaskCreated"
+      @task-completed="handleTaskCompleted"
     />
 
     <!-- 프로젝트 수정 모달 -->
@@ -1669,9 +1678,21 @@ export default {
       console.log('스톤에 맞춘 캔버스 크기:', this.canvasWidth, 'x', this.canvasHeight);
     },
     
+    // 스톤이 완료되었는지 확인
+    isStoneCompleted(stone) {
+      return stone.stoneStatus === 'COMPLETED' || stone.milestone === 100;
+    },
+    
     // 스톤 생성 모달 관련 메서드들
     openCreateStoneModal(parentStone, event) {
       console.log('스톤 생성 모달 열기 시도:', parentStone.name);
+      
+      // 완료된 스톤인지 확인
+      if (this.isStoneCompleted(parentStone)) {
+        alert('완료된 스톤에는 하위 스톤을 생성할 수 없습니다.');
+        return;
+      }
+      
       // 팬 모드에서도 스톤 추가 텍스트 클릭은 허용
       event.stopPropagation(); // 팬 모드 드래그 방지
       this.selectedParentStone = parentStone;
@@ -1890,7 +1911,13 @@ export default {
       console.log('스톤 완료:', completedStone);
       
       try {
-        // 스톤 목록 새로고침
+        // 완료된 스톤의 상태를 즉시 업데이트
+        this.updateStoneStatus(completedStone.stoneId, {
+          milestone: 100,
+          stoneStatus: 'COMPLETED'
+        });
+        
+        // 스톤 목록 새로고침 (백그라운드에서)
         const projectId = this.$route.query.id;
         if (projectId) {
           await this.loadStones(projectId);
@@ -1901,10 +1928,135 @@ export default {
       }
     },
     
+    // 스톤 상태 업데이트 (즉시 반영)
+    updateStoneStatus(stoneId, updates) {
+      // 최상위 스톤에서 찾기
+      const stoneIndex = this.stones.findIndex(stone => 
+        stone.id === stoneId || stone.stoneId === stoneId
+      );
+      
+      if (stoneIndex !== -1) {
+        // 최상위 스톤 업데이트
+        this.stones[stoneIndex] = {
+          ...this.stones[stoneIndex],
+          ...updates
+        };
+        console.log('최상위 스톤 상태 업데이트:', this.stones[stoneIndex].stoneName);
+      } else {
+        // 하위 스톤에서 찾기
+        for (let i = 0; i < this.stones.length; i++) {
+          const parentStone = this.stones[i];
+          if (parentStone.childStone && parentStone.childStone.length > 0) {
+            const childIndex = parentStone.childStone.findIndex(child => 
+              child.id === stoneId || child.stoneId === stoneId
+            );
+            
+            if (childIndex !== -1) {
+              // 하위 스톤 업데이트
+              this.stones[i].childStone[childIndex] = {
+                ...this.stones[i].childStone[childIndex],
+                ...updates
+              };
+              console.log('하위 스톤 상태 업데이트:', this.stones[i].childStone[childIndex].stoneName);
+              break;
+            }
+          }
+        }
+      }
+      
+      // 스톤 노드 데이터도 업데이트 (시각적 반영을 위해)
+      this.updateStoneNodeData(stoneId, updates);
+      
+      // Vue 반응성을 위해 강제로 업데이트 트리거
+      this.$forceUpdate();
+    },
+    
+    // 스톤 노드 데이터 업데이트 (시각적 반영)
+    updateStoneNodeData(stoneId, updates) {
+      // stoneNodes 배열에서 해당 스톤 찾아서 업데이트
+      const nodeIndex = this.stoneNodes.findIndex(node => 
+        node.id === stoneId || node.stoneId === stoneId
+      );
+      
+      if (nodeIndex !== -1) {
+        this.stoneNodes[nodeIndex] = {
+          ...this.stoneNodes[nodeIndex],
+          ...updates
+        };
+        console.log('스톤 노드 데이터 업데이트:', this.stoneNodes[nodeIndex].name);
+      }
+    },
+    
     addTaskToStone(stoneData) {
       console.log('태스크 추가:', stoneData);
       // 태스크 추가 로직 (향후 구현)
       alert('태스크 추가 기능은 곧 구현될 예정입니다.');
+    },
+    
+    // 태스크 생성 완료 처리
+    async handleTaskCreated(taskData) {
+      console.log('태스크 생성 완료:', taskData);
+      
+      try {
+        // 해당 스톤의 마일스톤 재계산
+        await this.recalculateStoneMilestone(taskData.stoneId);
+        
+        // 스톤 목록 새로고침 (백그라운드에서)
+        const projectId = this.$route.query.id;
+        if (projectId) {
+          await this.loadStones(projectId);
+        }
+      } catch (error) {
+        console.error('태스크 생성 후 마일스톤 재계산 실패:', error);
+      }
+    },
+    
+    // 태스크 완료 처리
+    async handleTaskCompleted(taskData) {
+      console.log('태스크 완료:', taskData);
+      
+      try {
+        // 해당 스톤의 마일스톤 재계산
+        await this.recalculateStoneMilestone(taskData.stoneId);
+        
+        // 스톤 목록 새로고침 (백그라운드에서)
+        const projectId = this.$route.query.id;
+        if (projectId) {
+          await this.loadStones(projectId);
+        }
+      } catch (error) {
+        console.error('태스크 완료 후 마일스톤 재계산 실패:', error);
+      }
+    },
+    
+    // 스톤 마일스톤 재계산
+    async recalculateStoneMilestone(stoneId) {
+      try {
+        // 스톤의 마일스톤 정보를 다시 가져와서 업데이트
+        const response = await axios.get(
+          `http://localhost:8080/workspace-service/stone/${stoneId}`,
+          {
+            headers: {
+              'X-User-Id': localStorage.getItem('id'),
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.data.statusCode === 200) {
+          const stoneData = response.data.result;
+          const newMilestone = stoneData.milestone || 0;
+          
+          // 스톤 상태 즉시 업데이트
+          this.updateStoneStatus(stoneId, {
+            milestone: newMilestone
+          });
+          
+          console.log(`스톤 ${stoneId} 마일스톤 업데이트: ${newMilestone}%`);
+        }
+      } catch (error) {
+        console.error('마일스톤 재계산 실패:', error);
+      }
     },
     
     editStoneManager(stoneData) {
@@ -3389,6 +3541,43 @@ export default {
   stroke-width: 2;
 }
 
+/* 완료된 스톤 스타일 */
+.completed-stone {
+  opacity: 0.8;
+  filter: grayscale(0.3) drop-shadow(0 0 8px rgba(34, 197, 94, 0.3));
+}
+
+.completed-stone .root-stone-bg,
+.completed-stone .child-stone-bg {
+  fill: #DCFCE7;
+}
+
+.completed-stone .root-stone-highlight,
+.completed-stone .child-stone-inner {
+  fill: #BBF7D0;
+}
+
+.completed-stone .donut-background {
+  stroke: #22C55E;
+  stroke-width: 3;
+}
+
+.completed-stone .donut-progress {
+  stroke: #16A34A;
+}
+
+.completed-stone .stone-name,
+.completed-stone .root-stone-name {
+  color: #15803D;
+  font-weight: 800;
+}
+
+.completed-stone .stone-milestone,
+.completed-stone .root-stone-milestone {
+  color: #16A34A;
+  font-weight: 800;
+}
+
 
 .donut-progress {
   transition: stroke-dashoffset 0.8s ease-in-out;
@@ -3446,6 +3635,21 @@ export default {
 
 .create-stone-text:hover .create-stone-text-content {
   fill: #6B8E89;
+}
+
+/* 완료된 스톤의 스톤 생성 텍스트 비활성화 */
+.create-stone-text.disabled {
+  cursor: not-allowed !important;
+  opacity: 0.3;
+}
+
+.create-stone-text.disabled .create-stone-text-content {
+  fill: #9CA3AF !important;
+  cursor: not-allowed !important;
+}
+
+.create-stone-text.disabled:hover .create-stone-text-content {
+  fill: #9CA3AF !important;
 }
 
 /* SVG 텍스트 스타일 */
