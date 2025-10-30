@@ -896,7 +896,9 @@ export default {
       // document: 문서 편집
       else if (item.type === 'document') {
         console.log('Navigating to document:', item.id);
-        this.$router.push(`/document/${item.id}`);
+        // 독립적인 뷰어로 새 탭에서 열기
+        const routeData = this.$router.resolve(`/viewer/${item.id}`);
+        window.open(routeData.href, '_blank');
       }
     },
 
@@ -1026,19 +1028,21 @@ export default {
         this.createDocumentDialog = false;
         this.newDocumentTitle = '';
         
-        // 생성된 문서로 이동
+        // 생성된 문서를 독립적인 뷰어로 새 탭에서 열기
         if (response.result && response.result.id) {
-          this.$router.push(`/document/${response.result.id}`);
+          const routeData = this.$router.resolve(`/viewer/${response.result.id}`);
+          window.open(routeData.href, '_blank');
         } else if (response.result) {
           // id가 직접 반환되는 경우
-          this.$router.push(`/document/${response.result}`);
+          const routeData = this.$router.resolve(`/viewer/${response.result}`);
+          window.open(routeData.href, '_blank');
+        }
+        
+        // 폴더 내용 새로고침 (생성된 문서를 목록에 표시)
+        if (this.currentRootType && this.currentRootId) {
+          await this.loadFolderContents(this.currentFolderId, this.currentRootType, this.currentRootId);
         } else {
-          // 문서 생성은 성공했지만 ID를 받지 못한 경우 폴더를 새로고침
-          if (this.currentRootType && this.currentRootId) {
-            await this.loadFolderContents(this.currentFolderId, this.currentRootType, this.currentRootId);
-          } else {
-            await this.loadFolderContents(this.currentFolderId);
-          }
+          await this.loadFolderContents(this.currentFolderId);
         }
       } catch (error) {
         console.error('문서 생성 실패:', error);

@@ -281,7 +281,9 @@ export default {
       
       // 문서 타입에 따라 라우팅
       if (result.docType === 'documents') {
-        this.$router.push(`/document/${result.id}`);
+        // 문서는 독립적인 뷰어로 새 탭에서 열기
+        const routeData = this.$router.resolve(`/viewer/${result.id}`);
+        window.open(routeData.href, '_blank');
       } else if (result.docType === 'stones') {
         this.$router.push({ path: '/project', query: { id: result.id } });
       } else if (result.docType === 'files') {
