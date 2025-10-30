@@ -160,14 +160,15 @@
             <template v-slot:activator="{ props }">
               <v-avatar
                 v-bind="props"
-                :color="onlineUser.color"
+                :color="onlineUser.profileImage ? 'transparent' : onlineUser.color"
                 size="32"
                 class="user-avatar"
               >
-                <span class="white--text text-h6">{{ onlineUser.userId.charAt(0).toUpperCase() }}</span>
+                <v-img v-if="onlineUser.profileImage" :src="onlineUser.profileImage" />
+                <span v-else class="white--text text-h6">{{ onlineUser.userName ? onlineUser.userName.charAt(0).toUpperCase() : 'U' }}</span>
               </v-avatar>
             </template>
-            <span>{{ onlineUser.userId }}</span>
+            <span>{{ onlineUser.userName || onlineUser.userId }}</span>
           </v-tooltip>
         </div>
 
@@ -455,6 +456,14 @@ const props = defineProps({
   userId: {
     type: String,
     required: true,
+  },
+  userName: {
+    type: String,
+    default: '사용자',
+  },
+  profileImage: {
+    type: String,
+    default: '',
   }
 });
 
@@ -497,7 +506,8 @@ const fontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72];
 
 
 const user = {
-  name: props.userId,
+  id: props.userId,
+  name: props.userName,
   color: '#' + Math.floor(Math.random() * 16777215).toString(16),
 };
 
@@ -689,6 +699,8 @@ const fetchOnlineUsers = async () => {
     if (response.data && response.data.result) {
       onlineUsers.value = response.data.result.map(user => ({
         userId: user.userId,
+        userName: user.userName || user.userId, // userName이 없으면 userId 사용
+        profileImage: user.profileImage || '', // profileImage 추가
         color: getUserColor(user.userId)
       }));
     }
@@ -706,7 +718,7 @@ const sendBatchChanges = () => {
   const payload = {
     messageType: 'EDITOR_BATCH_MESSAGE',
     documentId: props.documentId,
-    senderId: user.name,
+    senderId: user.id,
     changesList: changesQueue.value,
     content: ''
   };
@@ -763,10 +775,12 @@ onMounted(async () => {
   await fetchOnlineUsers();
 
   // 자기 자신을 온라인 사용자 목록에 추가합니다.
-  if (!onlineUsers.value.some(u => u.userId === user.name)) {
+  if (!onlineUsers.value.some(u => u.userId === user.id)) {
     onlineUsers.value.unshift({
-      userId: user.name,
-      color: getUserColor(user.name)
+      userId: user.id,
+      userName: user.name,
+      profileImage: props.profileImage || '',
+      color: getUserColor(user.id)
     });
   }
 
@@ -962,7 +976,7 @@ onMounted(async () => {
         const payload = {
           messageType: 'EDITOR_BATCH_MESSAGE',
           documentId: props.documentId,
-          senderId: user.name,
+          senderId: user.id,
           changesList: immediateChanges,
           content: ''
         };
@@ -1027,7 +1041,7 @@ onMounted(async () => {
           body: {
             messageType: 'UNLOCK_LINE',
             documentId: props.documentId,
-            senderId: user.name,
+            senderId: user.id,
             changesList: changesList,
             content: '',
           },
@@ -1042,7 +1056,7 @@ onMounted(async () => {
             body: {
               messageType: 'LOCK_LINE',
               documentId: props.documentId,
-              senderId: user.name,
+              senderId: user.id,
               content: JSON.stringify({ lineId }),
             },
           });
@@ -1103,7 +1117,7 @@ onMounted(async () => {
           body: {
             messageType: 'CURSOR_UPDATE',
             documentId: props.documentId,
-            senderId: user.name,
+            senderId: user.id,
             content: JSON.stringify({ selections, user }),
           },
         });
@@ -1113,7 +1127,7 @@ onMounted(async () => {
 
   connectStomp(
     props.documentId,
-    user.name,
+    user.id,
     handleIncomingMessage, // 메시지 수신 콜백
     () => { // 연결 성공 콜백
       connectionStatus.value = 'connected';
@@ -1198,7 +1212,7 @@ const applyDelete = (change) => {
 };
 
 const handleIncomingMessage = (message) => {
-  if (!editor.value || message.senderId === user.name) {
+  if (!editor.value || message.senderId === user.id) {
     return;
   }
 
@@ -1297,6 +1311,8 @@ const handleIncomingMessage = (message) => {
   } else if (message.messageType === 'JOIN') {
     const joiningUser = {
       userId: message.senderId,
+      userName: message.senderName || message.senderId,
+      profileImage: message.profileImage || '',
       color: getUserColor(message.senderId),
     };
     // 중복 추가 방지
