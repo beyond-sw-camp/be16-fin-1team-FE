@@ -123,23 +123,19 @@
           <div 
             v-for="group in filteredUserGroups" 
             :key="group.id" 
-            class="user-group-item"
+            class="team-card user-group-item"
           >
-            <div class="group-info">
-              <div class="user-group-icon"></div>
-              <div class="group-details">
-                <h3 class="group-name" @click="viewUserGroupDetail(group)">{{ group.name }}</h3>
-                <p class="group-date">생성일: {{ group.createdAt }}</p>
+            <div class="left">
+              <div class="team-icon user-group-icon"></div>
+              <div class="team-info group-details">
+                <h3 class="team-name group-name" @click="viewUserGroupDetail(group)">{{ group.name }}</h3>
+                <p class="created-date group-date">생성일: {{ group.createdAt }}</p>
               </div>
             </div>
-            <div class="group-actions">
+            <div class="right group-actions">
               <span class="member-count">{{ group.memberCount }}명</span>
-              <button class="action-btn edit-btn" @click="editUserGroup(group)">
-                수정
-              </button>
-              <button class="action-btn delete-btn" @click="deleteUserGroup(group)">
-                삭제
-              </button>
+              <button class="action-btn edit-btn" @click="editUserGroup(group)">수정</button>
+              <button class="action-btn delete-btn" @click="deleteUserGroup(group)">삭제</button>
             </div>
           </div>
         </div>
@@ -2442,6 +2438,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: nowrap;
   background: #FFFFFF;
   border: 1px solid #E9ECEF;
   border-radius: 4px;
@@ -2450,14 +2447,59 @@ export default {
   transition: background-color 0.2s;
 }
 
+/* 팀 카드 레이아웃 고정 */
+.team-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+}
+
+.team-card .left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.team-card .right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.team-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.team-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.team-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.created-date {
+  font-size: 0.875rem;
+  color: #888;
+}
+
 .user-group-item:hover {
   background: #F8F9FA;
 }
 
-.group-info {
+.user-groups-list .group-info {
   display: flex;
   align-items: center;
-  flex: 1;
+  flex: 0 1 auto;
 }
 
 .user-group-icon {
@@ -2469,7 +2511,8 @@ export default {
 }
 
 .group-details {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0; /* 긴 텍스트로 인한 레이아웃 깨짐 방지 */
 }
 
 .group-name {
@@ -2480,6 +2523,9 @@ export default {
   font-family: 'Pretendard', sans-serif;
   cursor: pointer;
   transition: color 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .group-name:hover {
@@ -2494,10 +2540,13 @@ export default {
   font-family: 'Pretendard', sans-serif;
 }
 
-.group-actions {
+.user-groups-list .group-actions {
   display: flex;
   align-items: center;
   gap: 15px;
+  margin-left: 24px;
+  flex-shrink: 0; /* 버튼/카운트 영역 줄바꿈 방지 */
+  white-space: nowrap;
 }
 
 .member-count {
@@ -2505,6 +2554,7 @@ export default {
   font-weight: 700;
   color: #1C0F0F;
   font-family: 'Pretendard', sans-serif;
+  white-space: nowrap;
 }
 
 .action-btn {
