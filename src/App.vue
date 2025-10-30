@@ -252,7 +252,7 @@ export default {
 .logo.vue:hover {
   filter: drop-shadow(0 0 2em #42b883aa);
 }
-.with-offset { padding-top: 64px; padding-left: 240px; }
+.with-offset { padding-top: 64px; padding-left: 280px; }
 .no-offset { padding: 0; }
 
 .chatbot-fab { position: fixed; background: #FFE364; color: #2A2828; cursor: grab; z-index: 1500; width: 56px; height: 56px; }
