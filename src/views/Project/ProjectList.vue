@@ -3355,8 +3355,8 @@ export default {
 /* 확대/축소 컨트롤 */
 .zoom-controls {
   position: fixed;
-  bottom: 20px;
-  left: 320px;
+  bottom: 30px;
+  left: 300px;
   display: flex;
   z-index: 1000;
 }
@@ -3364,8 +3364,8 @@ export default {
 /* 모드 전환 컨트롤 */
 .mode-controls {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 30px;
+  right: 30px;
   z-index: 1001;
 }
 
@@ -3542,7 +3542,7 @@ export default {
   top: 240px;
   left: 280px;
   right: 0;
-  bottom: 0;
+  bottom: 15px;
   width: auto;
   height: auto;
   background-color: #FFFFFF;
