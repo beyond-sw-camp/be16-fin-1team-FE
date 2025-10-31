@@ -1,13 +1,14 @@
 <template>
   <v-container fluid class="openvidu-container">
 
-    <!-- 메인 비디오 영역 (컨트롤바를 포함하는 부모 영역) -->
-    <v-row v-if="mainStreamManager" class="main-video-row no-gutters">
+    <!-- 포커스(단독) 뷰 -->
+    <v-row v-if="focusedStreamManager" class="main-video-row no-gutters">
       <v-col cols="12" md="12" class="main-video-area pa-0">
-        <div id="main-video-container" @click="updateMainStreamManager(mainStreamManager)">
-          <video-stream :stream-manager="mainStreamManager" />
+        <div id="main-video-container" :class="{ speaking: isSpeaking(focusedStreamManager) }"
+          @click="toggleFocus(focusedStreamManager)">
+          <video-stream :stream-manager="focusedStreamManager" />
           <div class="nickname">
-            {{ clientData(mainStreamManager) }}
+            {{ displayName(focusedStreamManager, focusedStreamManager === publisher) }}
           </div>
         </div>
       </v-col>
@@ -53,38 +54,27 @@
           <div class="right-controls d-flex justify-end align-center">
             <v-btn fab width="60" height="60" color="transparent" class="mx-1" @click="toggleFullScreen" plain
               elevation="0">
-                <img
-    :src="isFullScreenMode ? fullScreenIconOut : fullScreenIconIn"
-    style="width:24px;height:24px;"
-    :style="{ filter: isFullScreenMode ? 'invert(100%)' : 'invert(0%)' }"
-  />
+              <img :src="isFullScreenMode ? fullScreenIconOut : fullScreenIconIn" style="width:24px;height:24px;"
+                :style="{ filter: isFullScreenMode ? 'invert(100%)' : 'invert(0%)' }" />
             </v-btn>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 썸네일 비디오 영역 -->
-    <v-row justify="start" class="remote-videos">
-      <v-col cols="12" :md="4" v-if="publisher && mainStreamManager !== publisher" class="publisher-video-area">
-        <div class="video-item" @click="updateMainStreamManager(publisher)">
-          <video-stream :stream-manager="publisher" />
-          <div class="nickname">
-            나 ({{ clientData(publisher) }})
-          </div>
-        </div>
-      </v-col>
-
-      <v-col cols="12" :md="4" v-for="sub in filteredSubscribers" :key="sub.stream.connection.connectionId"
-        class="subscriber-video-area">
-        <div class="video-item" :id="'stream-' + sub.stream.streamId" @click="updateMainStreamManager(sub)">
-          <video-stream :stream-manager="sub" />
-          <div class="nickname">
-            {{ clientData(sub) }}
-          </div>
-        </div>
-      </v-col>
-    </v-row>
+    <!-- 그리드(체스판) 레이아웃 -->
+    <div v-if="!focusedStreamManager" class="grid-container" :style="gridStyle">
+      <div
+        class="video-item"
+        v-for="sm in gridParticipants"
+        :key="sm.stream.connection.connectionId"
+        :class="{ speaking: isSpeaking(sm) }"
+        @click="toggleFocus(sm)"
+      >
+        <video-stream :stream-manager="sm" />
+        <div class="nickname">{{ displayName(sm, sm === publisher) }}</div>
+      </div>
+    </div>
   </v-container>
 </template>
 
@@ -115,9 +105,13 @@ export default {
       session: undefined,
       publisher: undefined,
       subscribers: [],
-      mainStreamManager: null,
+  mainStreamManager: null,
       mySessionId: null,
-      myUserName: localStorage.getItem("email"),
+      myUserName: '',
+  // 포커스(단독 표시) 대상. null이면 그리드 모드
+  focusedStreamManager: null,
+      // 말하기 상태: connectionId -> boolean
+      speakingMap: {},
 
       isRecording: false, // 녹음 토글 상태
       recordingId: null,
@@ -162,6 +156,8 @@ export default {
       return;
     }
     this.mySessionId = roomId;
+    // 먼저 로그인된 사용자의 이름을 로드하여 clientData로 전달
+    await this.loadMyUserName();
     await this.joinSession();
     // OV 객체가 생성된 후 장치 목록을 가져옵니다.
     if (this.OV) await this.getDevices();
@@ -183,6 +179,52 @@ export default {
   },
 
   computed: {
+    // Zoom과 유사한 그리드용 참가자 목록 (내 화면 + 중복 제거된 원격)
+    gridParticipants() {
+      const parts = [];
+      const seen = new Set();
+      const addUnique = (sm) => {
+        if (!sm) return;
+        const key = this.clientData(sm) || sm?.stream?.connection?.connectionId;
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        parts.push(sm);
+      };
+
+      // 우선 내 화면
+      addUnique(this.publisher);
+
+      // 원격 참가자 (내 연결과 중복 제거)
+      const myCid = this.publisher?.stream?.connection?.connectionId;
+      this.subscribers.forEach((sub) => {
+        const subCid = sub?.stream?.connection?.connectionId;
+        if (myCid && subCid === myCid) return; // 내 스트림 제외
+        addUnique(sub);
+      });
+
+      return parts;
+    },
+    // 현재 그리드에 표시될 참가자 수
+    participantCount() {
+      return this.gridParticipants.length;
+    },
+    // 참가자 수에 따라 고정된 열 개수 결정 (창 크기와 무관)
+    gridCols() {
+      const n = this.participantCount;
+      if (n <= 1) return 1;      // 1명
+      if (n <= 8) return 2;      // 4~8명 포함: 2열
+      if (n <= 15) return 3;     // 9~15명: 3열
+      if (n <= 24) return 4;     // 확장 규칙
+      if (n <= 35) return 5;     // 확장 규칙
+      return Math.ceil(Math.sqrt(n)); // 그 외 일반화
+    },
+    // 인라인 그리드 스타일: 고정 열 개수 유지
+    gridStyle() {
+      return {
+        gridTemplateColumns: `repeat(${this.gridCols}, minmax(0, 1fr))`,
+        gridAutoRows: '1fr'
+      };
+    },
     filteredSubscribers() {
       const publisherConnectionId = this.publisher?.stream?.connection?.connectionId;
       const seenClientData = new Set(); // 렌더링된 사용자 추적
@@ -210,6 +252,14 @@ export default {
   },
 
   methods: {
+    // 포커스 토글: 그리드 <-> 단독 뷰 전환
+    toggleFocus(streamManager) {
+      if (this.focusedStreamManager === streamManager) {
+        this.focusedStreamManager = null; // 그리드 복귀
+      } else {
+        this.focusedStreamManager = streamManager; // 단독 뷰
+      }
+    },
     async joinSession() {
       try {
         // 이미 세션이 존재하면 중복 실행 방지
@@ -220,9 +270,34 @@ export default {
 
         // OpenVidu 인스턴스 초기화
         this.OV = new OpenVidu('http://localhost:4443');
+        // 말하기 이벤트 민감도 설정 (필요 시 조정)
+        try {
+          this.OV.setAdvancedConfiguration({
+            publisherSpeakingEvents: {
+              interval: 150, // ms 주기
+              threshold: -50 // dBFS (낮을수록 민감)
+            }
+          });
+        } catch (e) {
+          // 일부 버전에서 없음 – 무시
+          console.debug('AdvancedConfiguration not available:', e?.message || e);
+        }
         this.session = this.OV.initSession();
 
         // === 이벤트 등록 ===
+        // 음성 감지 - 시작
+        this.session.on('publisherStartSpeaking', (event) => {
+          const cid = event?.connection?.connectionId;
+          if (!cid) return;
+          this.$set ? this.$set(this.speakingMap, cid, true) : (this.speakingMap[cid] = true);
+        });
+        // 음성 감지 - 종료
+        this.session.on('publisherStopSpeaking', (event) => {
+          const cid = event?.connection?.connectionId;
+          if (!cid) return;
+          this.$set ? this.$set(this.speakingMap, cid, false) : (this.speakingMap[cid] = false);
+        });
+
         this.session.on('streamCreated', ({ stream }) => {
           // 내 자신의 스트림은 무시
           if (
@@ -250,6 +325,11 @@ export default {
             this.mainStreamManager = this.publisher;
 
           this.deleteSubscriber(stream.streamManager);
+          // 연결 종료 시 말하기 상태 정리
+          const cid = stream?.connection?.connectionId;
+          if (cid && this.speakingMap[cid] !== undefined) {
+            delete this.speakingMap[cid];
+          }
         });
 
         this.session.on('connectionDestroyed', ({ connection }) => {
@@ -261,6 +341,11 @@ export default {
             this.deleteSubscriber(streamManager);
             if (this.mainStreamManager === streamManager)
               this.mainStreamManager = this.publisher;
+          }
+          // 연결 파괴 시 말하기 상태 정리
+          const cid = connection?.connectionId;
+          if (cid && this.speakingMap[cid] !== undefined) {
+            delete this.speakingMap[cid];
           }
         });
 
@@ -281,6 +366,7 @@ export default {
 
         await this.session.publish(this.publisher);
         this.mainStreamManager = this.publisher;
+        // 초기에는 그리드 모드 유지 (focusedStreamManager = null)
 
         // === 새로고침 / 탭 닫기 시 안전하게 세션 정리 ===
         window.addEventListener('beforeunload', () => {
@@ -371,6 +457,24 @@ export default {
         throw err;
       }
     },
+    // 현재 로그인한 사용자의 이름을 user-service에서 가져와 myUserName에 저장
+    async loadMyUserName() {
+      try {
+        const id = localStorage.getItem('id');
+        if (!id) return;
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const { data } = await axios.get(`${baseURL}/user-service/user/${id}`);
+        const user = data?.result;
+        if (user) {
+          // 서버에서 제공하는 이름 필드은 'name' 이므로 우선 사용
+          this.myUserName = user.name || user.userName || localStorage.getItem('email') || '';
+        }
+      } catch (e) {
+        console.warn('loadMyUserName 실패:', e);
+        // 폴백: 로컬스토리지 email 사용
+        this.myUserName = localStorage.getItem('email') || '';
+      }
+    },
     leaveSession() {
       if (this.session) this.session.disconnect();
       this.session = undefined;
@@ -378,7 +482,7 @@ export default {
       this.publisher = undefined;
       this.mainStreamManager = undefined;
       this.OV = null;
-      this.$router.push(`/chatpage/${this.mySessionId}`);
+      this.$router.push(`/main`);
     },
     deleteSubscriber(streamManager) {
       const idx = this.subscribers.indexOf(streamManager);
@@ -386,15 +490,9 @@ export default {
     },
 
 
-    // 1. 메인 스트림 토글 로직
+    // (구) 메인 스트림 토글은 그리드/포커스 전환으로 대체
     updateMainStreamManager(streamManager) {
-      // 현재 메인 영상과 클릭된 영상이 같으면, 메인 영상을 나의 영상(publisher)으로 돌립니다.
-      if (this.mainStreamManager === streamManager) {
-        this.mainStreamManager = this.publisher;
-      } else {
-        // 다르면 클릭된 영상을 메인으로 설정합니다.
-        this.mainStreamManager = streamManager;
-      }
+      this.toggleFocus(streamManager);
     },
 
     // 2. 오디오 토글 기능
@@ -402,6 +500,11 @@ export default {
       if (this.publisher) {
         this.isAudioEnabled = !this.isAudioEnabled;
         this.publisher.publishAudio(this.isAudioEnabled);
+        // 마이크를 끌 때 즉시 내 말하기 상태를 OFF로
+        if (!this.isAudioEnabled) {
+          const myCid = this.session?.connection?.connectionId;
+          if (myCid) this.speakingMap[myCid] = false;
+        }
       }
     },
 
@@ -414,10 +517,38 @@ export default {
     },
 
     clientData(streamManager) {
-      if (streamManager?.stream?.connection?.data) {
-        return JSON.parse(streamManager.stream.connection.data).clientData;
+      const data = streamManager?.stream?.connection?.data;
+      if (!data) return 'Unknown';
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.clientData) return parsed.clientData;
+        if (parsed.name) return parsed.name;
+        if (parsed.userName) return parsed.userName;
+        return String(parsed);
+      } catch (e) {
+        // plain string
+        return String(data);
       }
-      return 'Unknown';
+    },
+
+    displayName(streamManager, isPublisher = false) {
+      const name = this.clientData(streamManager);
+      if (isPublisher) {
+        const display = name && name !== 'Unknown' ? name : (this.myUserName || '나');
+        return `${display}(나)`;
+      }
+      return name || 'Unknown';
+    },
+
+    // 현재 스트림매니저의 연결 ID
+    connectionIdOf(streamManager) {
+      return streamManager?.stream?.connection?.connectionId || null;
+    },
+    // 해당 스트림 소유자가 말하는 중인지 여부
+    isSpeaking(streamManager) {
+      const cid = this.connectionIdOf(streamManager);
+      if (!cid) return false;
+      return !!this.speakingMap[cid];
     },
 
     // 4. 장치 목록 가져오기 및 초기화
@@ -618,7 +749,7 @@ body,
   height: 100%;
 }
 
-.video-item ::v-deep video {
+.video-item :deep(video) {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -633,19 +764,23 @@ body,
 
 /* 1. 컨테이너 전체 레이아웃 스타일 */
 .openvidu-container {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
+  position: fixed;
+  top: 83px;
+  /* 헤더 높이 */
+  left: 280px;
+  /* 사이드바 너비 */
   right: 0;
-  width: 100%;
-  height: 100%;
+  bottom: 0;
+  width: calc(100vw - 280px);
+  height: calc(100vh - 83px);
   max-width: none;
   padding: 0;
   margin: 0;
   z-index: 999;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 /* 2. 메인 비디오 영역 및 화면 공유 스타일 */
@@ -677,16 +812,22 @@ body,
   aspect-ratio: 16 / 9;
   margin: auto;
   /* ❗이 요소가 닉네임의 position: absolute 기준점 역할을 합니다. */
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 120ms ease, border-color 120ms ease;
 }
 
 /* OpenVidu <video-stream> 내부의 <video> 요소를 위한 스타일 */
 /* (생략) */
-#main-video-container ::v-deep video {
+#main-video-container :deep(video) {
   /* (<-- 수정) 비디오 스타일 유지 */
   width: 100%;
   height: 100%;
   object-fit: cover;
   background-color: transparent;
+  display: block;
+  border-radius: inherit;
 }
 
 /* 3. 썸네일 비디오 영역 스타일 */
@@ -733,6 +874,13 @@ body,
   display: flex;
   justify-content: center;
   align-items: center;
+  transition: box-shadow 120ms ease, border-color 120ms ease;
+}
+
+/* 말하기 감지 시 하이라이트 (연두색) */
+#main-video-container.speaking,
+.video-item.speaking {
+  box-shadow: 0 0 0 3px rgba(137, 255, 97, 0.95), 0 0 24px rgba(137, 255, 97, 0.6);
 }
 
 /* 6. 컨트롤바 스타일 */
@@ -781,6 +929,17 @@ body,
   margin-left: auto;
 }
 
+/* === Zoom 스타일 그리드 컨테이너 === */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px 96px; /* 하단 컨트롤 바와 겹치지 않게 여백 */
+  box-sizing: border-box;
+  align-content: start;
+}
+
 /* ------------------------------------------------ */
 /* === 전체화면 전용 스타일 === */
 /* 기본 전체 화면 설정 */
@@ -795,7 +954,7 @@ body:fullscreen,
   overflow: hidden;
 }
 
-/* 🚀 1. 최상위 컨테이너: 뷰포트 전체 점유 및 모든 패딩/마진 제거 */
+/* 1. 최상위 컨테이너: 뷰포트 전체 점유 및 모든 패딩/마진 제거 */
 :fullscreen .openvidu-container,
 .openvidu-container:fullscreen,
 :-webkit-full-screen .openvidu-container,
@@ -815,25 +974,23 @@ body:fullscreen,
   overflow: hidden;
 }
 
-/* ⚡️ 전체 화면에서 썸네일 Row 숨기기 */
+/* 전체 화면에서 썸네일 Row 숨기기 */
 :fullscreen .remote-videos,
 .openvidu-container:fullscreen .remote-videos {
   display: none;
 }
 
-/* 🚀 2. 메인 비디오 ROW (.main-video-row): 뷰포트 전체를 덮도록 강제 확장 */
+/* 2. 메인 비디오 ROW : 뷰포트 전체를 덮도록 강제 확장 */
 :fullscreen .main-video-row,
 .openvidu-container:fullscreen .main-video-row {
   flex-grow: 1;
   height: 100vh;
-  /* 뷰포트 높이 강제 */
   width: 100vw;
-  /* 👈 뷰포트 너비 강제 */
   margin: 0;
   padding: 0;
 }
 
-/* 🚀 3. 메인 비디오 영역 (.main-video-area - V-col): transform 초기화 및 100% 확장 */
+/* 3. 메인 비디오 영역 : transform 초기화 및 100% 확장 */
 :fullscreen .main-video-area,
 .openvidu-container:fullscreen .main-video-area,
 :-webkit-full-screen .main-video-area,
@@ -845,15 +1002,13 @@ body:fullscreen,
   align-items: center;
   overflow: hidden;
   transform: none;
-  /* 👈 !important 제거 */
   flex: none;
   max-width: 100vw;
-  /* V-col의 max-width 무력화 */
   width: 100vw;
   height: 100vh;
 }
 
-/* 🚀 4. 메인 비디오 컨테이너 (#main-video-container): 부모 크기를 100% 채우도록 함 (Position Relative 기준점) */
+/* 4. 메인 비디오 컨테이너 : 부모 크기를 100% 채우도록 함 (Position Relative 기준점) */
 :fullscreen #main-video-container,
 .openvidu-container:fullscreen #main-video-container {
   width: 100%;
@@ -861,25 +1016,22 @@ body:fullscreen,
   max-width: none;
   max-height: none;
   position: relative;
-  /* 👈 하위 비디오의 absolute를 위한 기준점 */
+  border-radius: 0;
+  /* 전체화면에서는 곡률 제거 */
 }
 
-/* ⚡️ 5. 비디오 요소 최종 크기 및 비율 강제 설정 (::v-deep 사용으로 !important 제거) */
+/* 5. 비디오 요소 최종 크기 및 비율 강제 설정 */
 /* ::v-deep를 사용하여 VideoStream 컴포넌트 내부의 <video> 태그에 직접 적용 */
-:fullscreen #main-video-container ::v-deep video,
-.openvidu-container:fullscreen #main-video-container ::v-deep video,
-:-webkit-full-screen #main-video-container ::v-deep video,
-.openvidu-container:-webkit-full-screen #main-video-container ::v-deep video {
+:fullscreen #main-video-container :deep(video),
+.openvidu-container:fullscreen #main-video-container :deep(video),
+:-webkit-full-screen #main-video-container :deep(video),
+.openvidu-container:-webkit-full-screen #main-video-container :deep(video) {
   position: absolute;
-  /* 👈 부모 기준 절대 위치 */
   top: 0;
   left: 0;
   width: 100%;
-  /* 👈 100vw/100vh로 커진 부모를 꽉 채움 */
   height: 100%;
-  /* 👈 100vw/100vh로 커진 부모를 꽉 채움 */
   object-fit: cover;
-  /* 꽉 채우기 모드 */
   min-width: 100%;
   min-height: 100%;
   background-color: black;
