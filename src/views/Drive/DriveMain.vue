@@ -125,7 +125,21 @@
             :items="items"
             class="elevation-0 drive-table"
             :items-per-page="15"
+            :hide-default-header="false"
           >
+            <template v-slot:header.name>
+              <span class="text-subtitle-2 font-weight-bold">이름</span>
+            </template>
+            <template v-slot:header.owner>
+              <span class="text-subtitle-2 font-weight-bold">생성자</span>
+            </template>
+            <template v-slot:header.modified>
+              <span class="text-subtitle-2 font-weight-bold">수정일</span>
+            </template>
+            <template v-slot:header.size>
+              <span class="text-subtitle-2 font-weight-bold">크기</span>
+            </template>
+
             <template v-slot:item.name="{ item }">
               <div 
                 class="d-flex align-center py-2 clickable-row" 
@@ -155,6 +169,14 @@
                 </v-avatar>
                 {{ item.owner }}
               </div>
+            </template>
+
+            <template v-slot:item.modified="{ item }">
+              <span>{{ item.modified || '-' }}</span>
+            </template>
+
+            <template v-slot:item.size="{ item }">
+              <span>{{ item.size || '-' }}</span>
             </template>
 
             <template v-slot:item.actions="{ item }">
@@ -945,7 +967,7 @@ export default {
         
         const response = await driveService.createFolder(folderData);
         
-        showSnackbar(response.statusMessage || '폴더가 생성되었습니다.', 'success');
+        showSnackbar('폴더가 생성되었습니다.', 'success');
         this.createFolderDialog = false;
         this.newFolderName = '';
         
@@ -958,7 +980,13 @@ export default {
         ]);
       } catch (error) {
         console.error('폴더 생성 실패:', error);
-        showSnackbar('폴더 생성에 실패했습니다.', 'error');
+        // 실패 시 응답값을 스낵바에 표시
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.statusMessage 
+          || error.response?.data?.error 
+          || JSON.stringify(error.response?.data)
+          || '폴더 생성에 실패했습니다.';
+        showSnackbar(errorMessage, 'error');
       }
     },
 
