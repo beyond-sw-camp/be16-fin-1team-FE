@@ -122,22 +122,37 @@
           <v-data-table
             v-else
             :headers="headers"
-            :items="items"
+            :items="sortedItems"
             class="elevation-0 drive-table"
             :items-per-page="15"
             :hide-default-header="false"
           >
             <template v-slot:header.name>
-              <span class="table-header-text">이름</span>
+              <div class="d-flex align-center clickable-header" @click="handleSort('name')">
+                <span class="table-header-text">이름</span>
+                <v-icon v-if="sortBy === 'name'" x-small class="ml-1">
+                  {{ sortOrder === 'asc' ? 'mdi-menu-up' : 'mdi-menu-down' }}
+                </v-icon>
+              </div>
             </template>
             <template v-slot:header.owner>
               <span class="table-header-text">생성자</span>
             </template>
             <template v-slot:header.modified>
-              <span class="table-header-text">수정일</span>
+              <div class="d-flex align-center clickable-header" @click="handleSort('modified')">
+                <span class="table-header-text">수정일</span>
+                <v-icon v-if="sortBy === 'modified'" x-small class="ml-1">
+                  {{ sortOrder === 'asc' ? 'mdi-menu-up' : 'mdi-menu-down' }}
+                </v-icon>
+              </div>
             </template>
             <template v-slot:header.size>
-              <span class="table-header-text">크기</span>
+              <div class="d-flex align-center clickable-header" @click="handleSort('size')">
+                <span class="table-header-text">크기</span>
+                <v-icon v-if="sortBy === 'size'" x-small class="ml-1">
+                  {{ sortOrder === 'asc' ? 'mdi-menu-up' : 'mdi-menu-down' }}
+                </v-icon>
+              </div>
             </template>
 
             <template v-slot:item.name="{ item }">
@@ -163,7 +178,7 @@
 
             <template v-slot:item.owner="{ item }">
               <div class="d-flex align-center">
-                <v-avatar size="24" class="mr-2">
+                <v-avatar v-if="item.type !== 'STONE' && item.type !== 'PROJECT'" size="24" class="mr-2">
                   <v-img v-if="item.ownerImage" :src="item.ownerImage" />
                   <v-icon v-else small>mdi-account-circle</v-icon>
                 </v-avatar>
@@ -364,6 +379,10 @@ export default {
       // 드래그 앤 드롭
       draggingItem: null,
       dragOverItem: null,
+      
+      // 정렬
+      sortBy: null,
+      sortOrder: 'asc', // 'asc' or 'desc'
     };
   },
 
@@ -373,6 +392,48 @@ export default {
     },
     fileCount() {
       return this.items.filter(item => item.type === 'file' || item.type === 'document').length;
+    },
+    sortedItems() {
+      if (!this.sortBy) {
+        return this.items;
+      }
+      
+      const sorted = [...this.items];
+      
+      sorted.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (this.sortBy) {
+          case 'name':
+            aVal = a.name || '';
+            bVal = b.name || '';
+            // 한글/영문 혼합 정렬
+            return this.sortOrder === 'asc' 
+              ? aVal.localeCompare(bVal, 'ko-KR')
+              : bVal.localeCompare(aVal, 'ko-KR');
+            
+          case 'modified':
+            // 수정일은 날짜 문자열을 Date 객체로 변환하여 비교
+            aVal = this.parseDateString(a.modified) || new Date(0);
+            bVal = this.parseDateString(b.modified) || new Date(0);
+            return this.sortOrder === 'asc'
+              ? aVal - bVal
+              : bVal - aVal;
+            
+          case 'size':
+            // 크기는 바이트 단위로 변환하여 비교
+            aVal = this.parseSizeString(a.size) || 0;
+            bVal = this.parseSizeString(b.size) || 0;
+            return this.sortOrder === 'asc'
+              ? aVal - bVal
+              : bVal - aVal;
+            
+          default:
+            return 0;
+        }
+      });
+      
+      return sorted;
     },
   },
 
@@ -1237,6 +1298,60 @@ export default {
       this.folderCache = {};
       await this.loadFolderTree();
     },
+    
+    // 정렬 처리
+    handleSort(column) {
+      if (this.sortBy === column) {
+        // 같은 컬럼을 클릭하면 정렬 방향 토글
+        this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        // 다른 컬럼을 클릭하면 새로 정렬
+        this.sortBy = column;
+        this.sortOrder = 'asc';
+      }
+    },
+    
+    // 날짜 문자열 파싱 (예: "2024.1.15" -> Date 객체)
+    parseDateString(dateString) {
+      if (!dateString || dateString === '-') return null;
+      
+      // "2024.1.15" 형식을 Date로 변환
+      const parts = dateString.split('.');
+      if (parts.length >= 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; // 월은 0부터 시작
+        const day = parseInt(parts[2], 10);
+        return new Date(year, month, day);
+      }
+      
+      // ISO 형식이나 다른 형식도 시도
+      const date = new Date(dateString);
+      return isNaN(date.getTime()) ? null : date;
+    },
+    
+    // 크기 문자열 파싱 (예: "1.5MB" -> 바이트)
+    parseSizeString(sizeString) {
+      if (!sizeString || sizeString === '-') return 0;
+      
+      const trimmed = sizeString.trim().toUpperCase();
+      const match = trimmed.match(/^([\d.]+)\s*(B|KB|MB|GB)?$/);
+      
+      if (!match) return 0;
+      
+      const value = parseFloat(match[1]);
+      const unit = match[2] || 'B';
+      
+      switch (unit) {
+        case 'KB':
+          return value * 1024;
+        case 'MB':
+          return value * 1024 * 1024;
+        case 'GB':
+          return value * 1024 * 1024 * 1024;
+        default:
+          return value;
+      }
+    },
   },
 };
 </script>
@@ -1360,6 +1475,16 @@ export default {
   font-weight: 600;
   color: #5f6368;
   letter-spacing: 0.3px;
+}
+
+.clickable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s;
+}
+
+.clickable-header:hover {
+  opacity: 0.7;
 }
 
 .drive-table :deep(thead) {
