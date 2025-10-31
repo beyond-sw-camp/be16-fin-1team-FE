@@ -117,7 +117,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { useRoute, onBeforeRouteLeave } from 'vue-router';
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router';
 import axios from 'axios';
 import RealTimeEditor from '@/components/document/RealTimeEditor.vue';
 import { disconnectStomp } from '@/services/editorStompService.js';
@@ -126,6 +126,7 @@ import { showSnackbar } from '@/services/snackbar.js';
 
 // data() 대신 ref/reactive 사용
 const route = useRoute();
+const router = useRouter();
 const documentId = ref(route.params.documentId);
 const editorInitialContent = ref('');
 const isContentLoaded = ref(false);
@@ -158,6 +159,22 @@ const handleDisconnect = () => {
   }
 };
 
+// 401 에러 처리 함수
+const handle401Error = () => {
+  showSnackbar('접근 권한이 없습니다.', 'error');
+  handleDisconnect();
+  
+  // 창 닫기 시도 (새 창에서 열린 경우에만 작동)
+  setTimeout(() => {
+    if (window.opener) {
+      window.close();
+    } else {
+      // 새 창이 아닌 경우 이전 페이지로 이동
+      router.go(-1);
+    }
+  }, 1500);
+};
+
 // methods 대신 const 함수 선언
 const fetchUserInfo = async () => {
   try {
@@ -177,6 +194,10 @@ const fetchUserInfo = async () => {
     profileImage.value = userInfo.profileImage;
   } catch (error) {
     console.error('사용자 정보 로드 실패:', error);
+    if (error.response?.status === 401) {
+      handle401Error();
+      return;
+    }
     // 실패 시 localStorage에서 fallback
     userId.value = localStorage.getItem('id') || 'Guest';
     userName.value = localStorage.getItem('name') || '게스트';
@@ -202,6 +223,10 @@ const fetchDocumentInfo = async () => {
     }
   } catch (error) {
     console.error('문서 정보 로딩 실패:', error);
+    if (error.response?.status === 401) {
+      handle401Error();
+      return;
+    }
     documentTitle.value = '제목 없는 문서';
   }
 };
@@ -223,6 +248,10 @@ const fetchDocumentLines = async () => {
     isContentLoaded.value = true;
   } catch (error) {
     console.error('문서 라인 로딩 실패:', error);
+    if (error.response?.status === 401) {
+      handle401Error();
+      return;
+    }
     isContentLoaded.value = true;
   }
 };
@@ -241,6 +270,10 @@ const updateDocumentTitle = async () => {
     showSnackbar('문서 제목이 변경되었습니다.', 'success');
   } catch (error) {
     console.error('문서 제목 변경 실패:', error);
+    if (error.response?.status === 401) {
+      handle401Error();
+      return;
+    }
     showSnackbar('문서 제목 변경에 실패했습니다.', 'error');
   }
 };
