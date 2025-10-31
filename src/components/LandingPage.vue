@@ -166,6 +166,17 @@ export default {
   font-size: 16px !important;
   padding: 0 28px !important;
 }
+/* 시작하기 버튼 포커스 링 제거 */
+.start-btn:focus,
+.start-btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+:deep(.start-btn .v-btn__overlay),
+:deep(.start-btn .v-btn__underlay) {
+  display: none !important;
+}
+.start-btn { -webkit-tap-highlight-color: transparent; }
 
 /* Intro copy */
 .intro {
