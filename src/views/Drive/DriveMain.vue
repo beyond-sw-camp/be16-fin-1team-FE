@@ -399,19 +399,40 @@
     </v-dialog>
 
     <!-- Upload Dialog -->
-    <v-dialog v-model="uploadDialog" max-width="600" scroll-strategy="block">
+    <v-dialog v-model="uploadDialog" max-width="760" scroll-strategy="block">
       <v-card>
-        <v-card-title>파일 업로드</v-card-title>
+        <v-card-title class="d-flex justify-space-between align-center">
+          <span>파일 업로드</span>
+          <div class="d-flex align-center">
+            <v-btn small text class="mr-2" @click="clearSelectedFiles" :disabled="selectedFiles.length === 0 || isUploading">비우기</v-btn>
+            <v-btn small color="primary" depressed @click="uploadSelectedFiles" :disabled="selectedFiles.length === 0 || isUploading" :loading="isUploading">
+              <v-icon small left>mdi-upload</v-icon> 모두 업로드
+            </v-btn>
+          </div>
+        </v-card-title>
         <v-card-text>
+          <!-- Upload Progress -->
+          <div v-if="isUploading" class="upload-progress mb-4">
+            <v-progress-linear
+              indeterminate
+              color="primary"
+              height="4"
+            ></v-progress-linear>
+            <div class="text-center mt-2 text-body-2 grey--text">
+              {{ selectedFiles.length }}개 파일 업로드 중...
+            </div>
+          </div>
+
           <div
             class="upload-zone"
+            :class="{ 'upload-zone-disabled': isUploading }"
             @dragover.prevent
             @drop.prevent="handleFileDrop"
           >
             <v-icon size="64" color="primary">mdi-cloud-upload</v-icon>
-            <div class="text-h6 mt-4">파일을 여기에 드래그하거나</div>
-            <v-btn color="primary" class="mt-4" @click="$refs.fileInput.click()">
-              파일 선택
+            <div class="text-h6 mt-2">파일을 여기에 드래그하거나</div>
+            <v-btn color="primary" class="mt-3" @click="$refs.fileInput.click()" :disabled="isUploading">
+              파일 추가
             </v-btn>
             <input
               ref="fileInput"
@@ -419,12 +440,51 @@
               multiple
               style="display: none"
               @change="handleFileSelect"
+              :disabled="isUploading"
             >
+          </div>
+
+          <!-- Preview List -->
+          <div v-if="selectedFiles.length && !isUploading" class="mt-4">
+            <v-row dense>
+              <v-col
+                v-for="(f, idx) in selectedFiles"
+                :key="f.key"
+                cols="12" sm="6" md="4"
+              >
+                <v-card class="preview-card" outlined>
+                  <v-card-text class="py-3 d-flex">
+                    <div class="preview-thumb mr-3">
+                      <v-img v-if="f.previewUrl" :src="f.previewUrl" cover width="56" height="56" class="rounded"></v-img>
+                      <v-icon v-else size="56">{{ getPreviewIcon(f) }}</v-icon>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                      <div class="text-truncate font-weight-500">{{ f.file.name }}</div>
+                      <div class="text-caption grey--text text--darken-1">{{ formatFileSize(f.file.size) }}</div>
+                    </div>
+                    <v-btn icon size="small" color="grey" variant="text" @click="removeSelectedFile(idx)">
+                      <v-icon small>mdi-close</v-icon>
+                    </v-btn>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
+          </div>
+          <div v-else-if="isUploading" class="mt-4 text-center py-4">
+            <v-progress-circular
+              indeterminate
+              color="primary"
+              size="48"
+            ></v-progress-circular>
+            <div class="mt-3 text-body-1 grey--text">업로드 중...</div>
           </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn text @click="uploadDialog = false">닫기</v-btn>
+          <v-btn text @click="uploadDialog = false" :disabled="isUploading">닫기</v-btn>
+          <v-btn color="primary" depressed @click="uploadSelectedFiles" :disabled="selectedFiles.length === 0 || isUploading" :loading="isUploading">
+            업로드
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -478,6 +538,8 @@ export default {
       renameItem: null,
       renameName: '',
       uploadDialog: false,
+      selectedFiles: [], // { key, file, previewUrl }
+      isUploading: false,
       
       // 드래그 앤 드롭
       draggingItem: null,
@@ -507,6 +569,9 @@ export default {
 
       // 아이템 동작 메뉴
       actionTarget: null,
+
+      // 보기 모드
+      viewMode: 'list', // 'list' | 'grid'
     };
   },
 
@@ -1317,6 +1382,7 @@ export default {
     // 파일 업로드 다이얼로그 열기
     openUploadDialog() {
       this.uploadDialog = true;
+      this.clearSelectedFiles();
     },
 
     // 폴더 생성
@@ -1493,12 +1559,61 @@ export default {
     // 파일 업로드
     handleFileDrop(e) {
       const files = e.dataTransfer.files;
-      this.uploadFiles(files);
+      this.addSelectedFiles(files);
     },
 
     handleFileSelect(e) {
       const files = e.target.files;
-      this.uploadFiles(files);
+      this.addSelectedFiles(files);
+    },
+
+    addSelectedFiles(files) {
+      if (!files || files.length === 0) return;
+      const array = Array.from(files);
+      array.forEach((file) => {
+        const isImage = /^image\//.test(file.type);
+        const previewUrl = isImage ? URL.createObjectURL(file) : null;
+        this.selectedFiles.push({ key: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}` , file, previewUrl });
+      });
+      // reset input so same file can be chosen again
+      if (this.$refs.fileInput) this.$refs.fileInput.value = '';
+    },
+
+    removeSelectedFile(index) {
+      const item = this.selectedFiles[index];
+      if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      this.selectedFiles.splice(index, 1);
+    },
+
+    clearSelectedFiles() {
+      this.selectedFiles.forEach(it => { if (it.previewUrl) URL.revokeObjectURL(it.previewUrl); });
+      this.selectedFiles = [];
+      if (this.$refs.fileInput) this.$refs.fileInput.value = '';
+    },
+
+    getPreviewIcon(f) {
+      const name = f?.file?.name || '';
+      const ext = this.getFileExtension(name);
+      const map = {
+        pdf: 'mdi-file-pdf-box', doc: 'mdi-file-word-box', docx: 'mdi-file-word-box',
+        xls: 'mdi-file-excel-box', xlsx: 'mdi-file-excel-box', csv: 'mdi-file-delimited',
+        ppt: 'mdi-file-powerpoint-box', pptx: 'mdi-file-powerpoint-box', txt: 'mdi-file-document-outline',
+        jpg: 'mdi-file-image', jpeg: 'mdi-file-image', png: 'mdi-file-image', gif: 'mdi-file-image', svg: 'mdi-svg', webp: 'mdi-file-image',
+        mp3: 'mdi-file-music', wav: 'mdi-file-music', mp4: 'mdi-file-video', mov: 'mdi-file-video', zip: 'mdi-folder-zip', rar: 'mdi-folder-zip', '7z': 'mdi-folder-zip'
+      };
+      return map[ext] || 'mdi-file-outline';
+    },
+
+    async uploadSelectedFiles() {
+      if (this.selectedFiles.length === 0) return;
+      this.isUploading = true;
+      const files = this.selectedFiles.map(it => it.file);
+      try {
+        await this.uploadFiles(files);
+        this.clearSelectedFiles();
+      } finally {
+        this.isUploading = false;
+      }
     },
 
     async uploadFiles(files) {
@@ -1512,8 +1627,8 @@ export default {
         const rootId = this.currentRootId || localStorage.getItem('selectedWorkspaceId');
         const rootType = this.currentRootType || 'WORKSPACE';
         
-        // 파일 배열로 변환
-        const fileArray = Array.from(files);
+        // 파일 배열로 변환 (이미 배열일 수 있음)
+        const fileArray = Array.isArray(files) ? files : Array.from(files);
         
         // 한 번에 모든 파일 업로드
         const response = await driveService.uploadFile(folderId, fileArray, rootId, rootType);
@@ -1536,6 +1651,7 @@ export default {
         console.error('파일 업로드 실패:', error);
         const errorMessage = error.response?.data?.statusMessage || '파일 업로드에 실패했습니다.';
         showSnackbar(errorMessage, 'error');
+        throw error; // rethrow so finally in uploadSelectedFiles runs
       }
     },
 
@@ -2135,16 +2251,35 @@ export default {
 }
 
 .upload-zone {
-  border: 2px dashed #1976d2;
+  border: 2px dashed #cfd8dc;
   border-radius: 8px;
-  padding: 48px;
+  padding: 24px;
   text-align: center;
-  background-color: #f5f9ff;
+  background: #fafafa;
+  transition: opacity 0.2s;
 }
 
 .upload-zone:hover {
   background-color: #e3f2fd;
 }
+
+.upload-zone-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.upload-progress {
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.preview-card {
+  transition: box-shadow .2s ease;
+}
+.preview-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.08); }
+
+.preview-thumb .rounded { border-radius: 6px; }
 
 /* Responsive */
 @media (max-width: 960px) {
