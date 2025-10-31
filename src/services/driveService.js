@@ -146,6 +146,12 @@ export default {
     return driveApi.get(`/document/${documentId}`);
   },
 
+  // 문서 제목 수정
+  updateDocumentTitle(documentId, data) {
+    const payload = typeof data === 'string' ? { title: data } : (data?.title ? data : { title: data?.name });
+    return driveApi.put(`/document/${documentId}`, payload);
+  },
+
   // 스토리지 사용량 조회
   getStorageUsage() {
     // workspaceId는 헤더(X-Workspace-Id)로 자동 전송됨

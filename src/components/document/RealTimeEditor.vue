@@ -2,6 +2,7 @@
   <v-card class="editor-wrapper" elevation="2">
     <!-- 연결 상태 표시 -->
     <v-alert
+      v-if="showConnectionStatus"
       :model-value="true"
       :type="connectionStatusType"
       :icon="connectionStatusIcon"
@@ -149,6 +150,42 @@
           </v-btn>
         </v-btn-toggle>
 
+        <v-divider vertical class="mx-2"></v-divider>
+
+        <!-- 이모지/기호 삽입 -->
+        <v-menu>
+          <template v-slot:activator="{ props }">
+            <v-btn v-bind="props" variant="outlined" title="이모지/기호">
+              <v-icon>mdi-emoticon-outline</v-icon>
+            </v-btn>
+          </template>
+          <v-card>
+            <v-card-text>
+              <div class="emoji-picker">
+                <h4>이모지</h4>
+                <div class="emoji-grid">
+                  <button
+                    v-for="e in emojiList"
+                    :key="e"
+                    class="emoji-item"
+                    @click="insertEmoji(e)"
+                  >{{ e }}</button>
+                </div>
+
+                <h4 class="mt-3">기호</h4>
+                <div class="emoji-grid">
+                  <button
+                    v-for="s in symbolList"
+                    :key="s"
+                    class="emoji-item"
+                    @click="insertEmoji(s)"
+                  >{{ s }}</button>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-menu>
+
         <v-spacer></v-spacer>
 
         <div class="online-users-container">
@@ -210,7 +247,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from 'prosemirror-state';
@@ -464,11 +501,15 @@ const props = defineProps({
   profileImage: {
     type: String,
     default: '',
-  }
+  },
+  showConnectionStatus: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 // Emits 정의
-const emit = defineEmits(['document-line-updated', 'document-line-deleted']);
+const emit = defineEmits(['document-line-updated', 'document-line-deleted', 'online-users-updated', 'connection-status-changed']);
 
 // 반응형 변수 선언
 const editor = ref(null);
@@ -520,6 +561,20 @@ const getUserColor = (userId) => {
     userColors[userId] = availableColors[Object.keys(userColors).length % availableColors.length];
   }
   return userColors[userId];
+};
+
+// 이모지/기호 간단 목록
+const emojiList = [
+  '😀','😂','😊','😍','😎','🥳','😇','🙌','👍','🙏',
+  '💡','🔥','✨','💯','✅','❗','❓','📝','📎','📌'
+];
+const symbolList = [
+  '•','–','—','→','⇒','⇨','✓','✗','★','☆','■','□','▲','△','◆','◇','™','©','®','§'
+];
+
+const insertEmoji = (ch) => {
+  if (!editor.value) return;
+  editor.value.chain().focus().insertContent(ch).run();
 };
 
 const connectionStatusType = computed(() => {
@@ -804,6 +859,29 @@ const handleVisibilityChange = () => {
     }
   }
 };
+
+// 온라인 사용자 변경 감지
+watch(onlineUsers, (newUsers) => {
+  emit('online-users-updated', newUsers);
+}, { deep: true });
+
+// 연결 상태 변경 감지
+watch(connectionStatus, (newVal) => {
+  try { emit('connection-status-changed', newVal); } catch (_) {}
+});
+
+// 부모에서 사용할 수 있도록 undo/redo 및 가능 여부 노출
+const undo = () => { try { if (editor.value) editor.value.chain().focus().undo().run(); } catch(_) {} };
+const redo = () => { try { if (editor.value) editor.value.chain().focus().redo().run(); } catch(_) {} };
+const canUndo = () => { try { return !!editor.value && editor.value.can().undo(); } catch(_) { return false; } };
+const canRedo = () => { try { return !!editor.value && editor.value.can().redo(); } catch(_) { return false; } };
+
+// 현재 문서를 HTML로 내보내기
+const getHtml = () => {
+  try { return editor.value ? editor.value.getHTML() : ''; } catch (_) { return ''; }
+};
+
+defineExpose({ undo, redo, canUndo, canRedo, getHtml });
 
 // 라이프사이클 훅
 onMounted(async () => {
@@ -1464,7 +1542,7 @@ const handleIncomingMessage = (message) => {
 
 .editor-toolbar {
   border-bottom: 1px solid #e0e0e0;
-  padding: 0 8px;
+  padding: 0 16px; /* 가로 여백 확대 */
 }
 
 .online-users-container {
@@ -1593,4 +1671,26 @@ const handleIncomingMessage = (message) => {
 .v-btn.is-active {
   background-color: rgba(0, 0, 0, 0.1);
 }
+
+/* 이모지/기호 픽커 */
+.emoji-picker { min-width: 260px; }
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+}
+.emoji-item {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  height: 32px;
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+.emoji-item:hover { background: #f5f5f5; }
+.emoji-item:active { transform: scale(0.98); }
 </style>
