@@ -53,6 +53,74 @@
           <v-toolbar flat color="white" class="px-4">
             <v-toolbar-title class="text-h6">{{ currentFolderName }}</v-toolbar-title>
             <v-spacer></v-spacer>
+
+            <!-- Type Filter -->
+            <v-menu offset-y :close-on-content-click="true" content-class="filter-menu-content">
+              <template #activator="{ props }">
+                <v-btn
+                  small
+                  depressed
+                  v-bind="props"
+                  :class="{ 'filter-btn-active': typeFilter !== 'all' }"
+                  class="filter-btn mr-3"
+                >
+                  <v-icon small left>{{ getFilterIcon(typeFilter) }}</v-icon>
+                  {{ getFilterLabel(typeFilter) }}
+                  <v-icon small right>mdi-chevron-down</v-icon>
+                </v-btn>
+              </template>
+              <v-list dense class="filter-menu">
+                <v-list-item
+                  @click="typeFilter = 'all'"
+                  :class="{ 'filter-menu-item-active': typeFilter === 'all' }"
+                  class="filter-menu-item"
+                >
+                  <v-list-item-icon class="mr-3">
+                    <v-icon small>mdi-filter-variant</v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-content>
+                    <v-list-item-title>전체</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+                <v-list-item
+                  @click="typeFilter = 'folder'"
+                  :class="{ 'filter-menu-item-active': typeFilter === 'folder' }"
+                  class="filter-menu-item"
+                >
+                  <v-list-item-icon class="mr-3">
+                    <v-icon small>mdi-folder</v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-content>
+                    <v-list-item-title>폴더</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+                <v-list-item
+                  @click="typeFilter = 'document'"
+                  :class="{ 'filter-menu-item-active': typeFilter === 'document' }"
+                  class="filter-menu-item"
+                >
+                  <v-list-item-icon class="mr-3">
+                    <v-icon small>mdi-file-document</v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-content>
+                    <v-list-item-title>문서</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+                <v-list-item
+                  @click="typeFilter = 'file'"
+                  :class="{ 'filter-menu-item-active': typeFilter === 'file' }"
+                  class="filter-menu-item"
+                >
+                  <v-list-item-icon class="mr-3">
+                    <v-icon small>mdi-file</v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-content>
+                    <v-list-item-title>파일</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+
             <v-btn text small @click="loadFolderContents(currentFolderId, currentRootType, currentRootId)">
               <v-icon small left>mdi-refresh</v-icon>
               새로고침
@@ -396,6 +464,15 @@ export default {
       
       // 테이블 높이
       tableHeight: 600, // 기본값, mounted에서 계산
+
+      // 타입 필터
+      typeFilter: 'all', // 'all', 'folder', 'document', 'file'
+      typeFilterItems: [
+        { text: '모든 타입', value: 'all' },
+        { text: '폴더', value: 'folder' },
+        { text: '문서', value: 'document' },
+        { text: '파일', value: 'file' },
+      ],
     };
   },
 
@@ -406,10 +483,14 @@ export default {
     fileCount() {
       return this.items.filter(item => item.type === 'file' || item.type === 'document').length;
     },
+    filteredItems() {
+      if (this.typeFilter === 'all') return this.items;
+      return this.items.filter(item => item.type === this.typeFilter);
+    },
     sortedItems() {
       // PROJECT/STONE은 정렬에서 제외하고 원래 순서를 유지
-      const pinned = this.items.filter(item => item.type === 'PROJECT' || item.type === 'STONE');
-      const rest = this.items.filter(item => item.type !== 'PROJECT' && item.type !== 'STONE');
+      const pinned = this.filteredItems.filter(item => item.type === 'PROJECT' || item.type === 'STONE');
+      const rest = this.filteredItems.filter(item => item.type !== 'PROJECT' && item.type !== 'STONE');
 
       if (!this.sortBy) {
         return [...pinned, ...rest];
@@ -424,7 +505,6 @@ export default {
           case 'name':
             aVal = a.name || '';
             bVal = b.name || '';
-            // 한글/영문 혼합 정렬
             return this.sortOrder === 'asc' 
               ? aVal.localeCompare(bVal, 'ko-KR')
               : bVal.localeCompare(aVal, 'ko-KR');
@@ -910,6 +990,9 @@ export default {
           size: type === 'file' ? this.formatFileSize(item.size) : '',
           type: type,
           extension: type === 'file' ? this.getFileExtension(name) : '',
+          // 파일 전용 URL 매핑 (DTO에 포함된 경우만)
+          url: type === 'file' ? (item.url || item.previewUrl || item.downloadUrl || item.link) : undefined,
+          downloadUrl: type === 'file' ? (item.downloadUrl || item.url) : undefined,
         });
       });
       
@@ -1007,6 +1090,28 @@ export default {
       }
     },
 
+    // 필터 아이콘
+    getFilterIcon(filterType) {
+      const iconMap = {
+        all: 'mdi-filter-variant',
+        folder: 'mdi-folder',
+        document: 'mdi-file-document',
+        file: 'mdi-file'
+      };
+      return iconMap[filterType] || 'mdi-filter-variant';
+    },
+
+    // 필터 라벨
+    getFilterLabel(filterType) {
+      const labelMap = {
+        all: '전체',
+        folder: '폴더',
+        document: '문서',
+        file: '파일'
+      };
+      return labelMap[filterType] || '전체';
+    },
+
     // 아이템 아이콘
     getItemIcon(item) {
       if (item.type === 'folder') return 'mdi-folder';
@@ -1014,16 +1119,58 @@ export default {
       if (item.type === 'STONE') return 'mdi-link-variant';  // 바로가기 아이콘
       if (item.type === 'PROJECT') return 'mdi-link-variant';  // 바로가기 아이콘
       
+      const ext = (item.extension || this.getFileExtension(item.name)).toLowerCase();
+
+      // 확장자별 아이콘 매핑
       const iconMap = {
+        // 문서
         pdf: 'mdi-file-pdf-box',
+        doc: 'mdi-file-word-box',
         docx: 'mdi-file-word-box',
+        xls: 'mdi-file-excel-box',
         xlsx: 'mdi-file-excel-box',
+        csv: 'mdi-file-delimited',
+        ppt: 'mdi-file-powerpoint-box',
+        pptx: 'mdi-file-powerpoint-box',
         txt: 'mdi-file-document-outline',
+        rtf: 'mdi-file-document',
+        md: 'mdi-language-markdown',
+        // 코드/데이터
+        html: 'mdi-language-html5',
+        css: 'mdi-language-css3',
+        js: 'mdi-nodejs',
+        ts: 'mdi-language-typescript',
+        json: 'mdi-code-json',
+        yaml: 'mdi-code-json',
+        yml: 'mdi-code-json',
+        xml: 'mdi-xml',
+        // 이미지
         jpg: 'mdi-file-image',
+        jpeg: 'mdi-file-image',
         png: 'mdi-file-image',
+        gif: 'mdi-file-image',
+        svg: 'mdi-svg',
+        webp: 'mdi-file-image',
+        heic: 'mdi-file-image',
+        // 오디오/비디오
+        mp3: 'mdi-file-music',
+        wav: 'mdi-file-music',
+        flac: 'mdi-file-music',
+        ogg: 'mdi-file-music',
+        mp4: 'mdi-file-video',
+        mov: 'mdi-file-video',
+        avi: 'mdi-file-video',
+        mkv: 'mdi-file-video',
+        webm: 'mdi-file-video',
+        // 압축
+        zip: 'mdi-folder-zip',
+        rar: 'mdi-folder-zip',
+        '7z': 'mdi-folder-zip',
+        tar: 'mdi-folder-zip',
+        gz: 'mdi-folder-zip',
       };
       
-      return iconMap[item.extension] || 'mdi-file-outline';
+      return iconMap[ext] || 'mdi-file-outline';
     },
 
     // 아이템 아이콘 색상
@@ -1033,13 +1180,33 @@ export default {
       if (item.type === 'STONE') return 'purple darken-1';  // 스톤 바로가기
       if (item.type === 'PROJECT') return 'green darken-1';  // 프로젝트 바로가기
       
-      const colorMap = {
-        pdf: 'red darken-1',
-        docx: 'blue darken-1',
-        xlsx: 'green darken-1',
-      };
-      
-      return colorMap[item.extension] || 'grey';
+      const ext = (item.extension || this.getFileExtension(item.name)).toLowerCase();
+
+      // 확장자 그룹별 색상 매핑
+      const colorByGroup = (
+        () => {
+          const documents = ['pdf', 'doc', 'docx', 'rtf', 'txt', 'md'];
+          const sheets = ['xls', 'xlsx', 'csv'];
+          const slides = ['ppt', 'pptx'];
+          const code = ['html', 'css', 'js', 'ts', 'json', 'yaml', 'yml', 'xml'];
+          const images = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'heic'];
+          const audio = ['mp3', 'wav', 'flac', 'ogg'];
+          const video = ['mp4', 'mov', 'avi', 'mkv', 'webm'];
+          const archives = ['zip', 'rar', '7z', 'tar', 'gz'];
+
+          if (documents.includes(ext)) return 'red darken-1';
+          if (sheets.includes(ext)) return 'green darken-1';
+          if (slides.includes(ext)) return 'orange darken-2';
+          if (code.includes(ext)) return 'indigo darken-1';
+          if (images.includes(ext)) return 'deep-purple lighten-1';
+          if (audio.includes(ext)) return 'teal darken-1';
+          if (video.includes(ext)) return 'blue darken-2';
+          if (archives.includes(ext)) return 'brown darken-1';
+          return 'grey darken-1';
+        }
+      )();
+
+      return colorByGroup;
     },
 
     // 아이템 클릭
@@ -1088,6 +1255,16 @@ export default {
         // 독립적인 뷰어로 새 탭에서 열기
         const routeData = this.$router.resolve(`/viewer/${item.id}`);
         window.open(routeData.href, '_blank');
+      }
+      // file: DTO에 포함된 url로 이동
+      else if (item.type === 'file') {
+        if (item.url) {
+          window.open(item.url, '_blank');
+        } else if (item.downloadUrl) {
+          window.open(item.downloadUrl, '_blank');
+        } else {
+          console.warn('File item clicked but no url provided:', item);
+        }
       }
     },
 
@@ -1648,6 +1825,75 @@ export default {
 
 .clickable-row:hover .item-name {
   color: #1976d2;
+}
+
+/* 필터 버튼 스타일 */
+.filter-btn {
+  min-width: auto !important;
+  padding: 4px 16px !important;
+  height: 32px !important;
+  border-radius: 6px !important;
+  text-transform: none !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+  background-color: #f5f5f5 !important;
+  color: #5f6368 !important;
+}
+
+.filter-btn:hover {
+  background-color: #e8e8e8 !important;
+}
+
+.filter-btn-active {
+  background-color: white !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+  color: #1976d2 !important;
+  font-weight: 600;
+}
+
+/* 필터 메뉴 컨테이너 (v-menu content) */
+.filter-menu-content {
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid #e6e6e6;
+}
+
+/* 필터 메뉴 스타일 */
+.filter-menu {
+  padding: 2px 0 !important;
+  min-width: 100px; /* narrower */
+}
+
+.filter-menu-item {
+  min-height: 32px !important; /* tighter */
+  padding: 6px 12px !important;
+  transition: background-color 0.18s ease !important;
+  font-size: 13px;
+}
+
+.filter-menu-item:hover {
+  background-color: #f4f6f8 !important;
+}
+
+.filter-menu-item-active {
+  background-color: #e8f0fe !important;
+  color: #1967d2 !important;
+}
+
+.filter-menu .v-list-item__title {
+  font-size: 13px !important;
+}
+
+.filter-menu .v-icon {
+  font-size: 16px !important;
+}
+
+.filter-menu-item .v-list-item__icon {
+  margin-right: 12px !important;
+  min-width: 24px !important;
 }
 
 /* 테이블 헤더 스타일 */
