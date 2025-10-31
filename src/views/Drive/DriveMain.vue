@@ -387,8 +387,8 @@ export default {
       scrollSpeed: 0,
       
       // 정렬
-      sortBy: null,
-      sortOrder: 'asc', // 'asc' or 'desc'
+      sortBy: 'modified',
+      sortOrder: 'desc', // 'asc' or 'desc'
       
       // 페이지네이션
       itemsPerPage: 15,
@@ -407,13 +407,17 @@ export default {
       return this.items.filter(item => item.type === 'file' || item.type === 'document').length;
     },
     sortedItems() {
+      // PROJECT/STONE은 정렬에서 제외하고 원래 순서를 유지
+      const pinned = this.items.filter(item => item.type === 'PROJECT' || item.type === 'STONE');
+      const rest = this.items.filter(item => item.type !== 'PROJECT' && item.type !== 'STONE');
+
       if (!this.sortBy) {
-        return this.items;
+        return [...pinned, ...rest];
       }
       
-      const sorted = [...this.items];
+      const sortedRest = [...rest];
       
-      sorted.sort((a, b) => {
+      sortedRest.sort((a, b) => {
         let aVal, bVal;
         
         switch (this.sortBy) {
@@ -446,7 +450,7 @@ export default {
         }
       });
       
-      return sorted;
+      return [...pinned, ...sortedRest];
     },
     paginatedItems() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -1665,16 +1669,20 @@ export default {
 }
 
 .drive-table :deep(thead) {
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #e0e0e0;
+  background: linear-gradient(to bottom, #ffffff, #f5f5f5);
+  border-bottom: 2px solid #d3d3d3;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .drive-table :deep(thead th) {
   font-weight: 600;
-  color: #5f6368;
-  padding: 12px 16px;
-  border-bottom: 2px solid #e0e0e0;
+  color: #3c4043;
+  padding: 14px 16px;
+  border-bottom: 2px solid #d3d3d3;
   text-transform: none;
+  background-color: transparent;
+  position: relative;
+  font-size: 13px;
 }
 
 .drive-table :deep(thead th:first-child) {
