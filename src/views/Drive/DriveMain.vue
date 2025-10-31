@@ -55,7 +55,7 @@
             <v-spacer></v-spacer>
 
             <!-- Type Filter -->
-            <v-menu offset-y :close-on-content-click="true" content-class="filter-menu-content">
+            <v-menu offset-y :close-on-content-click="true" content-class="filter-menu-content" scroll-strategy="block">
               <template #activator="{ props }">
                 <v-btn
                   small
@@ -265,26 +265,40 @@
             </template>
 
             <template v-slot:item.actions="{ item }">
-              <!-- PROJECT, STONE 타입은 액션 버튼 표시 안 함 -->
-              <div v-if="item.type !== 'PROJECT' && item.type !== 'STONE'" @click.stop class="d-flex">
-                <v-btn
-                  v-if="item.type === 'folder'"
-                  icon
-                  x-small
-                  @click.stop="openRenameDialog(item)"
-                  title="이름 변경"
+              <div v-if="item.type === 'folder' || item.type === 'document' || item.type === 'file'" @click.stop>
+                <v-menu
+                  offset-y
+                  location="bottom start"
+                  :close-on-content-click="true"
+                  transition="fade-transition"
+                  content-class="action-menu-content"
+                  scroll-strategy="block"
                 >
-                  <v-icon small>mdi-pencil</v-icon>
-                </v-btn>
-                <v-btn
-                  icon
-                  x-small
-                  @click.stop="deleteItem(item)"
-                  color="error"
-                  title="삭제"
-                >
-                  <v-icon small>mdi-delete</v-icon>
-                </v-btn>
+                  <template #activator="{ props }">
+                    <v-btn
+                      icon
+                      x-small
+                      class="action-icon-btn"
+                      v-bind="props"
+                      variant="text"
+                      :ripple="false"
+                      @click.stop="actionTarget = item"
+                      title="동작"
+                    >
+                      <v-icon small>mdi-dots-vertical</v-icon>
+                    </v-btn>
+                  </template>
+                  <div class="new-item-menu action-menu-list">
+                    <button class="menu-item" @click="openRenameFromMenu" :disabled="!canRename(actionTarget)">
+                      <v-icon small class="menu-item-icon">mdi-pencil</v-icon>
+                      <span>이름 변경</span>
+                    </button>
+                    <button class="menu-item danger" @click="deleteFromMenu" :disabled="!canDelete(actionTarget)">
+                      <v-icon small class="menu-item-icon">mdi-delete</v-icon>
+                      <span>삭제</span>
+                    </button>
+                  </div>
+                </v-menu>
               </div>
             </template>
 
@@ -302,7 +316,7 @@
     </v-row>
 
     <!-- Create Folder Dialog -->
-    <v-dialog v-model="createFolderDialog" max-width="500">
+    <v-dialog v-model="createFolderDialog" max-width="500" scroll-strategy="block">
       <v-card>
         <v-card-title>새 폴더 만들기</v-card-title>
         <v-card-text>
@@ -324,7 +338,7 @@
     </v-dialog>
 
     <!-- Rename Dialog -->
-    <v-dialog v-model="renameDialog" max-width="500">
+    <v-dialog v-model="renameDialog" max-width="500" scroll-strategy="block">
       <v-card>
         <v-card-title>이름 변경</v-card-title>
         <v-card-text>
@@ -346,7 +360,7 @@
     </v-dialog>
 
     <!-- Create Document Dialog -->
-    <v-dialog v-model="createDocumentDialog" max-width="500">
+    <v-dialog v-model="createDocumentDialog" max-width="500" scroll-strategy="block">
       <v-card>
         <v-card-title>새 문서 만들기</v-card-title>
         <v-card-text>
@@ -368,7 +382,7 @@
     </v-dialog>
 
     <!-- Upload Dialog -->
-    <v-dialog v-model="uploadDialog" max-width="600">
+    <v-dialog v-model="uploadDialog" max-width="600" scroll-strategy="block">
       <v-card>
         <v-card-title>파일 업로드</v-card-title>
         <v-card-text>
@@ -473,6 +487,9 @@ export default {
         { text: '문서', value: 'document' },
         { text: '파일', value: 'file' },
       ],
+
+      // 아이템 동작 메뉴
+      actionTarget: null,
     };
   },
 
@@ -1706,6 +1723,28 @@ export default {
           return value;
       }
     },
+
+    // 메뉴 액션들 (per-row menu가 열려 있을 때 호출)
+    canRename(item) {
+      if (!item) return false;
+      return item.type === 'folder' || item.type === 'document' || item.type === 'file';
+    },
+
+    canDelete(item) {
+      if (!item) return false;
+      return item.type === 'folder' || item.type === 'document' || item.type === 'file';
+    },
+
+    openRenameFromMenu() {
+      if (!this.canRename(this.actionTarget)) return;
+      this.openRenameDialog(this.actionTarget);
+    },
+
+    deleteFromMenu() {
+      if (!this.canDelete(this.actionTarget)) return;
+      const target = this.actionTarget;
+      this.deleteItem(target);
+    },
   },
 };
 </script>
@@ -2102,5 +2141,56 @@ export default {
 .main-content-col::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 4px;
+}
+
+/* Item Actions Menu (match +신규 menu) */
+.action-menu-content {
+  /* Stronger, layered shadow for better visibility */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+  border: none !important;
+  background: #ffffff !important;
+  border-radius: 4px !important;
+}
+
+/* Remove shadow/border only for the inner list container */
+.action-menu-list {
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.new-item-menu .menu-item.danger {
+  color: #e53935;
+}
+
+/* Hover emphasis for delete */
+.new-item-menu .menu-item.danger:hover {
+  background-color: rgba(229, 57, 53, 0.08);
+  color: #d32f2f;
+}
+
+/* Action icon button - no border/background */
+.action-icon-btn {
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+}
+.action-icon-btn:hover {
+  background: rgba(0,0,0,0.06) !important;
+}
+.action-icon-btn:focus,
+.action-icon-btn:active {
+  box-shadow: none !important;
+  outline: none !important;
+}
+.action-icon-btn .v-btn__overlay { opacity: 0 !important; }
+</style>
+
+<style>
+/* Global styles for overlay content appended to body */
+.action-menu-content {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+  border: none !important;
+  background: #ffffff !important;
+  border-radius: 4px !important;
 }
 </style>
