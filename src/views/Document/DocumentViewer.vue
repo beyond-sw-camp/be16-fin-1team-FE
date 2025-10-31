@@ -274,7 +274,8 @@ const updateDocumentTitle = async () => {
       handle401Error();
       return;
     }
-    showSnackbar('문서 제목 변경에 실패했습니다.', 'error');
+    const errorMessage = error.response?.data?.message || error.response?.data?.statusMessage || error.response?.data?.error || '문서 제목 변경에 실패했습니다.';
+    showSnackbar(errorMessage, 'error');
   }
 };
 
