@@ -188,15 +188,15 @@
                   :cx="stone.x + 75"
                   :cy="stone.y + 75"
                   :r="75"
-                  fill="#E8EEED"
+                  fill="#2A2828"
                   class="child-stone-bg"
                 />
                 
                 <!-- 하위 스톤 내부 그라데이션 -->
                 <defs v-if="!stone.isRoot">
                   <radialGradient id="childStoneGradient" cx="30%" cy="30%">
-                    <stop offset="0%" style="stop-color:#E8EEED;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#D5E1DD;stop-opacity:1" />
+                    <stop offset="0%" style="stop-color:#3A3838;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#2A2828;stop-opacity:1" />
                   </radialGradient>
                 </defs>
                 <circle
@@ -229,7 +229,7 @@
                   :stroke-width="stone.isRoot ? 16 : 12"
                   stroke-linecap="round"
                   :stroke-dasharray="2 * Math.PI * (stone.isRoot ? 90 : 75)"
-                  :stroke-dashoffset="2 * Math.PI * (stone.isRoot ? 90 : 75) * (1 - (stone.milestone || 0) / 100)"
+                  :stroke-dashoffset="gaugeAnimationReady ? 2 * Math.PI * (stone.isRoot ? 90 : 75) * (1 - (stone.milestone || 0) / 100) : 2 * Math.PI * (stone.isRoot ? 90 : 75)"
                   class="donut-progress"
                   transform="rotate(-90)"
                   :transform-origin="`${stone.x + (stone.isRoot ? 90 : 75)}px ${stone.y + (stone.isRoot ? 90 : 75)}px`"
@@ -964,7 +964,9 @@ export default {
       focusedStoneStack: [],
       hoveredStoneId: null,
       // 핀 상태
-      isPinned: false
+      isPinned: false,
+      // 게이지 애니메이션 트리거
+      gaugeAnimationReady: false
     };
   },
   computed: {
@@ -1043,6 +1045,11 @@ export default {
           this.$nextTick(() => {
             this.updateStonePositions();
             this.updateConnections();
+            // 게이지 애니메이션 초기화
+            this.gaugeAnimationReady = false;
+            setTimeout(() => {
+              this.gaugeAnimationReady = true;
+            }, 500);
           });
         } else {
           console.log('스톤 데이터가 없거나 비어있음');
@@ -4223,17 +4230,7 @@ export default {
 
 
 .donut-progress {
-  transition: stroke-dashoffset 0.8s ease-in-out;
-  animation: progressFill 1s ease-out;
-}
-
-@keyframes progressFill {
-  from {
-    stroke-dashoffset: 2 * 3.14159 * 90; /* 초기값: 완전히 비어있는 상태 */
-  }
-  to {
-    stroke-dashoffset: 2 * 3.14159 * 90 * (1 - var(--progress, 0) / 100);
-  }
+  transition: stroke-dashoffset 2s ease-out;
 }
 
 /* 스톤 생성 텍스트 버튼 스타일 */
@@ -4344,7 +4341,7 @@ export default {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
   font-size: 14px;
-  fill: #1A1A1A;
+  fill: #FFFFFF;
   pointer-events: none;
   text-anchor: middle;
   line-height: 1.2;
@@ -4354,7 +4351,7 @@ export default {
   font-family: 'Pretendard', sans-serif;
   font-weight: 500;
   font-size: 12px;
-  fill: #666666;
+  fill: #FFFFFF;
   pointer-events: none;
   text-anchor: middle;
 }
@@ -4363,7 +4360,7 @@ export default {
   font-family: 'Pretendard', sans-serif;
   font-weight: 600;
   font-size: 12px;
-  fill: #4A90E2;
+  fill: #FFFFFF;
   pointer-events: none;
   text-anchor: middle;
 }
