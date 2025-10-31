@@ -766,7 +766,7 @@
 import axios from 'axios';
 import * as d3 from 'd3';
 import StoneDetailModal from '@Project/StoneDetailModal.vue';
-import { searchWorkspaceParticipants } from '@/services/stoneService.js';
+import { searchWorkspaceParticipants, getStoneDetail } from '@/services/stoneService.js';
 
 export default {
   name: 'ProjectList',
@@ -1378,17 +1378,10 @@ export default {
         }
         
         // 일반 스톤인 경우 스톤 상세 정보 API 호출
-        const response = await axios.get(
-          `http://localhost:8080/workspace-service/stone/${stone.id}`,
-          {
-            headers: {
-              'X-User-Id': this.currentUser.id || 'test-user-id' // 실제 사용자 ID로 교체 필요
-            }
-          }
-        );
+        const response = await getStoneDetail(stone.id);
         
-        if (response.data.statusCode === 200) {
-          const stoneDetail = response.data.result;
+        if (response.statusCode === 200) {
+          const stoneDetail = response.result;
           
           // 참여자 목록 처리
           const participants = stoneDetail.stoneParticipantDtoList || [];
@@ -1420,12 +1413,13 @@ export default {
           this.showStoneDetailModal = true;
           console.log('showStoneDetailModal 상태:', this.showStoneDetailModal);
         } else {
-          console.error('스톤 상세 조회 실패:', response.data.statusMessage);
-          alert('스톤 정보를 불러오는데 실패했습니다.');
+          console.error('스톤 상세 조회 실패:', response.statusMessage);
+          alert(response.statusMessage || '스톤 정보를 불러오는데 실패했습니다.');
         }
       } catch (error) {
         console.error('스톤 상세 조회 API 호출 실패:', error);
-        alert('스톤 정보를 불러오는데 실패했습니다.');
+        const errorMessage = error.message || '스톤 정보를 불러오는데 실패했습니다.';
+        alert(errorMessage);
         
         // 에러 발생 시 기본 데이터로 모달 표시
         this.selectedStoneData = {

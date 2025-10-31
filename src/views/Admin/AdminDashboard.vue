@@ -41,26 +41,30 @@
 
           <!-- API에서 가져온 권한 그룹들 -->
           <div v-for="group in permissionGroups" :key="group.accessGroupId" class="permission-group-card" :class="{ 'default-group': isDefaultGroup(group.accessGroupName) }">
-            <div class="group-header" @click="viewGroupDetail(group)">
-              <div class="group-icon">
-                <img 
-                  :src="group.accessGroupName === '관리자 그룹' ? '/src/assets/icons/sidebar/admin.svg' : '/src/assets/icons/user/user_default_icon.svg'" 
-                  :alt="group.accessGroupName"
-                  class="group-icon-img"
-                />
+            <div class="group-header" @click="viewPermissionGroupDetail(group)">
+              <div class="left">
+                <div class="group-icon">
+                  <img 
+                    :src="group.accessGroupName === '관리자 그룹' ? '/src/assets/icons/sidebar/admin.svg' : '/src/assets/icons/user/user_default_icon.svg'" 
+                    :alt="group.accessGroupName"
+                    class="group-icon-img"
+                  />
+                </div>
+                <div class="group-info">
+                  <h3 class="group-title" :class="{ 'default-group-title': isDefaultGroup(group.accessGroupName) }">
+                    {{ group.accessGroupName }}
+                    <span v-if="isDefaultGroup(group.accessGroupName)" class="default-badge">기본 그룹</span>
+                  </h3>
+                </div>
               </div>
-              <div class="group-info">
-                <h3 class="group-title" :class="{ 'default-group-title': isDefaultGroup(group.accessGroupName) }">
-                  {{ group.accessGroupName }}
-                  <span v-if="isDefaultGroup(group.accessGroupName)" class="default-badge">기본 그룹</span>
-                </h3>
-              </div>
-              <div class="group-member-count">
-                <span class="member-count">{{ group.groupParticipantCount }}명</span>
-              </div>
-              <div class="group-actions">
-                <div class="action-menu" @click.stop="toggleActionMenu(group.accessGroupId)">
-                  <span>⋯</span>
+              <div class="right" @click.stop>
+                <div class="group-member-count">
+                  <span class="member-count">{{ group.groupParticipantCount }}명</span>
+                </div>
+                <div class="group-actions">
+                  <div class="action-menu" @click.stop="toggleActionMenu(group.accessGroupId)">
+                    <span>⋯</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -119,23 +123,19 @@
           <div 
             v-for="group in filteredUserGroups" 
             :key="group.id" 
-            class="user-group-item"
+            class="team-card user-group-item"
           >
-            <div class="group-info">
-              <div class="user-group-icon"></div>
-              <div class="group-details">
-                <h3 class="group-name" @click="viewGroupDetail(group)">{{ group.name }}</h3>
-                <p class="group-date">생성일: {{ group.createdAt }}</p>
+            <div class="left">
+              <div class="team-icon user-group-icon"></div>
+              <div class="team-info group-details">
+                <h3 class="team-name group-name" @click="viewUserGroupDetail(group)">{{ group.name }}</h3>
+                <p class="created-date group-date">생성일: {{ group.createdAt }}</p>
               </div>
             </div>
-            <div class="group-actions">
+            <div class="right group-actions">
               <span class="member-count">{{ group.memberCount }}명</span>
-              <button class="action-btn edit-btn" @click="editUserGroup(group)">
-                수정
-              </button>
-              <button class="action-btn delete-btn" @click="deleteUserGroup(group)">
-                삭제
-              </button>
+              <button class="action-btn edit-btn" @click="editUserGroup(group)">수정</button>
+              <button class="action-btn delete-btn" @click="deleteUserGroup(group)">삭제</button>
             </div>
           </div>
         </div>
@@ -568,8 +568,9 @@ export default {
         );
         
         if (response.data.statusCode === 200) {
-          this.permissionGroups = response.data.result.content;
+          this.permissionGroups = response.data.result.content || [];
           this.totalPages = response.data.result.totalPages;
+          this.permissionGroups = this.sortPermissionGroups(this.permissionGroups);
         }
       } catch (error) {
         console.error('권한 그룹 목록 로드 실패:', error);
@@ -588,6 +589,7 @@ export default {
             groupParticipantCount: 1
           }
         ];
+        this.permissionGroups = this.sortPermissionGroups(this.permissionGroups);
       } finally {
         this.loading = false;
       }
@@ -598,6 +600,23 @@ export default {
         this.currentPage++;
         await this.loadPermissionGroups();
       }
+    },
+    
+    // 권한 그룹 정렬: 관리자 그룹 → 일반 유저 그룹 → 기타(이름 오름차순)
+    sortPermissionGroups(groups) {
+      const getPriority = (name) => {
+        if (name === '관리자 그룹') return 0;
+        if (name === '일반 유저 그룹') return 1;
+        return 2;
+      };
+      return [...(groups || [])].sort((a, b) => {
+        const pa = getPriority(a.accessGroupName);
+        const pb = getPriority(b.accessGroupName);
+        if (pa !== pb) return pa - pb;
+        const an = a.accessGroupName || '';
+        const bn = b.accessGroupName || '';
+        return an.localeCompare(bn, 'ko');
+      });
     },
     
     async loadWorkspaceDetail() {
@@ -1115,36 +1134,9 @@ export default {
       }
     },
     
-    // 사용자 그룹 상세 조회
-    async viewGroupDetail(group) {
-      try {
-        const token = localStorage.getItem('token');
-        const userId = localStorage.getItem('userId') || localStorage.getItem('id');
-        
-        const response = await axios.get(
-          `http://localhost:8080/workspace-service/groups/${group.id}`,
-          {
-            headers: {
-              'X-User-Id': userId,
-              'Authorization': `Bearer ${token}`
-            }
-          }
-        );
-        
-        if (response.data.statusCode === 200) {
-          const detail = response.data.result;
-          const memberList = detail.members.content.map(member => 
-            `${member.userName} (${member.userEmail})`
-          ).join('\n');
-          
-          alert(`${detail.groupName} 그룹 상세 정보:\n\n멤버 목록:\n${memberList || '멤버가 없습니다.'}`);
-        } else {
-          alert('그룹 상세 정보를 불러올 수 없습니다.');
-        }
-      } catch (error) {
-        console.error('사용자 그룹 상세 조회 실패:', error);
-        alert('그룹 상세 정보를 불러올 수 없습니다.');
-      }
+    // 사용자 그룹 상세 페이지로 이동
+    viewUserGroupDetail(group) {
+      this.$router.push(`/admin/user-group/${group.id}/detail`);
     },
     
     // 사용자 그룹 생성
@@ -1199,7 +1191,7 @@ export default {
     },
     
     // 권한 그룹 상세 조회
-    viewGroupDetail(group) {
+    viewPermissionGroupDetail(group) {
       this.$router.push(`/admin/permission-group/${group.accessGroupId}/detail`);
     },
     
@@ -1714,9 +1706,21 @@ export default {
 .group-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 16px 20px;
   cursor: pointer;
   transition: background-color 0.2s;
+}
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .group-header:hover {
@@ -1726,7 +1730,7 @@ export default {
 .group-icon {
   width: 24px;
   height: 24px;
-  margin-right: 16px;
+  margin-right: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1744,7 +1748,7 @@ export default {
 }
 
 .group-info {
-  flex: 1;
+  flex-grow: 1;
   text-align: left;
 }
 
@@ -1775,9 +1779,7 @@ export default {
 }
 
 .group-member-count {
-  flex: 1;
-  text-align: right;
-  margin-right: 16px;
+  margin-left: 0;
 }
 
 .member-count {
@@ -1799,7 +1801,6 @@ export default {
 
 .group-actions {
   position: relative;
-  margin-left: 16px;
 }
 
 .action-menu {
@@ -2437,6 +2438,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: nowrap;
   background: #FFFFFF;
   border: 1px solid #E9ECEF;
   border-radius: 4px;
@@ -2445,14 +2447,59 @@ export default {
   transition: background-color 0.2s;
 }
 
+/* 팀 카드 레이아웃 고정 */
+.team-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+}
+
+.team-card .left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.team-card .right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.team-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.team-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.team-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.created-date {
+  font-size: 0.875rem;
+  color: #888;
+}
+
 .user-group-item:hover {
   background: #F8F9FA;
 }
 
-.group-info {
+.user-groups-list .group-info {
   display: flex;
   align-items: center;
-  flex: 1;
+  flex: 0 1 auto;
 }
 
 .user-group-icon {
@@ -2464,7 +2511,8 @@ export default {
 }
 
 .group-details {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0; /* 긴 텍스트로 인한 레이아웃 깨짐 방지 */
 }
 
 .group-name {
@@ -2475,6 +2523,9 @@ export default {
   font-family: 'Pretendard', sans-serif;
   cursor: pointer;
   transition: color 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .group-name:hover {
@@ -2489,10 +2540,13 @@ export default {
   font-family: 'Pretendard', sans-serif;
 }
 
-.group-actions {
+.user-groups-list .group-actions {
   display: flex;
   align-items: center;
   gap: 15px;
+  margin-left: 24px;
+  flex-shrink: 0; /* 버튼/카운트 영역 줄바꿈 방지 */
+  white-space: nowrap;
 }
 
 .member-count {
@@ -2500,6 +2554,7 @@ export default {
   font-weight: 700;
   color: #1C0F0F;
   font-family: 'Pretendard', sans-serif;
+  white-space: nowrap;
 }
 
 .action-btn {

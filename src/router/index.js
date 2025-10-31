@@ -9,6 +9,7 @@ import { projectRouter } from './ProjectRouter';
 import { documentRouter } from './DocumentRouter';
 import { chatBotRouter } from './ChatBotRouter';
 import driveRouter from './DriveRouter';
+import { landingRouter } from './LandingRouter';
 import { scheduleRouter } from './ScheduleRouter';
 import { openViduRouter } from './OpenViduRouter';
 
@@ -24,7 +25,8 @@ const routes = [
     ...chatBotRouter,
     ...driveRouter,
     ...scheduleRouter,
-    ...openViduRouter
+    ...openViduRouter,
+    ...landingRouter,
 ];
 
 const router = createRouter({
