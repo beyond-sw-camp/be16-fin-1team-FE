@@ -1501,8 +1501,8 @@ export default {
       try {
         this.isLoadingStoneDetail = true;
         
-        // 루트 스톤인 경우 프로젝트 상세 정보 API 호출
-        if (stone.isRoot) {
+        // 진짜 최상위 루트 스톤인 경우에만 프로젝트 상세 정보 API 호출 (루트 이동으로 들어간 경우 제외)
+        if (stone.isRoot && this.focusedStoneStack.length === 0) {
           try {
             // 루트 스톤의 경우 프로젝트 ID를 사용
             // 현재 프로젝트의 ID를 사용하거나 stone.id를 프로젝트 ID로 사용
