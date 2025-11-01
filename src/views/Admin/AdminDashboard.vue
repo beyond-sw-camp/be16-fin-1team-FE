@@ -159,11 +159,19 @@
           <p class="sub-title">워크스페이스의 현황을 확인하세요</p>
         </div>
         
-        <!-- 프로젝트 스톤 마일스톤 섹션 -->
+        <!-- 프로젝트 스톤 마일스톤 섹션 (1번 - 가장 큰 영역) -->
         <div class="dashboard-section milestone-section">
           <div class="section-header">
-            <h2 class="section-title">프로젝트 스톤 마일스톤</h2>
-            <p class="section-subtitle">프로젝트별 마일스톤 트리 구조</p>
+            <div class="dashboard-header">
+              <h2 class="section-title">프로젝트 스톤 마일스톤</h2>
+              <!-- 프로젝트 선택 네비게이션 -->
+              <div v-if="milestoneForestData.length > 0 && selectedProjectData" class="project-navigation">
+                <span class="arrow" @click="selectPreviousProject">◀</span>
+                <span class="nav-text">{{ selectedProjectData.projectName }}</span>
+                <span class="arrow" @click="selectNextProject">▶</span>
+                <span class="page-info">{{ selectedProjectIndex + 1 }} / {{ milestoneForestData.length }}</span>
+              </div>
+            </div>
           </div>
           
           <div v-if="loadingMilestones" class="loading-container">
@@ -175,11 +183,12 @@
             <p>마일스톤 데이터가 없습니다.</p>
           </div>
           
-          <!-- 프로젝트 트리 차트 -->
+          <!-- 선택된 프로젝트 트리 차트 (단일 프로젝트만 표시) -->
           <milestone-forest
             v-else
-            :projects="milestoneForestData"
+            :projects="[selectedProjectData]"
             class="milestone-forest-wrapper"
+            v-if="selectedProjectData"
           />
         </div>
         
@@ -466,6 +475,9 @@ export default {
       // 사용자 그룹별 프로젝트 현황 관련 데이터
       userGroupProgress: [],
       loadingUserGroupProgress: false,
+      
+      // 프로젝트 선택 관련
+      selectedProjectIndex: 0,
       
     };
   },
@@ -1217,7 +1229,34 @@ export default {
         
         if (response.data.statusCode === 200) {
           console.log('API 응답 성공:', response.data.result);
-          this.projectMilestones = response.data.result;
+          const newProjects = response.data.result || [];
+          
+          // 배열 순서를 유지하면서 데이터만 갱신
+          if (this.projectMilestones && this.projectMilestones.length > 0) {
+            // 기존 프로젝트 순서를 유지하면서 내부 데이터만 갱신
+            this.projectMilestones.forEach(existingProject => {
+              const updated = newProjects.find(
+                np => np.projectId === existingProject.projectId
+              );
+              if (updated) {
+                // 기존 프로젝트 데이터만 갱신 (순서 유지)
+                Object.assign(existingProject, updated);
+              }
+            });
+            
+            // 새로운 프로젝트 추가 (기존에 없는 것만)
+            newProjects.forEach(newProject => {
+              const exists = this.projectMilestones.some(
+                p => p.projectId === newProject.projectId
+              );
+              if (!exists) {
+                this.projectMilestones.push(structuredClone(newProject));
+              }
+            });
+          } else {
+            // 처음 로드할 때는 structuredClone으로 순서 유지
+            this.projectMilestones = structuredClone(newProjects);
+          }
           console.log('projectMilestones 설정됨:', this.projectMilestones);
         }
       } catch (error) {
@@ -1519,6 +1558,19 @@ export default {
         percent: stone.milestone || 0,
         children: (stone.children || []).map(child => this.convertStoneToNode(child))
       };
+    },
+    
+    // 프로젝트 네비게이션 메서드
+    selectPreviousProject() {
+      if (this.selectedProjectIndex > 0) {
+        this.selectedProjectIndex--;
+      }
+    },
+    
+    selectNextProject() {
+      if (this.selectedProjectIndex < this.milestoneForestData.length - 1) {
+        this.selectedProjectIndex++;
+      }
     }
   },
   
@@ -1526,6 +1578,31 @@ export default {
     // computed로 미리 계산하여 반응성 보장
     milestoneForestData() {
       return this.transformToMilestoneForestData();
+    },
+    
+    // 선택된 프로젝트 데이터
+    selectedProjectData() {
+      if (!this.milestoneForestData || this.milestoneForestData.length === 0) {
+        return null;
+      }
+      // 인덱스 범위 체크
+      const index = Math.max(0, Math.min(this.selectedProjectIndex, this.milestoneForestData.length - 1));
+      return this.milestoneForestData[index];
+    }
+  },
+  
+  watch: {
+    // milestoneForestData가 변경되면 선택된 인덱스 조정
+    milestoneForestData: {
+      handler(newData) {
+        if (newData && newData.length > 0) {
+          // 인덱스가 범위를 벗어나면 0으로 리셋
+          if (this.selectedProjectIndex >= newData.length) {
+            this.selectedProjectIndex = 0;
+          }
+        }
+      },
+      immediate: true
     }
   }
 };
@@ -2730,16 +2807,23 @@ export default {
 
 /* 대시보드 섹션 스타일 */
 .dashboard-section {
-  background: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border: none !important;
   border-radius: 8px;
   padding: 30px;
   margin-bottom: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: none !important;
 }
 
 .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 25px;
+}
+
+.header-left {
+  flex: 1;
 }
 
 .section-title {
@@ -2760,9 +2844,87 @@ export default {
   margin: 0;
 }
 
-/* 프로젝트 스톤 마일스톤 섹션 */
+/* 프로젝트 스톤 마일스톤 섹션 (1번 - 가장 큰 영역) */
 .milestone-section {
-  background: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+  background: #2d2d2d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  min-height: 70vh;
+  margin-bottom: 40px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 제목 영역 (1번) - 화이트 배경 */
+.milestone-section .section-header {
+  background: #ffffff;
+  padding: 8px 16px;
+  margin-bottom: 0;
+  border-radius: 6px 6px 0 0;
+}
+
+.milestone-section .dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  width: 100%;
+  padding-top: 4px;
+}
+
+.milestone-section .section-title {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 24px;
+  line-height: 29px;
+  font-weight: 700;
+  color: #000;
+  margin: 0;
+}
+
+.milestone-section .section-subtitle {
+  color: #666666;
+}
+
+/* 프로젝트 네비게이션 */
+.milestone-section .project-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: auto;
+  background: transparent;
+  font-family: 'Pretendard', sans-serif;
+}
+
+.milestone-section .arrow {
+  color: #000;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.milestone-section .arrow:hover {
+  color: #ffd700;
+}
+
+.milestone-section .nav-text {
+  color: #000;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.milestone-section .page-info {
+  color: #555;
+  font-size: 13px;
+  font-weight: 500;
+  margin-left: 16px;
 }
 
 .milestone-tree {
@@ -2840,7 +3002,33 @@ export default {
 
 /* MilestoneForest 래퍼 */
 .milestone-forest-wrapper {
-  margin-top: 20px;
+  position: relative;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+  max-height: 80vh;
+  background-color: #1e1e1e;
+  padding: 20px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.milestone-section .no-data {
+  color: #ffffff;
+  background: #2d2d2d;
+  padding: 40px;
+  border-radius: 0 0 6px 6px;
+}
+
+.milestone-section .loading-container {
+  background: #2d2d2d;
+  border-radius: 0 0 6px 6px;
+}
+
+.milestone-section .loading-container p {
+  color: #ffffff;
 }
 
 /* 워크스페이스별 프로젝트 현황 섹션 */
