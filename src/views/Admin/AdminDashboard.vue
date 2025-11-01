@@ -175,11 +175,11 @@
             <p>마일스톤 데이터가 없습니다.</p>
           </div>
           
-          <!-- D3 트리 차트 -->
-          <d3-tree-chart
+          <!-- 프로젝트 트리 차트 -->
+          <milestone-forest
             v-else
-            :project-milestones="projectMilestones"
-            class="tree-chart-wrapper"
+            :projects="milestoneForestData"
+            class="milestone-forest-wrapper"
           />
         </div>
         
@@ -408,7 +408,7 @@ import { workspaceWatcher } from '@/mixins/workspaceWatcher';
 import MemberManagement from './MemberManagement.vue';
 import DeleteWorkspaceModal from '../Workspace/DeleteWorkspaceModal.vue';
 import StoneTreeNode from './StoneTreeNode.vue';
-import D3TreeChart from './D3TreeChart.vue';
+import MilestoneForest from '@/components/MilestoneForest.vue';
 
 export default {
   name: "AdminDashboard",
@@ -417,7 +417,7 @@ export default {
     MemberManagement,
     DeleteWorkspaceModal,
     StoneTreeNode,
-    D3TreeChart
+    MilestoneForest
   },
   data() {
     return {
@@ -1440,6 +1440,92 @@ export default {
       } else {
         return 'progress-in-progress';
       }
+    },
+    
+    // 재귀적으로 스톤 구조를 평탄화하는 헬퍼 함수
+    getFlatStones(milestones) {
+      if (!milestones || milestones.length === 0) return [];
+      
+      const flatList = [];
+      
+      const flatten = (stoneList) => {
+        stoneList.forEach(stone => {
+          flatList.push({
+            stoneId: stone.stoneId,
+            stoneName: stone.stoneName,
+            milestone: stone.milestone,
+            endTime: stone.endTime
+          });
+          
+          // 자식 스톤이 있으면 재귀적으로 처리
+          if (stone.children && stone.children.length > 0) {
+            flatten(stone.children);
+          }
+        });
+      };
+      
+      flatten(milestones);
+      return flatList;
+    },
+    
+    // projectMilestones를 MilestoneForest 컴포넌트용 형식으로 변환
+    transformToMilestoneForestData() {
+      if (!this.projectMilestones || this.projectMilestones.length === 0) return [];
+      
+      return this.projectMilestones.map(project => {
+        // 각 프로젝트의 마일스톤을 루트 노드로 변환
+        const rootNodes = (project.milestoneResDtoList || []).map(milestone => 
+          this.convertStoneToNode(milestone)
+        );
+        
+        // 프로젝트 전체 진행률 계산
+        const projectPercent = this.getProjectProgress(project);
+        
+        // 루트 노드가 여러 개인 경우 하나의 가상 루트로 묶기
+        let root;
+        if (rootNodes.length === 0) {
+          root = {
+            id: `root_${project.projectId}`,
+            name: project.projectName,
+            percent: projectPercent,
+            children: []
+          };
+        } else if (rootNodes.length === 1) {
+          root = rootNodes[0];
+        } else {
+          // 여러 루트가 있으면 가상 루트로 묶기
+          root = {
+            id: `root_${project.projectId}`,
+            name: project.projectName,
+            percent: projectPercent,
+            children: rootNodes
+          };
+        }
+        
+        return {
+          projectId: project.projectId,
+          projectName: project.projectName,
+          percent: projectPercent,
+          root: root
+        };
+      });
+    },
+    
+    // 스톤 데이터를 노드 형식으로 변환
+    convertStoneToNode(stone) {
+      return {
+        id: stone.stoneId || `stone_${Date.now()}`,
+        name: stone.stoneName,
+        percent: stone.milestone || 0,
+        children: (stone.children || []).map(child => this.convertStoneToNode(child))
+      };
+    }
+  },
+  
+  computed: {
+    // computed로 미리 계산하여 반응성 보장
+    milestoneForestData() {
+      return this.transformToMilestoneForestData();
     }
   }
 };
@@ -2752,9 +2838,8 @@ export default {
   font-size: 16px;
 }
 
-.tree-chart-wrapper {
-  width: 100%;
-  height: 800px; /* 세로 트리에 맞게 높이 증가 */
+/* MilestoneForest 래퍼 */
+.milestone-forest-wrapper {
   margin-top: 20px;
 }
 
@@ -3074,7 +3159,6 @@ export default {
     font-size: 20px;
     line-height: 24px;
   }
-  
   
   .project-stats {
     flex-direction: column;
