@@ -16,8 +16,8 @@
           <!-- 프로젝트 목록 섹션 -->
           <div class="project-section">
             <div class="section-header">
-              <h2 class="section-title">프로젝트 목록</h2>
-              <button class="add-button">+ 프로젝트 추가</button>
+              <h2 class="section-title">진행중인 프로젝트</h2>
+              <button class="add-button" @click="openProjectCreateModal">+ 프로젝트 추가</button>
             </div>
             <div class="gantt-chart">
               <div class="gantt-header">
@@ -30,16 +30,20 @@
                 <div v-if="loading" class="loading-message">
                   프로젝트 로딩 중...
                 </div>
-                <div v-else-if="myProjects.length === 0" class="no-tasks-message">
-                  참여 중인 프로젝트가 없습니다.
+                <div v-else-if="myProjects.length === 0" class="no-projects-message">
+                  <div class="no-projects-text">진행중인 프로젝트가 없습니다.</div>
+                  <div class="no-projects-subtext">새롭게 시작해보세요!</div>
                 </div>
                 <div v-else>
-                  <div class="gantt-bar" v-for="project in myProjects" :key="project.id" :style="project.style">
-                    <div class="bar-content">
-                      <div class="project-name">{{ project.name }}</div>
-                      <div class="project-period">{{ formatProjectPeriod(project.startTime, project.endTime) }}</div>
-                      <div class="project-progress">{{ project.progress }}%</div>
+                  <div class="gantt-bar-wrapper" v-for="project in myProjects" :key="project.id">
+                    <div class="gantt-bar" :style="project.style" @click="goToProject(project)">
+                      <div class="progress-fill" :style="{ width: project.progress + '%' }"></div>
+                      <div class="bar-content">
+                        <div class="project-name">{{ project.name }}</div>
+                        <div class="project-progress">{{ project.progress }}%</div>
+                      </div>
                     </div>
+                    <div class="project-period" :style="{ left: project.style.left }">{{ formatProjectPeriod(project.startTime, project.endTime) }}</div>
                   </div>
                 </div>
               </div>
@@ -230,6 +234,13 @@ export default {
       this.loadMyTasks(),
       this.loadMyProjects()
     ]);
+    
+    // 프로젝트 생성 후 목록 새로고침
+    window.addEventListener('projectCreated', this.onProjectCreated);
+  },
+  
+  beforeUnmount() {
+    window.removeEventListener('projectCreated', this.onProjectCreated);
   },
   
   computed: {
@@ -252,18 +263,32 @@ export default {
       const minDate = new Date(Math.min(...allDates));
       const maxDate = new Date(Math.max(...allDates));
       
-      // 30일 간격으로 라벨 생성
+      // 4개의 날짜 라벨 생성 (첫 날짜 + 2개 중간 + 마지막 날짜)
       const labels = [];
-      const current = new Date(minDate);
-      const end = new Date(maxDate);
+      const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+      const interval = totalDays / 3; // 3등분
       
-      while (current <= end) {
+      // 첫 번째 날짜
+      labels.push({
+        date: new Date(minDate),
+        label: `${minDate.getMonth() + 1}/${minDate.getDate()}`
+      });
+      
+      // 중간 날짜 2개
+      for (let i = 1; i <= 2; i++) {
+        const intermediateDate = new Date(minDate);
+        intermediateDate.setDate(minDate.getDate() + Math.round(interval * i));
         labels.push({
-          date: new Date(current),
-          label: `${current.getMonth() + 1}/${current.getDate()}`
+          date: new Date(intermediateDate),
+          label: `${intermediateDate.getMonth() + 1}/${intermediateDate.getDate()}`
         });
-        current.setDate(current.getDate() + 30);
       }
+      
+      // 마지막 날짜
+      labels.push({
+        date: new Date(maxDate),
+        label: `${maxDate.getMonth() + 1}/${maxDate.getDate()}`
+      });
       
       return labels;
     },
@@ -381,7 +406,9 @@ export default {
             // 프로젝트 기간 계산 (일 단위)
             const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
             const elapsedDays = Math.max(0, Math.ceil((now - startDate) / (1000 * 60 * 60 * 24)));
-            const progress = Math.min(100, Math.round((elapsedDays / totalDays) * 100));
+            
+            // 마일스톤 진행률 (서버에서 이미 계산된 값)
+            const progress = Number(project.milestone) || 0;
             
             return {
               id: project.projectId,
@@ -394,6 +421,11 @@ export default {
               elapsedDays: elapsedDays,
               style: {} // 임시로 빈 객체 설정
             };
+          });
+          
+          // 시작 일자가 빠른 순으로 정렬
+          this.myProjects.sort((a, b) => {
+            return new Date(a.startTime) - new Date(b.startTime);
           });
           
           // myProjects 설정 후 스타일 계산
@@ -519,8 +551,7 @@ export default {
         console.log('동일한 날짜 범위, 0% 위치 반환');
         return {
           left: '0%',
-          width: '100%',
-          backgroundColor: '#FFE364'
+          width: '100%'
         };
       }
       
@@ -542,8 +573,7 @@ export default {
       
       return {
         left: `${Math.max(0, leftPercent)}%`,
-        width: `${Math.min(100, widthPercent)}%`,
-        backgroundColor: '#FFE364'
+        width: `${Math.min(100, widthPercent)}%`
       };
     },
     
@@ -568,6 +598,23 @@ export default {
       const day = String(today.getDate()).padStart(2, '0');
       
       return `Today ${year}.${month}.${day}`;
+    },
+    
+    // 프로젝트 생성 모달 열기
+    openProjectCreateModal() {
+      window.dispatchEvent(new CustomEvent('openCreateProjectModal'));
+    },
+    
+    // 프로젝트 생성 후 목록 새로고침
+    async onProjectCreated() {
+      console.log('Home: 프로젝트 생성됨, 목록 새로고침');
+      await this.loadMyProjects();
+    },
+    
+    // 프로젝트 페이지로 이동
+    goToProject(project) {
+      console.log('프로젝트로 이동:', project);
+      this.$router.push({ path: '/project', query: { id: project.id } });
     }
   }
 };
@@ -642,13 +689,20 @@ export default {
 /* 프로젝트 섹션 */
 .project-section {
   background: #FFFFFF;
-  border-radius: 15px;
+  border-radius: 16px;
   padding: 18px;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.project-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .section-header {
@@ -674,10 +728,24 @@ export default {
   color: #FFFFFF;
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 10px;
-  line-height: 12px;
-  padding: 5px 12px;
+  font-size: 12px;
+  line-height: 14px;
+  padding: 8px 16px;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-button:hover {
+  background: #3A3838;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.add-button:focus,
+.add-button:focus-visible,
+.add-button:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* 간트 차트 */
@@ -687,12 +755,16 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: visible;
 }
 
 .gantt-header {
   position: relative;
-  height: 30px;
+  height: auto;
   margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #E0E0E0;
+  overflow: visible;
 }
 
 .month-labels {
@@ -700,66 +772,122 @@ export default {
   justify-content: space-between;
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 10px;
-  line-height: 12px;
+  font-size: 12px;
+  line-height: 14px;
   color: #666666;
+  padding-bottom: 6px;
+}
+
+.month-labels span {
+  position: relative;
+}
+
+.month-labels span::after {
+  content: '';
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 8px;
+  background: #E0E0E0;
 }
 
 .today-line {
   position: absolute;
-  top: 20px;
+  bottom: 0;
   width: 2px;
-  height: 20px;
-  background: #FF4444;
-  border: 2px dashed #FF4444;
+  height: calc(100% + 100px);
+  background: transparent;
+  z-index: 10;
+  pointer-events: none;
 }
 
 .today-line::before {
   content: 'Today';
   position: absolute;
-  top: -15px;
-  left: -15px;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
   font-size: 10px;
   line-height: 12px;
   color: #FF4444;
   background: #FFFFFF;
-  padding: 2px 4px;
+  padding: 2px 6px;
   border-radius: 3px;
   white-space: nowrap;
+  z-index: 11;
+  pointer-events: auto;
+}
+
+.today-line::after {
+  content: '';
+  position: absolute;
+  bottom: -320px;
+  left: 0;
+  width: 2px;
+  height: calc(100% + 200px);
+  border-left: 2px dashed rgba(255, 68, 68, 0.6);
 }
 
 .gantt-bars {
   position: relative;
   flex: 1;
-  min-height: 80px;
+  min-height: 230px;
+  z-index: 1;
+}
+
+.gantt-bar-wrapper {
+  position: absolute;
+  width: 100%;
+}
+
+.gantt-bar-wrapper:nth-child(1) {
+  top: 0px;
+}
+
+.gantt-bar-wrapper:nth-child(2) {
+  top: 60px;
+}
+
+.gantt-bar-wrapper:nth-child(3) {
+  top: 120px;
+}
+
+.gantt-bar-wrapper:nth-child(4) {
+  top: 180px;
 }
 
 .gantt-bar {
   position: absolute;
-  height: 20px;
-  border-radius: 4px;
+  height: 30px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  padding: 0 8px;
+  padding: 0 16px;
+  z-index: 2;
+  background: #E9ECEF;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gantt-bar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.progress-fill {
+  position: absolute;
+  left: 0;
   top: 0;
-}
-
-.gantt-bar:nth-child(1) {
-  top: 0px;
-}
-
-.gantt-bar:nth-child(2) {
-  top: 30px;
-}
-
-.gantt-bar:nth-child(3) {
-  top: 60px;
-}
-
-.gantt-bar:nth-child(4) {
-  top: 90px;
+  height: 100%;
+  background: #FFE364;
+  border-radius: 8px;
+  transition: width 0.3s ease;
+  z-index: 1;
 }
 
 .bar-content {
@@ -767,30 +895,35 @@ export default {
   align-items: center;
   gap: 8px;
   width: 100%;
+  position: relative;
+  z-index: 2;
 }
 
 .project-name {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 8px;
-  line-height: 10px;
+  font-size: 13px;
+  line-height: 16px;
   color: #2A2828;
   flex: 1;
 }
 
 .project-period {
+  position: absolute;
+  top: 32px;
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 8px;
-  line-height: 10px;
+  font-size: 10px;
+  line-height: 12px;
   color: #666666;
+  white-space: nowrap;
 }
 
 .project-progress {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 8px;
-  line-height: 10px;
+  font-size: 13px;
+  line-height: 16px;
   color: #000000;
 }
 
@@ -799,12 +932,19 @@ export default {
 /* 나의 Task 섹션 */
 .urgent-tasks-section {
   background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
-  border-radius: 15px;
+  border-radius: 16px;
   padding: 18px;
   height: 100%;
   overflow-y: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.urgent-tasks-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .task-stats {
@@ -821,6 +961,13 @@ export default {
   background: #F8F9FA;
   border-radius: 8px;
   min-width: 55px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.stat-item:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .stat-item.completed {
@@ -896,7 +1043,7 @@ export default {
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .task-item {
@@ -904,6 +1051,17 @@ export default {
   align-items: center;
   gap: 10px;
   margin-bottom: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.task-item:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: translateX(2px);
+  cursor: pointer;
 }
 
 .task-progress-bar {
@@ -969,17 +1127,49 @@ export default {
   padding: 20px;
 }
 
+.no-projects-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+}
+
+.no-projects-text {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 17px;
+  color: #666666;
+}
+
+.no-projects-subtext {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14px;
+  color: #999999;
+}
+
 
 /* 나의 스톤 문서함 섹션 */
 .stone-documents-section {
   background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
-  border-radius: 15px;
+  border-radius: 16px;
   padding: 18px;
   flex: 1;
   min-height: 0;
   overflow-y: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.stone-documents-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .document-list {
@@ -991,8 +1181,16 @@ export default {
 }
 
 .document-folder {
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+
+.document-folder:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .folder-header {
@@ -1036,12 +1234,19 @@ export default {
 /* 채팅 알림 섹션 */
 .chat-notifications-section {
   background: #FFFFFF;
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 18px;
   height: 100%;
   overflow-y: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.chat-notifications-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .notifications-header {
@@ -1069,7 +1274,7 @@ export default {
 .notifications-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
   flex: 1;
   overflow-y: auto;
 }
@@ -1078,8 +1283,22 @@ export default {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid #F0F0F0;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  background: #FAFAFA;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.notification-item:last-child {
+  margin-bottom: 0;
+}
+
+.notification-item:hover {
+  background: #F0F0F0;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .notification-avatar {
