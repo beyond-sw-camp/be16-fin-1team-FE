@@ -248,20 +248,24 @@
                 </text>
                 
                 <!-- 스톤명 텍스트 -->
-                <text
-                  :x="stone.x + (stone.isRoot ? 90 : 75)"
-                  :y="stone.y + (stone.isRoot ? 90 : 75)"
-                  text-anchor="middle"
-                  :class="stone.isRoot ? 'root-stone-name' : 'stone-name'"
+                <foreignObject
+                  :x="stone.x + (stone.isRoot ? 20 : 15)"
+                  :y="stone.y + (stone.isRoot ? 75 : 60)"
+                  :width="stone.isRoot ? 140 : 120"
+                  :height="stone.isRoot ? 50 : 40"
                 >
-                  {{ stone.name }}
-                </text>
+                  <div xmlns="http://www.w3.org/1999/xhtml" 
+                    :class="stone.isRoot ? 'root-stone-name-container' : 'stone-name-container'"
+                  >
+                    {{ stone.name }}
+                  </div>
+                </foreignObject>
                 
                 <!-- D-Day 텍스트 -->
                 <text
                   v-if="stone.dDay"
                   :x="stone.x + (stone.isRoot ? 90 : 75)"
-                  :y="stone.y + (stone.isRoot ? 90 : 75) + 40"
+                  :y="stone.y + (stone.isRoot ? 135 : 115)"
                   text-anchor="middle"
                   :class="stone.isRoot ? 'root-stone-dday' : 'stone-dday'"
                 >
@@ -1501,8 +1505,8 @@ export default {
       try {
         this.isLoadingStoneDetail = true;
         
-        // 루트 스톤인 경우 프로젝트 상세 정보 API 호출
-        if (stone.isRoot) {
+        // 진짜 최상위 루트 스톤인 경우에만 프로젝트 상세 정보 API 호출 (루트 이동으로 들어간 경우 제외)
+        if (stone.isRoot && this.focusedStoneStack.length === 0) {
           try {
             // 루트 스톤의 경우 프로젝트 ID를 사용
             // 현재 프로젝트의 ID를 사용하거나 stone.id를 프로젝트 ID로 사용
@@ -1526,7 +1530,7 @@ export default {
               // 프로젝트 상세 데이터를 모달에 맞는 형태로 변환
               this.selectedStoneData = {
                 stoneId: stone.id,
-                stoneName: stone.stoneName,
+                stoneName: projectDetail.projectName,
                 startTime: projectDetail.startTime,
                 endTime: projectDetail.endTime,
                 manager: '프로젝트 담당자', // API에 담당자 정보가 없으므로 기본값
@@ -1668,16 +1672,24 @@ export default {
       const convertStoneToNode = (stone) => {
         console.log('convertStoneToNode 처리 중:', stone.stoneName, 'childStone:', stone.childStone);
         
+        // 최상위 루트 스톤인 경우 프로젝트명 사용
+        const isRootStone = this.currentFocusedStoneId ? (stone.stoneId === this.currentFocusedStoneId) : (stone.parentStoneId === null);
+        const displayName = (isRootStone && !this.currentFocusedStoneId) ? this.projectName : stone.stoneName;
+        
         const node = {
           id: stone.stoneId,
-          name: stone.stoneName,
+          name: displayName,
+          stoneName: displayName,
           milestone: stone.milestone,
           startTime: stone.startTime,
           endTime: stone.endTime,
-          isRoot: this.currentFocusedStoneId ? (stone.stoneId === this.currentFocusedStoneId) : (stone.parentStoneId === null),
+          isRoot: isRootStone,
           parentId: stone.parentStoneId,
           dDay: this.calculateDDay(stone.endTime),
           createdAt: stone.createdAt,
+          projectId: stone.projectId || this.$route.query.id,
+          stoneStatus: stone.stoneStatus,
+          isChatCreation: stone.isChatCreation,
           x: 0,
           y: 0
         };
@@ -4252,6 +4264,12 @@ export default {
   font-weight: 700;
 }
 
+.completed-stone .stone-name-container,
+.completed-stone .root-stone-name-container {
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
 .completed-stone .stone-milestone,
 .completed-stone .root-stone-milestone {
   fill: #22C55E;
@@ -4299,7 +4317,7 @@ export default {
   font-family: 'Pretendard', sans-serif;
   font-weight: 500;
   font-size: 11px;
-  fill: #6B8E89;
+  fill: #4A4848;
   text-anchor: middle;
   pointer-events: all;
   letter-spacing: 0.5px;
@@ -4308,7 +4326,7 @@ export default {
 }
 
 .create-stone-text:hover .create-stone-text-content {
-  fill: #4A7D77;
+  fill: #2A2828;
   font-size: 12px;
 }
 
@@ -4359,7 +4377,7 @@ export default {
   font-family: 'Pretendard', sans-serif;
   font-weight: 500;
   font-size: 11px;
-  fill: #6B8E89;
+  fill: #4A4848;
   text-anchor: middle;
   pointer-events: all;
   letter-spacing: 0.5px;
@@ -4368,7 +4386,7 @@ export default {
 }
 
 .focus-stone-text:hover .focus-stone-text-content {
-  fill: #4A7D77;
+  fill: #2A2828;
   font-size: 12px;
 }
 
@@ -4381,6 +4399,22 @@ export default {
   pointer-events: none;
   text-anchor: middle;
   line-height: 1.2;
+}
+
+.stone-name-container {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #FFFFFF;
+  text-align: center;
+  line-height: 1.2;
+  pointer-events: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .stone-dday {
@@ -4410,6 +4444,22 @@ export default {
   pointer-events: none;
   text-anchor: middle;
   line-height: 1.2;
+}
+
+.root-stone-name-container {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #FFFFFF;
+  text-align: center;
+  line-height: 1.2;
+  pointer-events: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .root-stone-dday {
