@@ -956,8 +956,7 @@ export default {
 .storage-text {
   position: absolute;
   left: 22px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
   font-family: 'Pretendard', sans-serif;
   font-weight: 800;
   font-size: 12px;

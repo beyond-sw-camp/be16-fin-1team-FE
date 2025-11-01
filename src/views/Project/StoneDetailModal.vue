@@ -1,30 +1,31 @@
 <template>
-  <div v-if="isVisible" class="stone-detail-modal" @click="closeModal" @mounted="console.log('스톤 상세 모달 표시됨')">
-    <div class="modal-content" @click.stop>
+  <div v-if="isVisible" class="stone-detail-modal" :class="{ 'expanded': isExpandedToCenter }" @click="closeModal" @mounted="console.log('스톤 상세 모달 표시됨')">
+    <div class="modal-content" :class="{ 'expanded': isExpandedToCenter }" @click.stop>
       <!-- 모달 헤더 -->
       <div class="modal-header" @mounted="console.log('모달 헤더 렌더링됨')">
         <div class="header-left">
-          <button class="collapse-btn" @click="toggleCollapse">
-            <svg v-if="!isCollapsed" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 18L15 12L9 6" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <button class="close-modal-btn" @click.stop="closeModal" title="모달 닫기">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12.08,4.08L20,12L12.08,19.92L10.67,18.5L16.17,13H2V11H16.17L10.67,5.5L12.08,4.08M20,12V22H22V2H20V12Z" />
             </svg>
           </button>
-          <button class="expand-btn" @click="toggleExpand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 3H5C3.89543 3 3 3.89543 3 5V8M21 3H18M21 21V18M3 21V18" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <button class="expand-center-btn" @click.stop="toggleExpandToCenter" title="중앙 확장">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10,21V19H6.41L10.91,14.5L9.5,13.09L5,17.59V14H3V21H10M14.5,10.91L19,6.41V10H21V3H14V5H17.59L13.09,9.5L14.5,10.91Z" />
             </svg>
           </button>
         </div>
         <div class="header-right">
-          <!-- 휴지통 아이콘 제거됨 -->
+          <button class="trash-btn" @click.stop="deleteStone" title="삭제">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M9,8H11V17H9V8M13,8H15V17H13V8Z" />
+            </svg>
+          </button>
         </div>
       </div>
 
         <!-- 모달 본문 -->
-        <div v-if="!isCollapsed" class="modal-body">
+        <div class="modal-body">
           <!-- 로딩 상태 -->
           <div v-if="isLoading" class="loading-container">
             <div class="loading-spinner"></div>
@@ -57,14 +58,6 @@
               title="스톤 수정"
             >
               수정
-            </button>
-            <button 
-              v-if="!currentStoneData?.isProject" 
-              class="delete-stone-btn" 
-              @click="deleteStone" 
-              title="스톤 삭제"
-            >
-              삭제
             </button>
           </div>
         </div>
@@ -752,6 +745,7 @@ export default {
   data() {
     return {
       isCollapsed: false,
+      isExpandedToCenter: false,
       showDeleteConfirm: false,
       isDeleting: false,
       showManagerSelectModal: false,
@@ -861,6 +855,9 @@ export default {
     },
     toggleExpand() {
       this.$emit('expand')
+    },
+    toggleExpandToCenter() {
+      this.isExpandedToCenter = !this.isExpandedToCenter
     },
     editStone() {
       console.log('수정 버튼 클릭됨!', this.stoneData)
@@ -1814,7 +1811,7 @@ export default {
 <style scoped>
 .stone-detail-modal {
   position: fixed;
-  top: 0;
+  top: 64px;
   left: 0;
   right: 0;
   bottom: 0;
@@ -1823,7 +1820,14 @@ export default {
   display: flex;
   justify-content: flex-end;
   align-items: stretch;
+  padding-left: 280px;
   animation: fadeIn 0.3s ease-out;
+}
+
+.stone-detail-modal.expanded {
+  justify-content: center;
+  align-items: center;
+  padding-left: 280px;
 }
 
 @keyframes fadeIn {
@@ -1839,7 +1843,7 @@ export default {
   width: 50vw;
   max-width: 600px;
   min-width: 400px;
-  height: 100vh;
+  height: calc(100vh - 64px);
   background: #FFFFFF;
   overflow: visible;
   border-left: 1px solid rgba(42, 40, 40, 0.5);
@@ -1848,6 +1852,28 @@ export default {
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
   position: relative;
   animation: slideIn 0.3s ease-out;
+}
+
+.modal-content.expanded {
+  width: 85vw;
+  max-width: 1400px;
+  height: calc(90vh - 64px);
+  border-left: none;
+  border: 1px solid rgba(42, 40, 40, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  animation: expandToCenter 0.3s ease-out;
+}
+
+@keyframes expandToCenter {
+  from {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
@@ -1863,44 +1889,116 @@ export default {
   display: flex !important;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 30px;
-  border-bottom: 1px solid rgba(42, 40, 40, 0.1);
-  background: #F5F5F5;
-  min-height: 60px;
+  padding: 12px 20px !important;
+  border-bottom: 1px solid #E0E0E0;
+  background: #FFFFFF !important;
+  min-height: 50px !important;
+  height: auto !important;
   visibility: visible !important;
   opacity: 1 !important;
-  overflow: visible;
+  overflow: visible !important;
   position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.modal-content.expanded .modal-header {
+  border-radius: 12px 12px 0 0;
 }
 
 .header-left {
-  display: flex;
+  display: flex !important;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .header-right {
-  display: flex;
+  display: flex !important;
   align-items: center;
-  gap: 10px;
-  padding-right: 10px;
-  margin-right: -10px;
+  gap: 12px;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
+.close-modal-btn,
+.expand-center-btn,
 .collapse-btn,
 .expand-btn,
-.delete-btn {
-  background: none;
-  border: none;
+.delete-btn,
+.trash-btn {
+  background: none !important;
+  border: none !important;
   cursor: pointer;
-  padding: 8px;
+  padding: 4px;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  visibility: visible !important;
+  opacity: 1 !important;
+  outline: none !important;
 }
 
+.close-modal-btn:focus,
+.expand-center-btn:focus,
+.collapse-btn:focus,
+.expand-btn:focus,
+.delete-btn:focus,
+.trash-btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.close-modal-btn svg,
+.expand-center-btn svg,
+.collapse-btn svg,
+.expand-btn svg,
+.trash-btn svg {
+  display: block !important;
+  pointer-events: none;
+  transition: all 0.2s;
+}
+
+.close-modal-btn:hover,
+.expand-center-btn:hover,
 .collapse-btn:hover,
 .expand-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(244, 206, 83, 0.1) !important;
+}
+
+.close-modal-btn:hover svg,
+.expand-center-btn:hover svg {
+  fill: #F4CE53;
+}
+
+.trash-btn:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+.trash-btn:hover svg {
+  fill: #EF4444;
+}
+
+.collapse-btn:hover svg path,
+.expand-btn:hover svg path {
+  stroke: #F4CE53;
+}
+
+.close-modal-btn:active,
+.expand-center-btn:active,
+.collapse-btn:active,
+.expand-btn:active,
+.trash-btn:active {
+  transform: scale(0.95);
 }
 
 .edit-stone-btn,
@@ -1978,6 +2076,10 @@ export default {
   padding: 30px;
   overflow-y: auto;
   background: #FFFFFF;
+}
+
+.modal-content.expanded .modal-body {
+  border-radius: 0 0 12px 12px;
 }
 
 .modal-body::-webkit-scrollbar {
