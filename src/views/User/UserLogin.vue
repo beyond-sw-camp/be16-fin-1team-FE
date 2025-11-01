@@ -14,7 +14,7 @@
 
                   <div class="helper">계정으로 로그인해 주세요</div>
 
-                  <div class="controls-group">
+                  <form class="controls-group" @submit.prevent="handleLogin">
                     <div class="field">
                       <div class="label">이메일 주소</div>
                       <v-text-field v-model="email" variant="outlined" density="comfortable" hide-details class="text-bg" placeholder="이메일을 입력하세요" />
@@ -34,14 +34,14 @@
                     </div>
 
                   <div class="btn-wrap">
-                    <v-btn class="login-btn" height="45" rounded="lg" :loading="isLoading" @click="handleLogin">로그인</v-btn>
+                    <v-btn class="login-btn" height="45" rounded="lg" :loading="isLoading" type="submit">로그인</v-btn>
                   </div>
 
                   <div class="signup">
                     <span class="text">계정이 없으신가요?</span>
                     <router-link to="/new-user/input-email" class="text-link">회원가입</router-link>
                   </div>
-                  </div>
+                  </form>
                 </div>
 
                 <div class="bottom-group">
