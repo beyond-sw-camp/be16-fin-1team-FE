@@ -1,17 +1,23 @@
 <template>
   <div v-if="isVisible" class="stone-detail-modal" :class="{ 'expanded': isExpandedToCenter }" @click="closeModal" @mounted="console.log('스톤 상세 모달 표시됨')">
-    <div class="modal-content" :class="{ 'expanded': isExpandedToCenter }" @click.stop>
+    <div class="modal-content" :class="{ 'expanded': isExpandedToCenter }" @click.stop="handleModalContentClick">
       <!-- 모달 헤더 -->
       <div class="modal-header" @mounted="console.log('모달 헤더 렌더링됨')">
         <div class="header-left">
           <button class="close-modal-btn" @click.stop="closeModal" title="모달 닫기">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+            <svg v-if="!isExpandedToCenter" width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
               <path d="M12.08,4.08L20,12L12.08,19.92L10.67,18.5L16.17,13H2V11H16.17L10.67,5.5L12.08,4.08M20,12V22H22V2H20V12Z" />
             </svg>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+            </svg>
           </button>
-          <button class="expand-center-btn" @click.stop="toggleExpandToCenter" title="중앙 확장">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+          <button class="expand-center-btn" @click.stop="toggleExpandToCenter" :title="isExpandedToCenter ? '사이드 축소' : '중앙 확장'">
+            <svg v-if="!isExpandedToCenter" width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
               <path d="M10,21V19H6.41L10.91,14.5L9.5,13.09L5,17.59V14H3V21H10M14.5,10.91L19,6.41V10H21V3H14V5H17.59L13.09,9.5L14.5,10.91Z" />
+            </svg>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19.5,3.09L15,7.59V4H13V11H20V9H16.41L20.91,4.5L19.5,3.09M4,13V15H7.59L3.09,19.5L4.5,20.91L9,16.41V20H11V13H4Z" />
             </svg>
           </button>
         </div>
@@ -130,9 +136,8 @@
           <!-- 담당자 정보 -->
           <div class="info-section">
             <div class="info-label">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="12" cy="7" r="4" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
               </svg>
               <span>담당자</span>
             </div>
@@ -141,12 +146,11 @@
               <button class="edit-user-btn" @click="editManager" title="담당자 수정">
                 <div class="icon-with-plus">
                   <!-- 담당자 아이콘 -->
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" :stroke="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#666666'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="7" r="4" :stroke="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#666666'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <svg width="16" height="16" viewBox="0 0 24 24" :fill="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#666666'" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
                   </svg>
                   <!-- + 기호 (오른쪽에 별도 위치) -->
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 5V19M5 12H19" :stroke="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#666666'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
@@ -157,11 +161,8 @@
           <!-- 참여자 정보 -->
           <div class="info-section">
             <div class="info-label" :class="{ 'empty-label': !currentStoneData?.participants || currentStoneData?.participants === '비어 있음' }">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="9" cy="7" r="4" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M23 21V19C23 17.9391 22.5786 16.9217 21.8284 16.1716C21.0783 15.4214 20.0609 15 19 15H16" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="19" cy="7" r="3" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg width="24" height="24" viewBox="0 0 24 24" :fill="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16.5,12A2.5,2.5 0 0,0 19,9.5A2.5,2.5 0 0,0 16.5,7A2.5,2.5 0 0,0 14,9.5A2.5,2.5 0 0,0 16.5,12M9,11A3,3 0 0,0 12,8A3,3 0 0,0 9,5A3,3 0 0,0 6,8A3,3 0 0,0 9,11M16.5,14C14.67,14 11,14.92 11,16.75V19H22V16.75C22,14.92 18.33,14 16.5,14M9,13C6.67,13 2,14.17 2,16.5V19H9V16.75C9,15.9 9.33,14.41 11.37,13.28C10.5,13.1 9.66,13 9,13Z" />
               </svg>
               <span>참여자</span>
             </div>
@@ -170,14 +171,11 @@
               <button class="edit-user-btn" @click="editParticipants" title="참여자 수정">
                 <div class="icon-with-plus">
                   <!-- 참여자 아이콘 -->
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#666666'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="9" cy="7" r="4" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#666666'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M23 21V19C23 17.9391 22.5786 16.9217 21.8284 16.1716C21.0783 15.4214 20.0609 15 19 15H16" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#666666'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="19" cy="7" r="3" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#666666'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <svg width="16" height="16" viewBox="0 0 24 24" :fill="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#666666'" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16.5,12A2.5,2.5 0 0,0 19,9.5A2.5,2.5 0 0,0 16.5,7A2.5,2.5 0 0,0 14,9.5A2.5,2.5 0 0,0 16.5,12M9,11A3,3 0 0,0 12,8A3,3 0 0,0 9,5A3,3 0 0,0 6,8A3,3 0 0,0 9,11M16.5,14C14.67,14 11,14.92 11,16.75V19H22V16.75C22,14.92 18.33,14 16.5,14M9,13C6.67,13 2,14.17 2,16.5V19H9V16.75C9,15.9 9.33,14.41 11.37,13.28C10.5,13.1 9.66,13 9,13Z" />
                   </svg>
                   <!-- + 기호 (오른쪽에 별도 위치) -->
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 5V19M5 12H19" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#666666'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
@@ -194,12 +192,10 @@
               <span>채팅방</span>
             </div>
             <div class="info-value">
-              <div class="chat-link" :class="{ 'disabled': !currentStoneData?.chatCreation }">
+              <div class="chat-link" :class="{ 'disabled': !currentStoneData?.chatCreation }" @click="goToChatRoom">
                 <span :class="{ 'empty-value': !currentStoneData?.chatCreation }">{{ currentStoneData?.chatCreation ? '바로가기' : '채팅방 없음' }}</span>
-                <svg v-if="currentStoneData?.chatCreation" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M15 3H21V9" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M10 14L21 3" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <svg v-if="currentStoneData?.chatCreation" width="18" height="18" viewBox="0 0 24 24" fill="#F6D365" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z" />
                 </svg>
               </div>
             </div>
@@ -208,7 +204,7 @@
           <!-- 문서함 -->
           <div class="info-section">
             <div class="info-label">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22,4H14L12,2H6A2,2 0 0,0 4,4V16A2,2 0 0,0 6,18H22A2,2 0 0,0 24,16V6A2,2 0 0,0 22,4M2,6H0V11H0V20A2,2 0 0,0 2,22H20V20H2V6Z" />
               </svg>
               <span>문서함</span>
@@ -216,10 +212,8 @@
             <div class="info-value">
               <div class="document-link">
                 <span>{{ currentStoneData?.documentLink || '바로가기' }}</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M15 3H21V9" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M10 14L21 3" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#F6D365" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z" />
                 </svg>
               </div>
             </div>
@@ -233,7 +227,41 @@
 
           <!-- 태스크 섹션 -->
           <div class="tasks-section">
-            <div class="section-title">태스크</div>
+            <div class="section-title">
+              <div class="section-title-left">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 6L21 6.00072M11 12L21 12.0007M11 18L21 18.0007M3 11.9444L4.53846 13.5L8 10M3 5.94444L4.53846 7.5L8 4M4.5 18H4.51M5 18C5 18.2761 4.77614 18.5 4.5 18.5C4.22386 18.5 4 18.2761 4 18C4 17.7239 4.22386 17.5 4.5 17.5C4.77614 17.5 5 17.7239 5 18Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>태스크</span>
+              </div>
+              <div class="task-sort-dropdown" ref="sortDropdown">
+                <button class="sort-btn" @click.stop="toggleSortDropdown">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H21M7 12H17M11 18H13" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <div v-if="showSortDropdown" class="sort-dropdown-menu" @click.stop>
+                  <div class="sort-option" @click="setSortOption('incomplete-first')">
+                    <span>미완료된 태스크 순</span>
+                    <svg v-if="taskSortOption === 'incomplete-first'" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" fill="#F4CE53" stroke="#F4CE53" stroke-width="1"/>
+                    </svg>
+                  </div>
+                  <div class="sort-option" @click="setSortOption('completed-first')">
+                    <span>완료된 태스크 순</span>
+                    <svg v-if="taskSortOption === 'completed-first'" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" fill="#F4CE53" stroke="#F4CE53" stroke-width="1"/>
+                    </svg>
+                  </div>
+                  <div class="sort-option" @click="setSortOption('dday-asc')">
+                    <span>D-day 임박 순</span>
+                    <svg v-if="taskSortOption === 'dday-asc'" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" fill="#F4CE53" stroke="#F4CE53" stroke-width="1"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="task-list">
               <!-- 태스크 로딩 상태 -->
               <div v-if="isLoadingTasks" class="task-loading">
@@ -243,10 +271,13 @@
               
               <!-- 태스크 목록 -->
               <div v-else-if="taskList.length > 0">
-                <div v-for="task in taskList" :key="task.id" class="task-item">
+                <div v-for="task in sortedTaskList" :key="task.id" class="task-item">
                 <div class="task-checkbox" :class="{ 'completed': task.completed }" @click="toggleTaskComplete(task)">
-                  <svg v-if="task.completed" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 12L11 14L15 10" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <svg v-if="task.completed" width="28" height="28" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,5V19H5V5H19M10,17L6,13L7.41,11.58L10,14.17L16.59,7.58L18,9" />
+                  </svg>
+                  <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z" />
                   </svg>
                 </div>
                 <div class="task-content">
@@ -254,16 +285,13 @@
                   <div class="task-period">{{ formatDateRange(task.startTime, task.endTime) }}</div>
                 </div>
                   <div class="task-assignee">
-                    <div class="assignee-info">
-                      <div class="assignee-name">{{ task.assigneeName || '담당자 없음' }}</div>
+                    <div class="assignee-info" @click="openTaskAssigneeEditModal(task)" title="담당자 변경">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
+                      </svg>
+                      <span class="assignee-name">{{ task.assigneeName || '담당자 없음' }}</span>
                     </div>
                     <div class="assignee-icons">
-                      <div class="icon-button" @click="openTaskAssigneeEditModal(task)" title="담당자 변경">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="user-icon">
-                          <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <circle cx="12" cy="7" r="4" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                      </div>
                       <div class="icon-button" @click="deleteTask(task)" title="태스크 삭제">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="trash-icon">
                           <path d="M3 6H5H21" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -292,7 +320,7 @@
                 @click="addTask"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 5V19M5 12H19" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 5V19M5 12H19" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 <span>{{ isStoneCompleted ? '완료된 스톤' : '태스크 추가' }}</span>
               </button>
@@ -785,6 +813,8 @@ export default {
       isTaskAssigneeSearching: false,
       taskList: [],
       isLoadingTasks: false,
+      showSortDropdown: false,
+      taskSortOption: 'incomplete-first',
       showTaskAssigneeEditModal: false,
       editingTaskId: null,
       editingTaskName: '',
@@ -819,6 +849,40 @@ export default {
     // 스톤이 완료되었는지 확인
     isStoneCompleted() {
       return this.currentStoneData?.stoneStatus === 'COMPLETED' || this.currentStoneData?.milestone === 100;
+    },
+    
+    // 정렬된 태스크 리스트
+    sortedTaskList() {
+      if (!this.taskList || this.taskList.length === 0) return [];
+      
+      const tasks = [...this.taskList];
+      
+      switch (this.taskSortOption) {
+        case 'completed-first':
+          // 완료된 것 먼저
+          return tasks.sort((a, b) => {
+            if (a.completed === b.completed) return 0;
+            return a.completed ? -1 : 1;
+          });
+          
+        case 'incomplete-first':
+          // 미완료 먼저
+          return tasks.sort((a, b) => {
+            if (a.completed === b.completed) return 0;
+            return a.completed ? 1 : -1;
+          });
+          
+        case 'dday-asc':
+          // D-day 임박 순 (종료일이 가까운 순)
+          return tasks.sort((a, b) => {
+            const dateA = new Date(a.endTime);
+            const dateB = new Date(b.endTime);
+            return dateA - dateB;
+          });
+          
+        default:
+          return tasks;
+      }
     }
   },
   methods: {
@@ -854,6 +918,28 @@ export default {
     
     closeModal() {
       this.$emit('close')
+    },
+    goToChatRoom() {
+      if (!this.currentStoneData?.chatCreation) {
+        return;
+      }
+      // 스톤메신저로 이동
+      this.$router.push('/chat/main');
+      // 모달 닫기
+      this.$emit('close');
+    },
+    toggleSortDropdown() {
+      this.showSortDropdown = !this.showSortDropdown;
+    },
+    setSortOption(option) {
+      this.taskSortOption = option;
+      this.showSortDropdown = false;
+    },
+    handleModalContentClick(event) {
+      // 모달 콘텐츠 내부 클릭 시 정렬 드롭다운 외부 클릭 체크
+      if (this.showSortDropdown && this.$refs.sortDropdown && !this.$refs.sortDropdown.contains(event.target)) {
+        this.showSortDropdown = false;
+      }
     },
     toggleCollapse() {
       this.isCollapsed = !this.isCollapsed
@@ -1637,7 +1723,7 @@ export default {
           year: 'numeric',
           month: '2-digit',
           day: '2-digit'
-        }).replace(/\./g, '.').replace(/\s/g, '')
+        }).replace(/\s/g, '').slice(0, -1)
       }
       
       return `${formatDate(startDate)} - ${formatDate(endDate)}`
@@ -1895,7 +1981,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 12px 20px !important;
-  border-bottom: 1px solid #E0E0E0;
+  border-bottom: none;
   background: #FFFFFF !important;
   min-height: 50px !important;
   height: auto !important;
@@ -2290,12 +2376,90 @@ export default {
 }
 
 .section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
   font-size: 16px;
   line-height: 20px;
   color: #666666;
   margin-bottom: 12px;
+}
+
+.section-title-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title svg {
+  flex-shrink: 0;
+}
+
+.task-sort-dropdown {
+  position: relative;
+}
+
+.sort-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+  outline: none !important;
+}
+
+.sort-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.sort-btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.sort-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 180px;
+  overflow: hidden;
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.sort-option:hover {
+  background: rgba(244, 206, 83, 0.1);
+}
+
+.sort-option span {
+  flex: 1;
+}
+
+.sort-option svg {
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .task-list {
@@ -2306,7 +2470,7 @@ export default {
 
 .task-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 15px;
   padding: 15px 0;
   border-bottom: 1px solid rgba(42, 40, 40, 0.1);
@@ -2317,11 +2481,8 @@ export default {
 }
 
 .task-checkbox {
-  width: 24px;
-  height: 24px;
-  border: 3px solid #F4CE53;
-  border-radius: 2px;
-  background: #FFFFFF;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2330,9 +2491,15 @@ export default {
   flex-shrink: 0;
 }
 
+.task-checkbox svg {
+  transition: all 0.2s;
+}
+
+.task-checkbox:hover:not(.completed) {
+  transform: scale(1.1);
+}
+
 .task-checkbox.completed {
-  background: #F4CE53;
-  border-color: #F4CE53;
   cursor: not-allowed;
 }
 
@@ -2340,6 +2507,7 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
 }
 
@@ -2367,33 +2535,38 @@ export default {
 .task-assignee {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   flex-shrink: 0;
-  gap: 12px;
+  gap: 0px;
 }
 
 .task-assignee .assignee-info {
   display: flex;
   align-items: center;
-  flex: 1;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.task-assignee .assignee-info:hover {
+  background: rgba(244, 206, 83, 0.15);
 }
 
 .task-assignee .assignee-name {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 14px;
   line-height: 18px;
-  color: #374151;
-  background: #F3F4F6;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid #E5E7EB;
+  color: #000000;
 }
 
 .assignee-icons {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-right: -8px;
 }
 
 .icon-button {
@@ -2446,12 +2619,6 @@ export default {
   color: #666666;
   width: 100%;
   justify-content: center;
-}
-
-.add-task-btn:hover {
-  background: #F4CE53;
-  color: #FFFFFF;
-  border-color: #F4CE53;
 }
 
 .add-task-btn:active {
@@ -4153,10 +4320,6 @@ export default {
   padding: 4px;
 }
 
-.task-assignee:hover {
-  background: rgba(244, 206, 83, 0.1);
-  transform: scale(1.1);
-}
 
 .task-assignee:active {
   transform: scale(0.95);
