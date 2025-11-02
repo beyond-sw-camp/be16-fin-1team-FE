@@ -201,23 +201,6 @@
             </div>
           </div>
 
-          <!-- 문서함 -->
-          <div class="info-section">
-            <div class="info-label">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22,4H14L12,2H6A2,2 0 0,0 4,4V16A2,2 0 0,0 6,18H22A2,2 0 0,0 24,16V6A2,2 0 0,0 22,4M2,6H0V11H0V20A2,2 0 0,0 2,22H20V20H2V6Z" />
-              </svg>
-              <span>문서함</span>
-            </div>
-            <div class="info-value">
-              <div class="document-link">
-                <span>{{ currentStoneData?.documentLink || '바로가기' }}</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="#F6D365" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z" />
-                </svg>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- 태스크 섹션 (일반 스톤인 경우에만 표시) -->
@@ -324,6 +307,31 @@
                 </svg>
                 <span>{{ isStoneCompleted ? '완료된 스톤' : '태스크 추가' }}</span>
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 문서함 섹션 (일반 스톤인 경우에만 표시) -->
+        <div v-if="!currentStoneData?.isProject">
+          <!-- 구분선 -->
+          <div class="divider"></div>
+
+          <!-- 문서함 섹션 -->
+          <div class="documents-section">
+            <div class="section-title">
+              <div class="section-title-left">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22,4H14L12,2H6A2,2 0 0,0 4,4V16A2,2 0 0,0 6,18H22A2,2 0 0,0 24,16V6A2,2 0 0,0 22,4M2,6H0V11H0V20A2,2 0 0,0 2,22H20V20H2V6Z" fill="#F4CE53"/>
+                </svg>
+                <span>문서함</span>
+              </div>
+            </div>
+            
+            <!-- 문서함 컨테이너 -->
+            <div class="stone-drive-wrapper">
+              <div class="stone-drive-container">
+                <DriveMain :stone-id="currentStoneData?.stoneId || currentStoneData?.id" />
+              </div>
             </div>
           </div>
         </div>
@@ -745,13 +753,15 @@ import { showSnackbar } from '@/services/snackbar.js';
 import TaskDeleteConfirmModal from '@/components/modal/TaskDeleteConfirmModal.vue';
 import TaskCompleteConfirmModal from '@/components/modal/TaskCompleteConfirmModal.vue';
 import StoneCompleteConfirmModal from '@/components/modal/StoneCompleteConfirmModal.vue';
+import DriveMain from '@/views/Drive/DriveMain.vue';
 
 export default {
   name: 'StoneDetailModal',
   components: {
     TaskDeleteConfirmModal,
     TaskCompleteConfirmModal,
-    StoneCompleteConfirmModal
+    StoneCompleteConfirmModal,
+    DriveMain
   },
   props: {
     isVisible: {
@@ -2373,6 +2383,51 @@ export default {
 
 .tasks-section {
   margin-top: 8px;
+}
+
+.documents-section {
+  margin-top: 8px;
+}
+
+.stone-drive-wrapper {
+  width: 100%;
+  border-radius: 12px;
+  background: #FFFFFF;
+  border: 1px solid rgba(42, 40, 40, 0.1);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.stone-drive-wrapper:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: rgba(244, 206, 83, 0.3);
+}
+
+.stone-drive-container {
+  width: 100%;
+  height: 600px;
+  overflow: hidden;
+  background: #FFFFFF;
+}
+
+.stone-drive-container :deep(.drive-container) {
+  height: 100%;
+  padding: 0;
+  background: #FFFFFF;
+}
+
+.stone-drive-container :deep(.drive-layout) {
+  height: 100%;
+}
+
+.stone-drive-container :deep(.drive-sidebar) {
+  background: #FAFAFA;
+  border-right: 1px solid rgba(42, 40, 40, 0.1);
+}
+
+.stone-drive-container :deep(.drive-content) {
+  background: #FFFFFF;
 }
 
 .section-title {

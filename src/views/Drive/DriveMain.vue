@@ -3,6 +3,7 @@
     <div class="drive-layout">
       <!-- Left Sidebar - Folder Tree -->
       <div 
+        v-if="!isSimplified"
         class="sidebar-col"
         :style="{ width: sidebarWidth + 'px', minWidth: '200px', maxWidth: '50%' }"
       >
@@ -72,6 +73,7 @@
 
       <!-- Resizer -->
       <div 
+        v-if="!isSimplified"
         class="resizer"
         @mousedown="onResizerMouseDown"
         @touchstart="onResizerMouseDown"
@@ -82,11 +84,28 @@
         <v-card class="main-content-card" elevation="0" tile>
           <!-- Toolbar -->
           <v-toolbar flat color="white" class="px-4">
+            <!-- 뒤로가기 버튼 (간소화 모드에서만) -->
+            <v-btn
+              v-if="isSimplified && currentFolderId"
+              icon
+              small
+              @click="goBackToParent"
+              class="mr-3"
+            >
+              <v-icon>mdi-arrow-left</v-icon>
+            </v-btn>
+            
             <v-toolbar-title class="text-h6">{{ currentFolderName }}</v-toolbar-title>
             <v-spacer></v-spacer>
 
             <!-- Type Filter -->
-            <v-menu offset-y :close-on-content-click="true" content-class="filter-menu-content" scroll-strategy="block">
+            <v-menu 
+              v-if="!isSimplified"
+              offset-y 
+              :close-on-content-click="true" 
+              content-class="filter-menu-content" 
+              scroll-strategy="block"
+            >
               <template #activator="{ props }">
                 <v-btn
                   small
@@ -184,7 +203,7 @@
           <v-divider></v-divider>
 
           <!-- Breadcrumbs -->
-          <div class="px-4 py-2">
+          <div v-if="!isSimplified" class="px-4 py-2">
             <v-breadcrumbs :items="breadcrumbs" class="pa-0" dense>
               <template v-slot:item="{ item }">
                 <v-breadcrumbs-item
@@ -686,6 +705,10 @@ export default {
     projectId: {
       type: String,
       default: null
+    },
+    stoneId: {
+      type: [String, Number],
+      default: null
     }
   },
   data() {
@@ -715,7 +738,7 @@ export default {
       folderCache: {},
       
       // 테이블 데이터
-      headers: [
+      headersBase: [
         { text: '이름', value: 'name', width: '40%' },
         { text: '생성자', value: 'owner', width: '25%' },
         { text: '수정일', value: 'modified', width: '20%' },
@@ -791,6 +814,18 @@ export default {
   },
 
   computed: {
+    isSimplified() {
+      // stoneId가 있으면 간소화 모드 (트리뷰, 브레드크럼, 정렬, 필터 숨김)
+      return !!this.stoneId;
+    },
+    headers() {
+      if (this.isSimplified) {
+        // 간소화 모드: 크기 컬럼 제외
+        return this.headersBase.filter(header => header.value !== 'size');
+      }
+      // 일반 모드: 모든 컬럼 표시
+      return this.headersBase;
+    },
     driveRootName() {
       // 사이드바 헤더는 type별로 고정
       const rt = this.currentRootType;
@@ -948,28 +983,31 @@ export default {
   },
 
   mounted() {
-    console.log('[DriveMain] mounted. projectId:', this.projectId);
+    console.log('[DriveMain] mounted. projectId:', this.projectId, 'stoneId:', this.stoneId);
     
-    // projectId prop이 있으면 프로젝트 문서함 초기화
-    if (this.projectId) {
+    // stoneId prop이 있으면 스톤 문서함 초기화
+    if (this.stoneId) {
+      this.initializeDrive(null, 'STONE', String(this.stoneId));
+    } else if (this.projectId) {
+      // projectId prop이 있으면 프로젝트 문서함 초기화
       this.initializeDrive(null, 'PROJECT', this.projectId);
     } else {
       // 일반 모드: route 기반 초기화
-      console.log('[DriveMain] mounted. rootType/rootId:', this.$route.params?.rootType, this.$route.params?.rootId);
-      const { rootType, rootId, folderId } = this.$route.params;
-      
-      if (rootType && rootId && folderId) {
-        // rootType/rootId/folder/folderId 형태로 접근한 경우 (폴더 내부)
-        this.initializeDrive(folderId, rootType, rootId);
-      } else if (rootType && rootId) {
-        // rootType/rootId 형태로 접근한 경우 (루트)
-        this.initializeDrive(null, rootType, rootId);
-      } else if (folderId) {
-        // 기존 folderId 형태로 접근한 경우 (deprecated)
-        this.initializeDrive(folderId);
-      } else {
-        // 기본 드라이브
-        this.initializeDrive(null, 'WORKSPACE', localStorage.getItem('selectedWorkspaceId'));
+    console.log('[DriveMain] mounted. rootType/rootId:', this.$route.params?.rootType, this.$route.params?.rootId);
+    const { rootType, rootId, folderId } = this.$route.params;
+    
+    if (rootType && rootId && folderId) {
+      // rootType/rootId/folder/folderId 형태로 접근한 경우 (폴더 내부)
+      this.initializeDrive(folderId, rootType, rootId);
+    } else if (rootType && rootId) {
+      // rootType/rootId 형태로 접근한 경우 (루트)
+      this.initializeDrive(null, rootType, rootId);
+    } else if (folderId) {
+      // 기존 folderId 형태로 접근한 경우 (deprecated)
+      this.initializeDrive(folderId);
+    } else {
+      // 기본 드라이브
+      this.initializeDrive(null, 'WORKSPACE', localStorage.getItem('selectedWorkspaceId'));
       }
     }
     
@@ -999,8 +1037,8 @@ export default {
   watch: {
     '$route.params': {
       handler(newParams) {
-        // projectId prop이 있으면 route 변경 무시
-        if (this.projectId) return;
+        // stoneId 또는 projectId prop이 있으면 route 변경 무시
+        if (this.stoneId || this.projectId) return;
         
         const { rootType, rootId, folderId } = newParams;
         
@@ -1016,6 +1054,12 @@ export default {
         }
       },
       deep: true
+    },
+    // stoneId 변경 시 재초기화
+    stoneId(newStoneId, oldStoneId) {
+      if (newStoneId && newStoneId !== oldStoneId) {
+        this.initializeDrive(null, 'STONE', String(newStoneId));
+      }
     },
     // projectId 변경 시 재초기화
     projectId(newProjectId, oldProjectId) {
@@ -1153,17 +1197,17 @@ export default {
           }
           // 중복 체크
           if (!rootNode.children.find(f => f.id === folderId)) {
-            rootNode.children.push(newFolder);
+          rootNode.children.push(newFolder);
             // Vue 반응성을 위해 배열을 새로 할당
             rootNode.children = [...rootNode.children];
             
-            // 캐시에도 추가
-            if (!this.folderCache['root']) {
-              this.folderCache['root'] = [];
-            }
+          // 캐시에도 추가
+          if (!this.folderCache['root']) {
+            this.folderCache['root'] = [];
+          }
             // 캐시에도 중복 체크
             if (!this.folderCache['root'].find(f => f.id === folderId)) {
-              this.folderCache['root'].push(newFolder);
+          this.folderCache['root'].push(newFolder);
             }
             console.log('[DriveMain] addFolderToTree: 루트 하위에 폴더 추가 성공:', folderId);
           } else {
@@ -1181,11 +1225,11 @@ export default {
           }
           // 중복 체크
           if (!parentNode.children.find(f => f.id === folderId)) {
-            parentNode.children.push(newFolder);
+          parentNode.children.push(newFolder);
             // Vue 반응성을 위해 배열을 새로 할당
             parentNode.children = [...parentNode.children];
             
-            // 캐시에도 추가
+          // 캐시에도 추가
             if (!this.folderCache[normalizedParentId]) {
               this.folderCache[normalizedParentId] = [];
             }
@@ -1599,6 +1643,16 @@ export default {
       if (selectedIds && selectedIds.length > 0) {
         const folderId = selectedIds[0];
         
+        // stoneId가 있으면 라우팅 대신 내부 상태만 업데이트
+        if (this.stoneId) {
+          if (folderId === 'root') {
+            this.loadFolderContents(null, 'STONE', String(this.stoneId));
+          } else {
+            this.loadFolderContents(folderId, 'STONE', String(this.stoneId));
+          }
+          return;
+        }
+        
         // projectId가 있으면 라우팅 대신 내부 상태만 업데이트
         if (this.projectId) {
           if (folderId === 'root') {
@@ -1852,9 +1906,41 @@ export default {
       }
     },
 
+    // 뒤로가기 (간소화 모드)
+    goBackToParent() {
+      if (!this.currentFolderId) return;
+      
+      // breadcrumbs에서 현재 폴더의 바로 위 항목 찾기
+      if (this.breadcrumbs && this.breadcrumbs.length > 1) {
+        // 마지막 항목은 현재 폴더이므로, 그 전 항목이 상위 폴더
+        const parentItem = this.breadcrumbs[this.breadcrumbs.length - 2];
+        if (parentItem) {
+          this.navigateToBreadcrumb(parentItem);
+          return;
+        }
+      }
+      
+      // breadcrumbs가 없으면 루트로 이동
+      if (this.stoneId) {
+        this.loadFolderContents(null, 'STONE', String(this.stoneId));
+      } else if (this.projectId) {
+        this.loadFolderContents(null, 'PROJECT', this.projectId);
+      }
+    },
+
     // 브레드크럼 네비게이션
     navigateToBreadcrumb(item) {
       if (item.disabled) return;
+      
+      // stoneId가 있으면 라우팅 대신 내부 상태만 업데이트
+      if (this.stoneId) {
+        if (!item.folderId) {
+          this.loadFolderContents(null, 'STONE', String(this.stoneId));
+        } else {
+          this.loadFolderContents(item.folderId, 'STONE', String(this.stoneId));
+        }
+        return;
+      }
       
       // projectId가 있으면 라우팅 대신 내부 상태만 업데이트
       if (this.projectId) {
@@ -1895,6 +1981,16 @@ export default {
     // 폴더 트리 항목 클릭 시 해당 폴더로 이동
     onTreeItemClick(item) {
       if (!item) return;
+      
+      // stoneId가 있으면 라우팅 대신 내부 상태만 업데이트
+      if (this.stoneId) {
+        if (item.id === 'root') {
+          this.loadFolderContents(null, 'STONE', String(this.stoneId));
+        } else {
+          this.loadFolderContents(item.id, 'STONE', String(this.stoneId));
+        }
+        return;
+      }
       
       // projectId가 있으면 라우팅 대신 내부 상태만 업데이트
       if (this.projectId) {
@@ -2057,6 +2153,12 @@ export default {
       // folder: 계층 구조로 폴더 탐색
       if (item.type === 'folder') {
         console.log('Navigating to folder:', item.id);
+        
+        // stoneId가 있으면 라우팅 대신 내부 상태만 업데이트
+        if (this.stoneId) {
+          this.loadFolderContents(item.id, 'STONE', String(this.stoneId));
+          return;
+        }
         
         // projectId가 있으면 라우팅 대신 내부 상태만 업데이트
         if (this.projectId) {
