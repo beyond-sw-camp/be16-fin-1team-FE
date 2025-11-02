@@ -628,7 +628,7 @@ export default {
       viewMode: 'list', // 'list' | 'grid'
 
       // 사이드바 너비 (픽셀)
-      sidebarWidth: parseInt(localStorage.getItem('driveSidebarWidth') || '300', 10),
+      sidebarWidth: parseInt(localStorage.getItem('driveSidebarWidth') || '250', 10),
       isResizing: false,
       resizeStartX: 0,
       resizeStartWidth: 0,
@@ -2821,8 +2821,11 @@ export default {
 }
 
 .folder-tree :deep(.v-treeview-node__root) {
-  min-height: 36px;
+  min-height: auto;
   background-color: transparent !important;
+  margin: 0 !important;
+  margin-bottom: 2px !important;
+  padding: 0 !important;
 }
 
 /* 모든 노드 상태에서 배경색 및 테두리 제거 */
@@ -2836,6 +2839,13 @@ export default {
   box-shadow: none !important;
   outline: none !important;
   border: none !important;
+  margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.folder-tree :deep(.v-treeview-node) {
+  margin-bottom: 2px !important;
 }
 
 .folder-tree :deep(.v-treeview-node__content) {
@@ -2847,6 +2857,7 @@ export default {
   box-shadow: none !important;
   outline: none !important;
   border: none !important;
+  padding: 0 4px !important;
 }
 
 /* 호버 효과 제거 (모든 상태) */
@@ -2953,7 +2964,7 @@ export default {
 }
 
 .folder-tree :deep(.v-treeview-node__label) {
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   pointer-events: auto;
 }
@@ -2962,12 +2973,27 @@ export default {
   pointer-events: auto;
 }
 
+.folder-tree {
+  padding: 8px !important;
+}
+
+.folder-tree :deep(.v-list-item),
+.folder-tree :deep(.v-list-item--link),
+.folder-tree :deep(.v-list-group__header),
+.folder-tree :deep(.v-treeview-item) {
+  min-height: 36px !important;
+  height: auto !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
 .folder-label {
   cursor: pointer;
   display: inline-block;
-  padding: 4px 8px;
+  padding: 0 6px;
   border-radius: 4px;
   transition: all 0.2s ease;
+  font-size: 13.5px;
 }
 
 .folder-label:hover {
@@ -3132,7 +3158,7 @@ export default {
 
 /* 테이블 헤더 스타일 */
 .table-header-text {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   color: #5f6368;
   letter-spacing: 0.3px;
@@ -3162,7 +3188,7 @@ export default {
   text-transform: none;
   background-color: transparent;
   position: relative;
-  font-size: 13px;
+  font-size: 13.5px;
 }
 
 .drive-table :deep(thead th:first-child) {
@@ -3172,7 +3198,7 @@ export default {
 .drive-table :deep(tbody td) {
   padding: 12px 16px;
   color: #202124;
-  font-size: 14px;
+  font-size: 14.5px;
 }
 
 /* 테이블 래퍼 및 컨테이너 */
