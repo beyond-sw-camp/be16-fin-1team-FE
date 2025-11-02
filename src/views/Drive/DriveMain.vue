@@ -1201,16 +1201,17 @@ export default {
       const folderNode = this.findNodeById(this.folderTree, folderId);
       if (folderNode) {
         folderNode.name = newName;
-        // 캐시에서도 업데이트
+        // 캐시에서도 모든 위치 업데이트 (여러 위치에 있을 수 있음)
         for (const cacheKey in this.folderCache) {
           if (Array.isArray(this.folderCache[cacheKey])) {
-            const cachedFolder = this.folderCache[cacheKey].find(f => f.id === folderId);
-            if (cachedFolder) {
-              cachedFolder.name = newName;
-              break;
-            }
+            this.folderCache[cacheKey].forEach(folder => {
+              if (folder.id === folderId) {
+                folder.name = newName;
+              }
+            });
           }
         }
+        // Vue 반응성 유지
         this.$forceUpdate?.();
       }
     },
