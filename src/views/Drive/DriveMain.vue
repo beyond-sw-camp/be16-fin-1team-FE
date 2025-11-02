@@ -358,23 +358,39 @@
     </div>
 
     <!-- Create Folder Dialog -->
-    <v-dialog v-model="createFolderDialog" max-width="500" scroll-strategy="block">
-      <v-card>
-        <v-card-title>새 폴더 만들기</v-card-title>
-        <v-card-text>
+    <v-dialog v-model="createFolderDialog" max-width="520" scroll-strategy="block">
+      <v-card class="create-dialog-card">
+        <v-card-title class="d-flex align-center pa-4">
+          <v-icon class="mr-3" color="#4285f4" size="28">mdi-folder-plus</v-icon>
+          <div>
+            <div class="text-h6 font-weight-600">새 폴더 만들기</div>
+            <div class="text-caption grey--text text--darken-1 mt-1">폴더 이름을 입력하세요</div>
+          </div>
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text class="pt-4 pb-2">
           <v-text-field
             v-model="newFolderName"
             label="폴더 이름"
             outlined
             dense
+            clearable
+            counter="80"
+            :maxlength="80"
+            hide-details="auto"
             autofocus
+            :prepend-inner-icon="'mdi-folder-outline'"
+            hint="공백과 특수문자 사용을 최소화해주세요."
+            persistent-hint
             @keyup.enter="createFolder"
           ></v-text-field>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="px-4 pb-4">
           <v-spacer></v-spacer>
-          <v-btn text @click="createFolderDialog = false">취소</v-btn>
-          <v-btn color="primary" @click="createFolder">만들기</v-btn>
+          <v-btn text @click="createFolderDialog = false" class="mr-2" :disabled="isCreatingFolder">취소</v-btn>
+          <v-btn color="primary" depressed @click="createFolder" :disabled="isCreatingFolder" :loading="isCreatingFolder">
+            <v-icon small left>mdi-check</v-icon>만들기
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -410,8 +426,8 @@
         </v-card-text>
         <v-card-actions class="px-4 pb-4">
           <v-spacer></v-spacer>
-          <v-btn text @click="renameDialog = false">취소</v-btn>
-          <v-btn color="primary" depressed @click="confirmRename">
+          <v-btn text @click="renameDialog = false" :disabled="isRenaming">취소</v-btn>
+          <v-btn color="primary" depressed @click="confirmRename" :disabled="isRenaming" :loading="isRenaming">
             <v-icon small left>mdi-check</v-icon>변경
           </v-btn>
         </v-card-actions>
@@ -419,23 +435,39 @@
     </v-dialog>
 
     <!-- Create Document Dialog -->
-    <v-dialog v-model="createDocumentDialog" max-width="500" scroll-strategy="block">
-      <v-card>
-        <v-card-title>새 문서 만들기</v-card-title>
-        <v-card-text>
+    <v-dialog v-model="createDocumentDialog" max-width="520" scroll-strategy="block">
+      <v-card class="create-dialog-card">
+        <v-card-title class="d-flex align-center pa-4">
+          <v-icon class="mr-3" color="#4285f4" size="28">mdi-file-document-plus</v-icon>
+          <div>
+            <div class="text-h6 font-weight-600">새 문서 만들기</div>
+            <div class="text-caption grey--text text--darken-1 mt-1">문서 제목을 입력하세요</div>
+          </div>
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text class="pt-4 pb-2">
           <v-text-field
             v-model="newDocumentTitle"
             label="문서 제목"
             outlined
             dense
+            clearable
+            counter="80"
+            :maxlength="80"
+            hide-details="auto"
             autofocus
+            :prepend-inner-icon="'mdi-file-document-outline'"
+            hint="공백과 특수문자 사용을 최소화해주세요."
+            persistent-hint
             @keyup.enter="createDocument"
           ></v-text-field>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="px-4 pb-4">
           <v-spacer></v-spacer>
-          <v-btn text @click="createDocumentDialog = false">취소</v-btn>
-          <v-btn color="primary" @click="createDocument">만들기</v-btn>
+          <v-btn text @click="createDocumentDialog = false" class="mr-2" :disabled="isCreatingDocument">취소</v-btn>
+          <v-btn color="primary" depressed @click="createDocument" :disabled="isCreatingDocument" :loading="isCreatingDocument">
+            <v-icon small left>mdi-check</v-icon>만들기
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -568,6 +600,12 @@ export default {
       currentRootId: null,
       rootName: null,  // 문서함 이름
       folderPath: [],  // 폴더 경로 [{ id, name }, ...]
+      
+      // 멱등성 보장을 위한 로딩 상태
+      isCreatingFolder: false,
+      isCreatingDocument: false,
+      isRenaming: false,
+      isUploading: false,
       
       // 폴더 트리
       folderTree: [],
@@ -1944,7 +1982,13 @@ export default {
         return;
       }
 
+      // 중복 요청 방지 (멱등성 보장)
+      if (this.isCreatingFolder) {
+        return;
+      }
+
       try {
+        this.isCreatingFolder = true;
         const workspaceId = localStorage.getItem('selectedWorkspaceId');
         const userId = localStorage.getItem('id');
         
@@ -2030,6 +2074,8 @@ export default {
           || JSON.stringify(error.response?.data)
           || '폴더 생성에 실패했습니다.';
         showSnackbar(errorMessage, 'error');
+      } finally {
+        this.isCreatingFolder = false;
       }
     },
 
@@ -2047,7 +2093,13 @@ export default {
         return;
       }
 
+      // 중복 요청 방지 (멱등성 보장)
+      if (this.isRenaming) {
+        return;
+      }
+
       try {
+        this.isRenaming = true;
         let response;
         if (this.renameItem.type === 'document') {
           response = await driveService.updateDocumentTitle(this.renameItem.id, { title: this.renameName });
@@ -2070,6 +2122,8 @@ export default {
         console.error('이름 변경 실패:', error);
         const errorMessage = error.response?.data?.message || error.response?.data?.statusMessage || error.response?.data?.error || '이름 변경에 실패했습니다.';
         showSnackbar(errorMessage, 'error');
+      } finally {
+        this.isRenaming = false;
       }
     },
 
@@ -2080,7 +2134,13 @@ export default {
         return;
       }
 
+      // 중복 요청 방지 (멱등성 보장)
+      if (this.isCreatingDocument) {
+        return;
+      }
+
       try {
+        this.isCreatingDocument = true;
         const workspaceId = localStorage.getItem('selectedWorkspaceId');
         
         // 현재 폴더 ID 결정 (루트인 경우 workspaceId 사용)
@@ -2124,6 +2184,8 @@ export default {
         console.error('문서 생성 실패:', error);
         const errorMessage = error.response?.data?.statusMessage || '문서 생성에 실패했습니다.';
         showSnackbar(errorMessage, 'error');
+      } finally {
+        this.isCreatingDocument = false;
       }
     },
 
@@ -3716,5 +3778,49 @@ export default {
   border: none !important;
   background: #ffffff !important;
   border-radius: 4px !important;
+}
+
+/* 다이얼로그 스타일 */
+.create-dialog-card,
+.rename-dialog-card {
+  border-radius: 8px !important;
+}
+
+.create-dialog-card .v-card-title,
+.rename-dialog-card .v-card-title {
+  background: linear-gradient(to right, #f8f9fa 0%, #ffffff 100%);
+  border-bottom: 1px solid #e8eaed;
+}
+
+.create-dialog-card .v-text-field :deep(.v-input__prepend-inner) {
+  margin-right: 12px;
+  margin-top: 8px;
+}
+
+.create-dialog-card .v-text-field :deep(.v-input__prepend-inner .v-icon) {
+  color: #5f6368;
+}
+
+.create-dialog-card .v-card-actions .v-btn {
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0.25px;
+  padding: 0 20px !important;
+}
+
+.create-dialog-card .v-card-actions .v-btn--text {
+  color: #5f6368;
+}
+
+.create-dialog-card .v-card-actions .v-btn--text:hover {
+  background-color: #f5f5f5;
+}
+
+.create-dialog-card .v-card-actions .v-btn--depressed {
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+}
+
+.create-dialog-card .v-card-actions .v-btn--depressed:hover {
+  box-shadow: 0 2px 4px 0 rgba(60, 64, 67, 0.3), 0 2px 6px 2px rgba(60, 64, 67, 0.15);
 }
 </style>
