@@ -2,7 +2,7 @@
   <div v-if="show" class="modal-overlay" @click="closeModal">
     <div class="modal-container" @click.stop>
       <div class="modal-header">
-        <h3 class="modal-title">태스크 완료 처리</h3>
+        <h3 class="modal-title">태스크 취소 처리</h3>
         <button class="close-btn" @click="closeModal">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M18 6L6 18M6 6L18 18" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -20,16 +20,16 @@
         
         <div class="modal-content">
           <p class="confirm-message">
-            <strong>'{{ taskName }}'</strong> 태스크를 완료 처리하시겠습니까?
+            <strong>'{{ taskName }}'</strong> 태스크를 취소 처리하시겠습니까?
           </p>
         </div>
       </div>
       
       <div class="modal-footer">
         <button class="cancel-btn" @click="closeModal">취소</button>
-        <button class="complete-btn" @click="confirmComplete" :disabled="loading">
+        <button class="complete-btn" @click="confirmCancel" :disabled="loading">
           <span v-if="loading">처리 중...</span>
-          <span v-else>완료 처리</span>
+          <span v-else>취소 처리</span>
         </button>
       </div>
     </div>
@@ -38,7 +38,7 @@
 
 <script>
 export default {
-  name: 'TaskCompleteConfirmModal',
+  name: 'TaskCancelConfirmModal',
   props: {
     show: {
       type: Boolean,
@@ -57,7 +57,7 @@ export default {
     closeModal() {
       this.$emit('close');
     },
-    confirmComplete() {
+    confirmCancel() {
       this.$emit('confirm');
     }
   }

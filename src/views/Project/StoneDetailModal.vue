@@ -183,6 +183,19 @@
             </div>
           </div>
 
+          <!-- 스톤 설명 -->
+          <div class="info-section">
+            <div class="info-label" :class="{ 'empty-label': !currentStoneData?.stoneDescribe }">
+              <svg width="24" height="24" viewBox="0 0 24 24" :fill="currentStoneData?.stoneDescribe ? '#F4CE53' : '#999999'" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14,17H7V15H14M17,13H7V11H17M17,9H7V7H17M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z" />
+              </svg>
+              <span>설명</span>
+            </div>
+            <div class="info-value">
+              <span :class="{ 'empty-value': !currentStoneData?.stoneDescribe }">{{ currentStoneData?.stoneDescribe || '설명 없음' }}</span>
+            </div>
+          </div>
+
           <!-- 채팅방 -->
           <div class="info-section">
             <div class="info-label" :class="{ 'empty-label': !currentStoneData?.chatCreation }">
@@ -449,6 +462,16 @@
               class="form-input" 
               v-model="editForm.endDate"
             />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">스톤 설명</label>
+            <textarea 
+              class="form-textarea" 
+              v-model="editForm.stoneDescribe"
+              placeholder="스톤 설명을 입력하세요"
+              rows="4"
+            ></textarea>
           </div>
           
           <div class="form-group">
@@ -736,6 +759,15 @@
       @confirm="confirmCompleteTask"
     />
     
+    <!-- 태스크 취소 확인 모달 -->
+    <TaskCancelConfirmModal
+      :show="showCancelConfirmModal"
+      :task-name="taskToCancel?.name || ''"
+      :loading="cancelLoading"
+      @close="closeCancelConfirmModal"
+      @confirm="confirmCancelTask"
+    />
+    
     <!-- 스톤 완료 확인 모달 -->
     <StoneCompleteConfirmModal
       :show="showStoneCompleteConfirmModal"
@@ -748,10 +780,11 @@
 </template>
 
 <script>
-import { deleteStone, modifyStoneManager, searchWorkspaceParticipants, modifyStone, getTaskList, createTask, getStoneParticipantList, modifyTask, deleteTask, completeTask, completeStone } from '@/services/stoneService.js';
+import { deleteStone, modifyStoneManager, searchWorkspaceParticipants, modifyStone, getTaskList, createTask, getStoneParticipantList, modifyTask, deleteTask, completeTask, cancelTask, completeStone } from '@/services/stoneService.js';
 import { showSnackbar } from '@/services/snackbar.js';
 import TaskDeleteConfirmModal from '@/components/modal/TaskDeleteConfirmModal.vue';
 import TaskCompleteConfirmModal from '@/components/modal/TaskCompleteConfirmModal.vue';
+import TaskCancelConfirmModal from '@/components/modal/TaskCancelConfirmModal.vue';
 import StoneCompleteConfirmModal from '@/components/modal/StoneCompleteConfirmModal.vue';
 import DriveMain from '@/views/Drive/DriveMain.vue';
 
@@ -760,6 +793,7 @@ export default {
   components: {
     TaskDeleteConfirmModal,
     TaskCompleteConfirmModal,
+    TaskCancelConfirmModal,
     StoneCompleteConfirmModal,
     DriveMain
   },
@@ -803,7 +837,8 @@ export default {
         stoneName: '',
         startDate: '',
         endDate: '',
-        createChat: false
+        createChat: false,
+        stoneDescribe: '' // 스톤 설명 (nullable)
       },
       showTaskAddModal: false,
       isCreatingTask: false,
@@ -839,6 +874,9 @@ export default {
       showCompleteConfirmModal: false,
       taskToComplete: null,
       completeLoading: false,
+      showCancelConfirmModal: false,
+      taskToCancel: null,
+      cancelLoading: false,
       showStoneCompleteConfirmModal: false,
       stoneCompleteLoading: false,
       loadedStoneData: null
@@ -858,7 +896,8 @@ export default {
     
     // 스톤이 완료되었는지 확인
     isStoneCompleted() {
-      return this.currentStoneData?.stoneStatus === 'COMPLETED' || this.currentStoneData?.milestone === 100;
+      // 실제 완료 상태만 체크 (마일스톤 100%는 완료 상태가 아님)
+      return this.currentStoneData?.stoneStatus === 'COMPLETED';
     },
     
     // 정렬된 태스크 리스트
@@ -1033,7 +1072,8 @@ export default {
         stoneName: this.currentStoneData?.stoneName || '',
         startDate: this.formatDateForInput(this.currentStoneData?.startTime),
         endDate: this.formatDateForInput(this.currentStoneData?.endTime),
-        createChat: this.currentStoneData?.chatCreation || false
+        createChat: this.currentStoneData?.chatCreation || false,
+        stoneDescribe: this.currentStoneData?.stoneDescribe || '' // 스톤 설명 초기화
       };
       
       console.log('초기화된 editForm:', this.editForm);
@@ -1046,7 +1086,8 @@ export default {
         stoneName: '',
         startDate: '',
         endDate: '',
-        createChat: false
+        createChat: false,
+        stoneDescribe: '' // 스톤 설명 초기화
       };
     },
     
@@ -1097,7 +1138,8 @@ export default {
           stoneName: this.editForm.stoneName,
           startTime: this.editForm.startDate + 'T09:00:00',
           endTime: this.editForm.endDate + 'T18:00:00',
-          chatCreation: this.editForm.createChat
+          chatCreation: this.editForm.createChat,
+          stoneDescribe: this.editForm.stoneDescribe?.trim() || null // nullable
         });
         
         console.log('=== 스톤 수정 API 응답 ===');
@@ -1115,7 +1157,8 @@ export default {
           stoneName: this.editForm.stoneName,
           startTime: this.editForm.startDate,
           endTime: this.editForm.endDate,
-          chatCreation: this.editForm.createChat
+          chatCreation: this.editForm.createChat,
+          stoneDescribe: this.editForm.stoneDescribe?.trim() || null
         });
         
         // 전역 이벤트 발생으로 다른 컴포넌트들에 알림
@@ -1124,7 +1167,8 @@ export default {
           stoneName: this.editForm.stoneName,
           startTime: this.editForm.startDate,
           endTime: this.editForm.endDate,
-          chatCreation: this.editForm.createChat
+          chatCreation: this.editForm.createChat,
+          stoneDescribe: this.editForm.stoneDescribe?.trim() || null
         };
         
         console.log('=== 스톤 수정 완료 - 전역 이벤트 발생 ===');
@@ -1370,15 +1414,59 @@ export default {
       this.deleteLoading = false;
     },
     
-    // 태스크 완료 처리
+    // 태스크 완료/취소 처리
     toggleTaskComplete(task) {
-      // 이미 완료된 태스크는 처리하지 않음
+      // 이미 완료된 태스크는 취소 확인 모달 표시
       if (task.completed) {
+        this.taskToCancel = task;
+        this.showCancelConfirmModal = true;
         return;
       }
       
+      // 미완료 태스크는 완료 확인 모달 표시
       this.taskToComplete = task;
       this.showCompleteConfirmModal = true;
+    },
+    
+    // 태스크 취소 확인
+    async confirmCancelTask() {
+      if (!this.taskToCancel) return;
+      
+      try {
+        this.cancelLoading = true;
+        console.log('태스크 취소 처리:', this.taskToCancel);
+        
+        // 태스크 취소 API 호출
+        const response = await cancelTask(this.taskToCancel.id);
+        
+        // 성공 메시지 표시
+        const result = response.result || '태스크 상태가 취소되었습니다.';
+        showSnackbar(result, { color: 'success' });
+        
+        // 태스크 목록 새로고침
+        await this.loadTaskList();
+        
+        // 부모 컴포넌트에 태스크 취소 이벤트 전달
+        this.$emit('task-cancelled', {
+          stoneId: this.currentStoneData?.stoneId || this.currentStoneData?.id,
+          taskId: this.taskToCancel.id,
+          taskName: this.taskToCancel.name
+        });
+        
+        this.closeCancelConfirmModal();
+      } catch (error) {
+        console.error('태스크 취소 처리 실패:', error);
+        showSnackbar(error.message || '태스크 취소 처리에 실패했습니다.', { color: 'error' });
+      } finally {
+        this.cancelLoading = false;
+      }
+    },
+    
+    // 취소 확인 모달 닫기
+    closeCancelConfirmModal() {
+      this.showCancelConfirmModal = false;
+      this.taskToCancel = null;
+      this.cancelLoading = false;
     },
     
     // 태스크 완료 확인
@@ -2555,7 +2643,7 @@ export default {
 }
 
 .task-checkbox.completed {
-  cursor: not-allowed;
+  cursor: pointer;
 }
 
 .task-content {
@@ -2910,6 +2998,35 @@ export default {
 }
 
 .edit-stone-modal .form-input::placeholder {
+  color: #9CA3AF;
+}
+
+.edit-stone-modal .form-textarea {
+  width: 100%;
+  min-height: 80px;
+  background: #FFFFFF;
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  border: 1px solid #D1D5DB;
+  padding: 12px 16px;
+  font-family: 'Pretendard', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 20px;
+  color: #1C0F0F;
+  box-sizing: border-box;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.edit-stone-modal .form-textarea:focus {
+  outline: none;
+  border-color: #F4CE53;
+  box-shadow: 0 0 0 3px rgba(244, 206, 83, 0.1);
+}
+
+.edit-stone-modal .form-textarea::placeholder {
   color: #9CA3AF;
 }
 

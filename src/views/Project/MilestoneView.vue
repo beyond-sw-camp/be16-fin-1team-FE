@@ -393,111 +393,15 @@ watch(() => props.stones, (newStones) => {
   if (newStones && newStones.length > 0) {
     elements.value = convertStonesToElements(newStones)
   } else {
-    // 테스트용 기본 노드들 (더미 데이터와 연결)
-    elements.value = [
-      {
-        id: '1',
-        type: 'stoneNode',
-        data: { 
-          label: '오르빗 출시 D-53',
-          stoneId: 'stone-1',
-          milestone: 75,
-          isRoot: true
-        },
-        position: { x: 400, y: 100 }
-      },
-      {
-        id: '2',
-        type: 'stoneNode',
-        data: { 
-          label: '기획 D-4',
-          stoneId: 'stone-2',
-          milestone: 50,
-          isRoot: false
-        },
-        position: { x: 200, y: 300 }
-      },
-      {
-        id: '3',
-        type: 'stoneNode',
-        data: { 
-          label: '백엔드 개발 D-21',
-          stoneId: 'stone-3',
-          milestone: 25,
-          isRoot: false
-        },
-        position: { x: 600, y: 300 }
-      },
-      {
-        id: 'e1-2',
-        source: '1',
-        target: '2',
-        animated: true,
-        style: { stroke: '#FFDD44', strokeWidth: 2 }
-      },
-      {
-        id: 'e1-3',
-        source: '1',
-        target: '3',
-        animated: true,
-        style: { stroke: '#FFDD44', strokeWidth: 2 }
-      }
-    ]
+    // 데이터가 없을 때는 빈 배열로 설정 (더미 데이터 표시 안 함)
+    elements.value = []
   }
 }, { immediate: true, deep: true })
 
 // Lifecycle
 onMounted(() => {
-  // 테스트용 기본 노드들 (더미 데이터와 연결)
-  elements.value = [
-    {
-      id: '1',
-      type: 'stoneNode',
-      data: { 
-        label: '오르빗 출시 D-53',
-        stoneId: 'stone-1',
-        milestone: 75,
-        isRoot: true
-      },
-      position: { x: 400, y: 100 }
-    },
-    {
-      id: '2',
-      type: 'stoneNode',
-      data: { 
-        label: '기획 D-4',
-        stoneId: 'stone-2',
-        milestone: 50,
-        isRoot: false
-      },
-      position: { x: 200, y: 300 }
-    },
-    {
-      id: '3',
-      type: 'stoneNode',
-      data: { 
-        label: '백엔드 개발 D-21',
-        stoneId: 'stone-3',
-        milestone: 25,
-        isRoot: false
-      },
-      position: { x: 600, y: 300 }
-    },
-    {
-      id: 'e1-2',
-      source: '1',
-      target: '2',
-      animated: true,
-      style: { stroke: '#FFDD44', strokeWidth: 2 }
-    },
-    {
-      id: 'e1-3',
-      source: '1',
-      target: '3',
-      animated: true,
-      style: { stroke: '#FFDD44', strokeWidth: 2 }
-    }
-  ]
+  // props.stones가 있으면 watch에서 이미 처리되므로 여기서는 아무것도 하지 않음
+  // 더미 데이터는 제거됨
 })
 </script>
 
