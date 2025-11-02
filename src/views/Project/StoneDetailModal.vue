@@ -759,6 +759,15 @@
       @confirm="confirmCompleteTask"
     />
     
+    <!-- 태스크 취소 확인 모달 -->
+    <TaskCancelConfirmModal
+      :show="showCancelConfirmModal"
+      :task-name="taskToCancel?.name || ''"
+      :loading="cancelLoading"
+      @close="closeCancelConfirmModal"
+      @confirm="confirmCancelTask"
+    />
+    
     <!-- 스톤 완료 확인 모달 -->
     <StoneCompleteConfirmModal
       :show="showStoneCompleteConfirmModal"
@@ -775,6 +784,7 @@ import { deleteStone, modifyStoneManager, searchWorkspaceParticipants, modifySto
 import { showSnackbar } from '@/services/snackbar.js';
 import TaskDeleteConfirmModal from '@/components/modal/TaskDeleteConfirmModal.vue';
 import TaskCompleteConfirmModal from '@/components/modal/TaskCompleteConfirmModal.vue';
+import TaskCancelConfirmModal from '@/components/modal/TaskCancelConfirmModal.vue';
 import StoneCompleteConfirmModal from '@/components/modal/StoneCompleteConfirmModal.vue';
 import DriveMain from '@/views/Drive/DriveMain.vue';
 
@@ -783,6 +793,7 @@ export default {
   components: {
     TaskDeleteConfirmModal,
     TaskCompleteConfirmModal,
+    TaskCancelConfirmModal,
     StoneCompleteConfirmModal,
     DriveMain
   },
@@ -863,6 +874,9 @@ export default {
       showCompleteConfirmModal: false,
       taskToComplete: null,
       completeLoading: false,
+      showCancelConfirmModal: false,
+      taskToCancel: null,
+      cancelLoading: false,
       showStoneCompleteConfirmModal: false,
       stoneCompleteLoading: false,
       loadedStoneData: null
@@ -882,7 +896,8 @@ export default {
     
     // 스톤이 완료되었는지 확인
     isStoneCompleted() {
-      return this.currentStoneData?.stoneStatus === 'COMPLETED' || this.currentStoneData?.milestone === 100;
+      // 실제 완료 상태만 체크 (마일스톤 100%는 완료 상태가 아님)
+      return this.currentStoneData?.stoneStatus === 'COMPLETED';
     },
     
     // 정렬된 태스크 리스트
@@ -1400,38 +1415,58 @@ export default {
     },
     
     // 태스크 완료/취소 처리
-    async toggleTaskComplete(task) {
-      // 이미 완료된 태스크는 취소 처리
+    toggleTaskComplete(task) {
+      // 이미 완료된 태스크는 취소 확인 모달 표시
       if (task.completed) {
-        try {
-          console.log('태스크 취소 처리:', task);
-          
-          // 태스크 취소 API 호출
-          const response = await cancelTask(task.id);
-          
-          // 성공 메시지 표시
-          const result = response.result || '태스크 상태가 취소되었습니다.';
-          showSnackbar(result, { color: 'success' });
-          
-          // 태스크 목록 새로고침
-          await this.loadTaskList();
-          
-          // 부모 컴포넌트에 태스크 취소 이벤트 전달
-          this.$emit('task-cancelled', {
-            stoneId: this.currentStoneData?.stoneId || this.currentStoneData?.id,
-            taskId: task.id,
-            taskName: task.name
-          });
-        } catch (error) {
-          console.error('태스크 취소 처리 실패:', error);
-          showSnackbar(error.message || '태스크 취소 처리에 실패했습니다.', { color: 'error' });
-        }
+        this.taskToCancel = task;
+        this.showCancelConfirmModal = true;
         return;
       }
       
       // 미완료 태스크는 완료 확인 모달 표시
       this.taskToComplete = task;
       this.showCompleteConfirmModal = true;
+    },
+    
+    // 태스크 취소 확인
+    async confirmCancelTask() {
+      if (!this.taskToCancel) return;
+      
+      try {
+        this.cancelLoading = true;
+        console.log('태스크 취소 처리:', this.taskToCancel);
+        
+        // 태스크 취소 API 호출
+        const response = await cancelTask(this.taskToCancel.id);
+        
+        // 성공 메시지 표시
+        const result = response.result || '태스크 상태가 취소되었습니다.';
+        showSnackbar(result, { color: 'success' });
+        
+        // 태스크 목록 새로고침
+        await this.loadTaskList();
+        
+        // 부모 컴포넌트에 태스크 취소 이벤트 전달
+        this.$emit('task-cancelled', {
+          stoneId: this.currentStoneData?.stoneId || this.currentStoneData?.id,
+          taskId: this.taskToCancel.id,
+          taskName: this.taskToCancel.name
+        });
+        
+        this.closeCancelConfirmModal();
+      } catch (error) {
+        console.error('태스크 취소 처리 실패:', error);
+        showSnackbar(error.message || '태스크 취소 처리에 실패했습니다.', { color: 'error' });
+      } finally {
+        this.cancelLoading = false;
+      }
+    },
+    
+    // 취소 확인 모달 닫기
+    closeCancelConfirmModal() {
+      this.showCancelConfirmModal = false;
+      this.taskToCancel = null;
+      this.cancelLoading = false;
     },
     
     // 태스크 완료 확인

@@ -273,8 +273,20 @@ export default {
           
           this.closeModal();
           
-          // 생성된 프로젝트 페이지로 라우팅
-          this.$router.push({ path: '/project', query: { id: projectId } });
+          // 생성된 프로젝트 페이지로 라우팅 (강제 리로드를 위해 replace 사용)
+          // query에 timestamp를 추가하여 라우트 변경을 보장
+          this.$router.replace({ 
+            path: '/project', 
+            query: { 
+              id: projectId,
+              _t: Date.now() // 타임스탬프로 캐시 방지
+            } 
+          }).then(() => {
+            // 라우팅 후 강제로 새로고침 이벤트 발생
+            this.$nextTick(() => {
+              window.dispatchEvent(new CustomEvent('projectRouteChanged', { detail: { projectId } }));
+            });
+          });
         } else {
           alert('프로젝트 생성에 실패했습니다.');
         }

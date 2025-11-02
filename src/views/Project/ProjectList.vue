@@ -892,7 +892,7 @@ export default {
   data() {
     return {
       activeTab: 'milestone',
-      projectName: '오르빗 출시',
+      projectName: '',
       projectDescription: '프로젝트 협업을 위한 일정 관리 서비스',
       stones: [],
       loading: false,
@@ -1034,17 +1034,9 @@ export default {
     // 워크스페이스 ID 초기화
     this.currentWorkspaceId = localStorage.getItem('selectedWorkspaceId') || '';
     
-    const projectId = this.$route.query.id;
-    if (projectId) {
-      await this.loadProjectData(projectId);
-      await this.loadProjectDetail(projectId);
-    }
-    
-    // stoneId가 있으면 해당 스톤 모달 열기
-    const stoneId = this.$route.query.stoneId;
-    if (stoneId && projectId) {
-      await this.openStoneModalByQuery(stoneId);
-    }
+    // 프로젝트 데이터는 watch에서 처리하므로 여기서는 이벤트 리스너만 등록
+    // 프로젝트 라우트 변경 이벤트 리스너 추가
+    window.addEventListener('projectRouteChanged', this.onProjectRouteChanged);
     
     // 캔버스 크기 업데이트
     this.$nextTick(() => {
@@ -1071,6 +1063,7 @@ export default {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('stoneUpdated', this.onStoneUpdated);
+    window.removeEventListener('projectRouteChanged', this.onProjectRouteChanged);
   },
   watch: {
     stones: {
@@ -1099,9 +1092,29 @@ export default {
     },
     '$route.query.id': {
       handler(newProjectId, oldProjectId) {
+        // 프로젝트 ID가 실제로 변경된 경우에만 처리
         if (newProjectId && newProjectId !== oldProjectId) {
           console.log('프로젝트 ID 변경됨:', oldProjectId, '->', newProjectId);
-          this.loadProjectData(newProjectId);
+          
+          // 프로젝트 변경 시 이전 데이터 완전 초기화 (캐싱 문제 방지)
+          this.stones = [];
+          this.stoneNodes = [];
+          this.connections = [];
+          this.projectName = '';
+          this.projectDescription = '프로젝트 협업을 위한 일정 관리 서비스';
+          this.focusedStoneStack = [];
+          this.isPinned = false;
+          
+          // 이전 프로젝트의 로컬스토리지 데이터도 정리 (핀 데이터)
+          if (oldProjectId) {
+            const oldStorageKey = `milestone_pinned_view_${oldProjectId}`;
+            // 삭제하지 않고 현재 프로젝트와 다르면 무시하도록 함
+          }
+          
+          // 새 프로젝트 데이터 로드 (강제로 초기화 후 로드)
+          this.$nextTick(async () => {
+            await this.loadProjectData(newProjectId);
+          });
           
           // stoneId도 함께 확인해서 모달 열기
           const stoneId = this.$route.query.stoneId;
@@ -1110,6 +1123,12 @@ export default {
               this.openStoneModalByQuery(stoneId);
             });
           }
+        } else if (newProjectId && !oldProjectId) {
+          // 초기 마운트 시에도 데이터 로드
+          console.log('초기 프로젝트 로드:', newProjectId);
+          this.$nextTick(async () => {
+            await this.loadProjectData(newProjectId);
+          });
         }
       },
       immediate: true
@@ -1297,6 +1316,12 @@ export default {
     async loadStones(projectId) {
       try {
         console.log('loadStones 시작, projectId:', projectId);
+        
+        // 먼저 이전 데이터 초기화 (캐싱 문제 방지)
+        this.stones = [];
+        this.stoneNodes = [];
+        this.connections = [];
+        
         this.loading = true;
         const userId = localStorage.getItem('id');
         console.log('사용자 ID:', userId);
@@ -1313,9 +1338,12 @@ export default {
         console.log('스톤 API 응답:', response.data);
         
         if (response.data.statusCode === 200) {
-          this.stones = response.data.result || [];
+          // 새 배열로 완전히 교체 (참조 변경하여 반응성 보장)
+          this.stones = [...(response.data.result || [])];
           console.log('스톤 목록 로드 성공, stones 배열:', this.stones);
           console.log('stones 길이:', this.stones.length);
+          console.log('첫 번째 스톤:', this.stones[0]);
+          console.log('첫 번째 스톤의 stoneName:', this.stones[0]?.stoneName);
           console.log('첫 번째 스톤의 childStone:', this.stones[0]?.childStone);
         } else {
           console.log('스톤 목록 응답 상태 코드:', response.data.statusCode);
@@ -1762,9 +1790,11 @@ export default {
       const convertStoneToNode = (stone) => {
         console.log('convertStoneToNode 처리 중:', stone.stoneName, 'childStone:', stone.childStone);
         
-        // 최상위 루트 스톤인 경우 프로젝트명 사용
+        // 최상위 루트 스톤인 경우 프로젝트명 사용 (프로젝트명이 로드되지 않은 경우 스톤명 사용)
         const isRootStone = this.currentFocusedStoneId ? (stone.stoneId === this.currentFocusedStoneId) : (stone.parentStoneId === null);
-        const displayName = (isRootStone && !this.currentFocusedStoneId) ? this.projectName : stone.stoneName;
+        // 프로젝트명이 더미 데이터("오르빗 출시")이거나 없는 경우 스톤명 사용
+        const isDummyProjectName = !this.projectName || this.projectName === '오르빗 출시';
+        const displayName = (isRootStone && !this.currentFocusedStoneId && !isDummyProjectName) ? this.projectName : stone.stoneName;
         
         const node = {
           id: stone.stoneId,
@@ -2217,7 +2247,8 @@ export default {
     
     // 스톤이 완료되었는지 확인
     isStoneCompleted(stone) {
-      return stone.stoneStatus === 'COMPLETED' || stone.milestone === 100;
+      // 실제 완료 상태만 체크 (마일스톤 100%는 완료 상태가 아님)
+      return stone.stoneStatus === 'COMPLETED';
     },
     
     // 스톤 생성 모달 관련 메서드들
@@ -2245,6 +2276,21 @@ export default {
     },
     
     // 스톤 수정 이벤트 처리
+    // 프로젝트 라우트 변경 이벤트 핸들러 (프로젝트 생성 후 호출)
+    onProjectRouteChanged(event) {
+      console.log('=== 프로젝트 라우트 변경 이벤트 수신 ===');
+      const projectId = event.detail?.projectId || this.$route.query.id;
+      if (projectId) {
+        console.log('프로젝트 데이터 강제 리로드:', projectId);
+        // 데이터 완전 초기화 후 리로드
+        this.stones = [];
+        this.stoneNodes = [];
+        this.connections = [];
+        this.projectName = '';
+        this.loadProjectData(projectId);
+      }
+    },
+    
     onStoneUpdated(event) {
       console.log('=== ProjectList에서 스톤 수정 이벤트 수신 ===');
       console.log('전체 이벤트 객체:', event);
