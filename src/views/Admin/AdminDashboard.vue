@@ -126,7 +126,7 @@
             class="team-card user-group-item"
           >
             <div class="left">
-              <div class="team-icon user-group-icon"></div>
+              <img src="/src/assets/icons/orbit_logo.svg" alt="orbit logo" class="team-icon user-group-icon" />
               <div class="team-info group-details">
                 <h3 class="team-name group-name" @click="viewUserGroupDetail(group)">{{ group.name }}</h3>
                 <p class="created-date group-date">생성일: {{ group.createdAt }}</p>
@@ -235,6 +235,10 @@
                 </div>
               </div>
               
+              <div class="project-stone-count">
+                <span>스톤 수: {{ project.stoneCount }}개</span>
+              </div>
+              
               <div class="progress-section-new">
                 <div class="progress-circle-new">
                   <svg viewBox="0 0 36 36">
@@ -257,7 +261,7 @@
                     {{ Math.round(project.milestone) }}%
                   </div>
                 </div>
-                <div class="progress-label">Completed</div>
+                <div class="progress-label">{{ getStatusText(project.projectStatus) }}</div>
               </div>
             </div>
           </div>
@@ -1419,7 +1423,8 @@ export default {
             stoneCount: 6,
             completedCount: 0,
             startedAt: '2025-11-05T09:00:00',
-            endedAt: '2025-11-07T18:00:00'
+            endedAt: '2025-11-07T18:00:00',
+            projectStatus: 'PROGRESS'
           },
           {
             projectId: 'pjt_2',
@@ -1428,7 +1433,8 @@ export default {
             stoneCount: 10,
             completedCount: 7,
             startedAt: '2025-11-01T09:00:00',
-            endedAt: '2025-11-26T18:00:00'
+            endedAt: '2025-11-26T18:00:00',
+            projectStatus: 'PROGRESS'
           },
           {
             projectId: 'pjt_3',
@@ -1437,7 +1443,8 @@ export default {
             stoneCount: 5,
             completedCount: 5,
             startedAt: '2025-11-02T09:00:00',
-            endedAt: '2025-11-28T18:00:00'
+            endedAt: '2025-11-28T18:00:00',
+            projectStatus: 'COMPLETED'
           }
         ];
         console.log('예시 워크스페이스 프로젝트 데이터 설정됨:', this.workspaceProjects);
@@ -1520,6 +1527,26 @@ export default {
     getProjectColor(index) {
       const colorPalette = ['#4f46e5', '#0891b2', '#22c55e', '#f97316', '#e11d48'];
       return colorPalette[index % colorPalette.length];
+    },
+    
+    // 프로젝트 상태 텍스트 반환
+    getStatusText(status) {
+      const statusMap = {
+        'PROGRESS': '진행중',
+        'COMPLETED': '완료',
+        'STORAGE': '보관됨'
+      };
+      return statusMap[status] || status;
+    },
+    
+    // 프로젝트 상태 클래스 반환
+    getStatusClass(status) {
+      const classMap = {
+        'PROGRESS': 'status-progress',
+        'COMPLETED': 'status-completed',
+        'STORAGE': 'status-storage'
+      };
+      return classMap[status] || '';
     },
     
     // 재귀적으로 스톤 구조를 평탄화하는 헬퍼 함수
@@ -2723,11 +2750,13 @@ export default {
 }
 
 .user-group-icon {
-  width: 20px;
-  height: 20px;
-  background: #2A2828;
-  border-radius: 2px;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border-radius: 0;
   margin-right: 15px;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .group-details {
@@ -3131,6 +3160,16 @@ export default {
 .date-row span:first-child {
   font-weight: 600;
   color: #333;
+}
+
+.project-stone-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  margin: 8px 0;
+  padding: 0 16px;
+  font-family: 'Pretendard', sans-serif;
+  text-align: center;
 }
 
 .progress-section-new {
