@@ -676,6 +676,7 @@
       @manager-changed="handleManagerChanged"
       @task-created="handleTaskCreated"
       @task-completed="handleTaskCompleted"
+      @task-cancelled="handleTaskCancelled"
     />
 
     <!-- 프로젝트 수정 모달 -->
@@ -2562,6 +2563,24 @@ export default {
         }
       } catch (error) {
         console.error('태스크 완료 후 마일스톤 재계산 실패:', error);
+      }
+    },
+    
+    // 태스크 취소 처리
+    async handleTaskCancelled(taskData) {
+      console.log('태스크 취소:', taskData);
+      
+      try {
+        // 해당 스톤의 마일스톤 재계산
+        await this.recalculateStoneMilestone(taskData.stoneId);
+        
+        // 스톤 목록 새로고침 (백그라운드에서)
+        const projectId = this.$route.query.id;
+        if (projectId) {
+          await this.loadStones(projectId);
+        }
+      } catch (error) {
+        console.error('태스크 취소 후 마일스톤 재계산 실패:', error);
       }
     },
     

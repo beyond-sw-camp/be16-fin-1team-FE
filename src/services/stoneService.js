@@ -706,6 +706,62 @@ export const completeTask = async (taskId) => {
 };
 
 /**
+ * 태스크 취소 처리 API
+ * @param {string} taskId - 취소 처리할 태스크 ID
+ * @returns {Promise<Object>} API 응답 데이터
+ */
+export const cancelTask = async (taskId) => {
+  try {
+    const userId = localStorage.getItem('id');
+    
+    if (!userId) {
+      throw new Error('사용자 ID가 없습니다. 로그인을 확인해주세요.');
+    }
+    
+    if (!taskId) {
+      throw new Error('태스크 ID가 필요합니다.');
+    }
+    
+    const response = await axios.patch(`${baseURL}/workspace-service/task/cancel/${taskId}`, {}, {
+      headers: {
+        'X-User-Id': userId,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('태스크 취소 처리 API 호출 실패:', error);
+    
+    if (error.response) {
+      const statusCode = error.response.status;
+      const message = error.response.data?.statusMessage || error.response.data?.message || '태스크 취소 처리에 실패했습니다.';
+      
+      switch (statusCode) {
+        case 400:
+          throw new Error(message);
+        case 401:
+          throw new Error('인증이 필요합니다. 다시 로그인해주세요.');
+        case 403:
+          throw new Error('태스크 취소 권한이 없습니다.');
+        case 404:
+          throw new Error('태스크를 찾을 수 없습니다.');
+        case 409:
+          throw new Error('이미 미완료 상태의 태스크입니다.');
+        case 500:
+          throw new Error(message || '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        default:
+          throw new Error(message);
+      }
+    } else if (error.request) {
+      throw new Error('네트워크 연결을 확인해주세요.');
+    } else {
+      throw new Error(error.message || '태스크 취소 처리 중 오류가 발생했습니다.');
+    }
+  }
+};
+
+/**
  * 스톤 완료 처리 API
  * @param {string} stoneId - 완료 처리할 스톤 ID
  * @returns {Promise<Object>} API 응답 데이터

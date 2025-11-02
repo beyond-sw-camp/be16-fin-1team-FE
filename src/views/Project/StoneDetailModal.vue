@@ -771,7 +771,7 @@
 </template>
 
 <script>
-import { deleteStone, modifyStoneManager, searchWorkspaceParticipants, modifyStone, getTaskList, createTask, getStoneParticipantList, modifyTask, deleteTask, completeTask, completeStone } from '@/services/stoneService.js';
+import { deleteStone, modifyStoneManager, searchWorkspaceParticipants, modifyStone, getTaskList, createTask, getStoneParticipantList, modifyTask, deleteTask, completeTask, cancelTask, completeStone } from '@/services/stoneService.js';
 import { showSnackbar } from '@/services/snackbar.js';
 import TaskDeleteConfirmModal from '@/components/modal/TaskDeleteConfirmModal.vue';
 import TaskCompleteConfirmModal from '@/components/modal/TaskCompleteConfirmModal.vue';
@@ -1399,13 +1399,37 @@ export default {
       this.deleteLoading = false;
     },
     
-    // 태스크 완료 처리
-    toggleTaskComplete(task) {
-      // 이미 완료된 태스크는 처리하지 않음
+    // 태스크 완료/취소 처리
+    async toggleTaskComplete(task) {
+      // 이미 완료된 태스크는 취소 처리
       if (task.completed) {
+        try {
+          console.log('태스크 취소 처리:', task);
+          
+          // 태스크 취소 API 호출
+          const response = await cancelTask(task.id);
+          
+          // 성공 메시지 표시
+          const result = response.result || '태스크 상태가 취소되었습니다.';
+          showSnackbar(result, { color: 'success' });
+          
+          // 태스크 목록 새로고침
+          await this.loadTaskList();
+          
+          // 부모 컴포넌트에 태스크 취소 이벤트 전달
+          this.$emit('task-cancelled', {
+            stoneId: this.currentStoneData?.stoneId || this.currentStoneData?.id,
+            taskId: task.id,
+            taskName: task.name
+          });
+        } catch (error) {
+          console.error('태스크 취소 처리 실패:', error);
+          showSnackbar(error.message || '태스크 취소 처리에 실패했습니다.', { color: 'error' });
+        }
         return;
       }
       
+      // 미완료 태스크는 완료 확인 모달 표시
       this.taskToComplete = task;
       this.showCompleteConfirmModal = true;
     },
@@ -2584,7 +2608,7 @@ export default {
 }
 
 .task-checkbox.completed {
-  cursor: not-allowed;
+  cursor: pointer;
 }
 
 .task-content {
