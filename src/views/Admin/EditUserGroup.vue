@@ -46,7 +46,7 @@
                   :key="user.userId" 
                   class="user-item"
                 >
-                  <img src="/user_default_icon.svg" alt="user" class="user-avatar" />
+                  <img :src="user.profileImageUrl || userDefaultIcon" alt="user" class="user-avatar" @error="handleAvatarError($event)" />
                   <div class="user-info">
                     <div class="user-name">{{ user.userName }}</div>
                     <div class="user-email">{{ user.userEmail }}</div>
@@ -92,7 +92,7 @@
                   :key="user.userId" 
                   class="selected-user-item"
                 >
-                  <img src="/user_default_icon.svg" alt="user" class="user-avatar" />
+                  <img :src="user.profileImageUrl || userDefaultIcon" alt="user" class="user-avatar" @error="handleAvatarError($event)" />
                   <div class="user-info">
                     <div class="user-name">{{ user.userName }}</div>
                     <div class="user-email">{{ user.userEmail }}</div>
@@ -125,6 +125,7 @@
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import userDefaultIcon from '@/assets/icons/user/user_default_icon.svg';
 
 export default {
   name: 'EditUserGroup',
@@ -135,7 +136,8 @@ export default {
       originalGroupName: '',
       userSearchQuery: '',
       availableUsers: [],
-      selectedUsers: []
+      selectedUsers: [],
+      userDefaultIcon
     };
   },
   setup() {
@@ -215,7 +217,12 @@ export default {
           
           // 이미 선택된 사용자들을 제외
           const selectedUserIds = this.selectedUsers.map(user => user.userId);
-          this.availableUsers = allUsers.filter(user => !selectedUserIds.includes(user.userId));
+          this.availableUsers = allUsers.filter(user => !selectedUserIds.includes(user.userId)).map(user => ({
+            userId: user.userId,
+            userName: user.userName,
+            userEmail: user.userEmail,
+            profileImageUrl: user.profileImageUrl
+          }));
           
           console.log('전체 사용자 목록:', allUsers);
           console.log('선택된 사용자 ID들:', selectedUserIds);
@@ -246,7 +253,12 @@ export default {
         });
         
         if (response.data.statusCode === 200) {
-          this.availableUsers = response.data.result.userInfoList || [];
+          this.availableUsers = (response.data.result.userInfoList || []).map(user => ({
+            userId: user.userId,
+            userName: user.userName,
+            userEmail: user.userEmail,
+            profileImageUrl: user.profileImageUrl
+          }));
           console.log('검색 결과:', this.availableUsers);
         }
       } catch (error) {
@@ -258,7 +270,12 @@ export default {
     // 사용자 추가
     addUser(user) {
       if (!this.selectedUsers.find(u => u.userId === user.userId)) {
-        this.selectedUsers.push(user);
+        this.selectedUsers.push({
+          userId: user.userId,
+          userName: user.userName,
+          userEmail: user.userEmail,
+          profileImageUrl: user.profileImageUrl
+        });
         // 사용 가능한 사용자 목록에서 제거
         this.availableUsers = this.availableUsers.filter(u => u.userId !== user.userId);
       }
@@ -308,6 +325,11 @@ export default {
           alert('그룹 수정에 실패했습니다.');
         }
       }
+    },
+    
+    // 아바타 이미지 로드 실패 시 기본 아이콘으로 대체
+    handleAvatarError(event) {
+      event.target.src = this.userDefaultIcon;
     }
   }
 };

@@ -32,7 +32,7 @@
               :key="user.userId" 
               class="individual-user-item"
             >
-              <img src="/user_default_icon.svg" alt="user" class="user-avatar" />
+              <img :src="user.profileImageUrl || '/user_default_icon.svg'" alt="user" class="user-avatar" @error="handleAvatarError($event)" />
               <div class="user-info">
                 <div class="user-name">{{ user.userName }}</div>
                 <div class="user-email">{{ user.userEmail }}</div>
@@ -103,7 +103,7 @@
               :key="user.userId" 
               class="selected-user-item"
             >
-              <img src="/user_default_icon.svg" alt="user" class="user-avatar" />
+              <img :src="user.profileImageUrl || '/user_default_icon.svg'" alt="user" class="user-avatar" @error="handleAvatarError($event)" />
               <div class="user-info">
                 <div class="user-name">{{ user.userName }}</div>
                 <div v-if="user.userEmail" class="user-email">{{ user.userEmail }}</div>
@@ -142,7 +142,8 @@ export default {
       userGroups: [],
       selectedUsers: [],
       selectedGroups: [],
-      permissionGroupId: null
+      permissionGroupId: null,
+      userDefaultIcon: '/user_default_icon.svg'
     };
   },
   setup() {
@@ -180,6 +181,7 @@ export default {
             userId: user.userInfo.userId,
             userName: user.userInfo.userName,
             userEmail: user.userInfo.userEmail,
+            profileImageUrl: user.userInfo.profileImageUrl,
             groupName: '기존 멤버'
           }));
         }
@@ -247,7 +249,12 @@ export default {
           // 관리자 사용자 제외
           this.individualUsers = allUsers.filter(user => 
             user.userId !== adminUserId
-          );
+          ).map(user => ({
+            userId: user.userId,
+            userName: user.userName,
+            userEmail: user.userEmail,
+            profileImageUrl: user.profileImageUrl
+          }));
         }
       } catch (error) {
         console.error('개별 사용자 목록 로드 실패:', error);
@@ -278,7 +285,12 @@ export default {
           // 관리자 사용자 제외
           this.individualUsers = allUsers.filter(user => 
             user.userId !== adminUserId
-          );
+          ).map(user => ({
+            userId: user.userId,
+            userName: user.userName,
+            userEmail: user.userEmail,
+            profileImageUrl: user.profileImageUrl
+          }));
         }
       } catch (error) {
         console.error('개별 사용자 검색 실패:', error);
@@ -332,6 +344,7 @@ export default {
                 userId: participant.userId,
                 userName: participant.userName,
                 userEmail: participant.userEmail,
+                profileImageUrl: participant.profileImageUrl,
                 groupName: group.groupName
               });
             }
@@ -347,9 +360,15 @@ export default {
           userId: user.userId,
           userName: user.userName,
           userEmail: user.userEmail,
+          profileImageUrl: user.profileImageUrl,
           groupName: '개별 사용자'
         });
       }
+    },
+    
+    // 아바타 이미지 로드 실패 시 기본 아이콘으로 대체
+    handleAvatarError(event) {
+      event.target.src = this.userDefaultIcon;
     },
     
     // 사용자 제거

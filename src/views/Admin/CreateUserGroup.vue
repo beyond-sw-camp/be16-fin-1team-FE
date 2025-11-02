@@ -46,7 +46,7 @@
                   :key="user.userId" 
                   class="user-item"
                 >
-                  <img src="/user_default_icon.svg" alt="user" class="user-avatar" />
+                  <img :src="user.profileImageUrl || userDefaultIcon" alt="user" class="user-avatar" @error="handleAvatarError($event)" />
                   <div class="user-info">
                     <div class="user-name">{{ user.userName }}</div>
                     <div class="user-email">{{ user.userEmail }}</div>
@@ -92,7 +92,7 @@
                   :key="user.userId" 
                   class="selected-user-item"
                 >
-                  <img src="/user_default_icon.svg" alt="user" class="user-avatar" />
+                  <img :src="user.profileImageUrl || userDefaultIcon" alt="user" class="user-avatar" @error="handleAvatarError($event)" />
                   <div class="user-info">
                     <div class="user-name">{{ user.userName }}</div>
                     <div class="user-email">{{ user.userEmail }}</div>
@@ -119,6 +119,7 @@
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import userDefaultIcon from '@/assets/icons/user/user_default_icon.svg';
 
 export default {
   name: 'CreateUserGroup',
@@ -127,7 +128,8 @@ export default {
       newGroupName: '',
       userSearchQuery: '',
       availableUsers: [],
-      selectedUsers: []
+      selectedUsers: [],
+      userDefaultIcon
     };
   },
   setup() {
@@ -156,7 +158,12 @@ export default {
         });
         
         if (response.data.statusCode === 200) {
-          this.availableUsers = response.data.result.userInfoList || [];
+          this.availableUsers = (response.data.result.userInfoList || []).map(user => ({
+            userId: user.userId,
+            userName: user.userName,
+            userEmail: user.userEmail,
+            profileImageUrl: user.profileImageUrl
+          }));
           console.log('그룹에 속하지 않은 참여자 목록:', this.availableUsers);
         }
       } catch (error) {
@@ -184,7 +191,12 @@ export default {
         });
         
         if (response.data.statusCode === 200) {
-          this.availableUsers = response.data.result.userInfoList || [];
+          this.availableUsers = (response.data.result.userInfoList || []).map(user => ({
+            userId: user.userId,
+            userName: user.userName,
+            userEmail: user.userEmail,
+            profileImageUrl: user.profileImageUrl
+          }));
           console.log('검색 결과:', this.availableUsers);
         }
       } catch (error) {
@@ -196,7 +208,12 @@ export default {
     // 사용자 추가
     addUser(user) {
       if (!this.selectedUsers.find(u => u.userId === user.userId)) {
-        this.selectedUsers.push(user);
+        this.selectedUsers.push({
+          userId: user.userId,
+          userName: user.userName,
+          userEmail: user.userEmail,
+          profileImageUrl: user.profileImageUrl
+        });
       }
     },
     
@@ -236,6 +253,11 @@ export default {
           alert('그룹 생성에 실패했습니다.');
         }
       }
+    },
+    
+    // 아바타 이미지 로드 실패 시 기본 아이콘으로 대체
+    handleAvatarError(event) {
+      event.target.src = this.userDefaultIcon;
     }
   }
 };
