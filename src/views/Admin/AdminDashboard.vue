@@ -3,9 +3,9 @@
     <!-- 관리자 페이지 헤더 -->
     <div class="admin-header">
       <div class="admin-nav-tabs">
-        <div class="nav-tab active" @click="setActiveTab('permission')">권한 그룹</div>
+        <div class="nav-tab active" @click="setActiveTab('dashboard')">대시보드</div>
+        <div class="nav-tab" @click="setActiveTab('permission')">권한 그룹</div>
         <div class="nav-tab" @click="setActiveTab('user')">사용자 그룹</div>
-        <div class="nav-tab" @click="setActiveTab('dashboard')">대시보드</div>
         <div class="nav-tab" @click="setActiveTab('member')">회원 관리</div>
         <div class="nav-tab" @click="setActiveTab('workspace')">워크스페이스 관리</div>
       </div>
@@ -453,7 +453,7 @@ export default {
   },
   data() {
     return {
-      activeTab: 'permission',
+      activeTab: 'dashboard',
       permissionGroups: [],
       activeActionMenu: null,
       loading: false,
@@ -518,6 +518,12 @@ export default {
     
     if (this.activeTab === 'permission') {
       await this.loadPermissionGroups();
+    }
+    
+    if (this.activeTab === 'dashboard') {
+      this.loadProjectMilestones();
+      this.loadWorkspaceProjects();
+      this.loadUserGroupProgress();
     }
     
     // 바깥쪽 클릭 시 액션 메뉴 닫기
