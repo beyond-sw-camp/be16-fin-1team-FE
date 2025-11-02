@@ -11,6 +11,26 @@
           :viewBox="`0 0 ${svgWidth} ${layouts[p.projectId]?.height || 260}`"
           preserveAspectRatio="xMidYMid meet"
         >
+          <!-- Gradient 및 질감 정의 -->
+          <defs>
+            <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:rgb(65, 63, 63);stop-opacity:0.95" />
+              <stop offset="50%" style="stop-color:rgb(42, 40, 40);stop-opacity:0.9" />
+              <stop offset="100%" style="stop-color:rgb(25, 23, 23);stop-opacity:0.85" />
+            </linearGradient>
+            
+            <!-- 그레인 필터 -->
+            <filter id="grainFilter" x="0%" y="0%" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="4" numOctaves="6" seed="1" />
+              <feColorMatrix type="saturate" values="0" />
+            </filter>
+            
+            <!-- 그레인 패턴 -->
+            <pattern id="grainPattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+              <rect width="100" height="100" fill="black" filter="url(#grainFilter)" opacity="0.8" />
+            </pattern>
+          </defs>
+          
           <g class="tree-svg-group" :transform="layouts[p.projectId]?.groupTransform || 'translate(0, 40) scale(0.5)'">
           <!-- 링크(연결선) -->
           <g class="links">
@@ -24,11 +44,12 @@
 
           <!-- 노드 -->
           <g class="nodes">
-            <g
+              <g
               v-for="n in layouts[p.projectId]?.nodes || []"
               :key="n.data.id"
               class="node"
               :transform="`translate(${n.x}, ${n.y})`"
+              style="cursor: pointer;"
             >
               <g>
                 <rect
@@ -40,6 +61,16 @@
                   class="node-rect node-root"
                 />
                 <rect
+                  v-if="n.depth === 0"
+                  :x="-(n.rectWidth || rootNodeWidth)/2" :y="-rootNodeHeight/2"
+                  :width="n.rectWidth || rootNodeWidth" :height="rootNodeHeight"
+                  rx="5"
+                  ry="5"
+                  fill="url(#grainPattern)"
+                  opacity="0.8"
+                  style="pointer-events: none; mix-blend-mode: multiply;"
+                />
+                <rect
                   v-else
                   :x="-(n.rectWidth || nodeWidth)/2" :y="-nodeHeight/2"
                   :width="n.rectWidth || nodeWidth" :height="nodeHeight"
@@ -47,20 +78,40 @@
                   ry="5"
                   class="node-rect"
                 />
+                <rect
+                  v-if="n.depth !== 0"
+                  :x="-(n.rectWidth || nodeWidth)/2" :y="-nodeHeight/2"
+                  :width="n.rectWidth || nodeWidth" :height="nodeHeight"
+                  rx="5"
+                  ry="5"
+                  fill="url(#grainPattern)"
+                  opacity="0.8"
+                  style="pointer-events: none; mix-blend-mode: multiply;"
+                />
                 <text 
                   class="node-text" 
                   text-anchor="middle" 
                   :x="0" 
-                  :y="n.depth === 0 ? '-6' : '-6'"
+                  :y="n.depth === 0 ? '-10' : '-6'"
                   dominant-baseline="middle"
                 >
                   {{ n.data.name }}
                 </text>
                 <text 
+                  v-if="n.depth === 0 && n.data.startedAt"
+                  class="node-date" 
+                  text-anchor="middle" 
+                  :x="0" 
+                  :y="2"
+                  dominant-baseline="middle"
+                >
+                  {{ formatNodeDate(n.data.startedAt) }} ~ {{ formatNodeDate(n.data.endedAt) }}
+                </text>
+                <text 
                   class="node-percent" 
                   text-anchor="middle" 
                   :x="0" 
-                  :y="n.depth === 0 ? '6' : '6'"
+                  :y="n.depth === 0 ? '13' : '6'"
                   dominant-baseline="middle"
                 >
                   {{ Math.round(n.data.percent) }}%
@@ -90,7 +141,7 @@ const props = defineProps({
 /** SVG/노드 크기 */
 const svgWidth = 520
 const rootNodeWidth = 85
-const rootNodeHeight = 38
+const rootNodeHeight = 50
 const nodeWidth = 85
 const nodeHeight = 38
 const headerWidth = 220
@@ -226,6 +277,15 @@ function linkPath(l) {
   return `M ${sx},${sy} L ${tx},${ty}`
 }
 
+/** 날짜 포맷팅 함수 */
+function formatNodeDate(dateString) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}.${month}.${day}`
+}
 
 /** props 변경 시마다 레이아웃 생성 */
 function computeAll() {
@@ -323,12 +383,28 @@ watch(() => props.projects, computeAll, { deep: true })
   fill: rgba(255, 255, 255, 0.1);
   stroke: rgba(255, 255, 255, 0.4);
   stroke-width: 1px;
+  transition: all 0.2s ease;
+}
+
+.node:hover .node-rect {
+  fill: rgba(255, 255, 255, 0.2);
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-width: 2px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
 }
 
 .node-root {
   fill: rgba(255, 255, 255, 0.15);
   stroke: rgba(255, 255, 255, 0.5);
   stroke-width: 1px;
+  transition: all 0.2s ease;
+}
+
+.node:hover .node-root {
+  fill: rgba(255, 255, 255, 0.25);
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 2px;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
 }
 
 .node-text {
@@ -340,6 +416,12 @@ watch(() => props.projects, computeAll, { deep: true })
   dominant-baseline: middle;
   white-space: nowrap;
   overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.node:hover .node-text {
+  fill: #ffffff;
+  font-weight: 700;
 }
 
 .node-root .node-text {
@@ -350,8 +432,25 @@ watch(() => props.projects, computeAll, { deep: true })
 .node-percent {
   font-family: 'Pretendard', sans-serif;
   font-size: 8px;
-  font-weight: 400;
+  font-weight: 700;
   fill: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s ease;
+}
+
+.node:hover .node-percent {
+  fill: rgba(255, 255, 255, 0.9);
+}
+
+.node-date {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 7px;
+  font-weight: 400;
+  fill: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s ease;
+}
+
+.node:hover .node-date {
+  fill: rgba(255, 255, 255, 0.8);
 }
 
 /* 반응형 */
