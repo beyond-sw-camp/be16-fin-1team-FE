@@ -3113,6 +3113,15 @@ export default {
   border-left: 4px solid #1976d2;
 }
 
+.clickable-row {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.clickable-row .v-icon {
+  flex-shrink: 0;
+}
+
 .clickable-row:hover {
   background-color: #f5f5f5;
   border-radius: 4px;
@@ -3120,6 +3129,11 @@ export default {
 
 .item-name {
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
 }
 
 .clickable-row:hover .item-name {
@@ -3257,6 +3271,11 @@ export default {
   opacity: 0.7;
 }
 
+.drive-table :deep(table) {
+  table-layout: fixed;
+  width: 100%;
+}
+
 .drive-table :deep(thead) {
   background: linear-gradient(to bottom, #ffffff, #f5f5f5);
   border-bottom: 2px solid #d3d3d3;
@@ -3282,6 +3301,25 @@ export default {
   padding: 12px 16px;
   color: #202124;
   font-size: 14.5px;
+}
+
+/* 이름 셀 overflow 처리 */
+.drive-table :deep(tbody td:first-child) {
+  overflow: hidden;
+}
+
+.drive-table :deep(tbody td:first-child > div) {
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+}
+
+.drive-table :deep(tbody td:first-child .item-name) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 /* 테이블 래퍼 및 컨테이너 */
