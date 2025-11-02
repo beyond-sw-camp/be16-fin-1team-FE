@@ -2,11 +2,8 @@
 import { onMounted, onBeforeUnmount, defineEmits, defineProps, watch, ref } from "vue";
 
 const props = defineProps({
-  // ⬇️ 기존
   events: { type: Array, default: () => [] },
-  // ⬇️ 추가: 초기/현재 뷰(dayGridMonth / timeGridWeek / timeGridDay)
   viewType: { type: String, default: "dayGridMonth" },
-  // ⬇️ 추가: 달력이 보여줄 기준 날짜(Date | ISO string)
   initialDate: { type: [String, Date], default: undefined },
 });
 const emit = defineEmits(["openStoneModal"]);
@@ -24,12 +21,13 @@ onMounted(() => {
   }
 
   calendar = new FC.Calendar(calEl.value, {
-    // ⬇️ 외부에서 넘긴 뷰/날짜 반영
+    // 외부에서 넘긴 뷰/날짜 반영
     initialView: props.viewType || "dayGridMonth",
     ...(props.initialDate ? { initialDate: props.initialDate } : {}),
 
     // 이벤트 소스
     events: props.events ?? [],
+    displayEventTime: false,
 
     // 클릭 → 모달 오픈 이벤트 전달
     eventClick: (info) => {
@@ -88,13 +86,6 @@ onBeforeUnmount(() => {
     calendar = null;
   }
 });
-
-// const updateEvents = (newEvents) => {
-//   if (!calendar) return;
-//   calendar.removeAllEvents();
-//   calendar.addEventSource(newEvents);
-// };
-// defineExpose({ updateEvents });
 
 </script>
 
