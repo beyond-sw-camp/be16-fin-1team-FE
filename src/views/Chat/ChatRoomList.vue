@@ -255,7 +255,7 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
 .avatar-stack .avatar-item img{ width: 100%; height: 100%; object-fit: cover; display: block; }
 .avatar-stack .avatar-item.more{ background: #ECEFF1; color: #546E7A; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
 .avatar-stack.count-1{ height: 40px; width: 40px; }
-.avatar-stack.count-1 .avatar-item{ width: 45px; height: 45px; left: 0; top: -2px; align-items: center; justify-content: center; }
+.avatar-stack.count-1 .avatar-item{ width: 42px; height: 42px; left: 0; top: 0px; align-items: center; justify-content: center; }
 
 /* 2개: 2x2 격자에서 (0,0)과 (1,1)에 배치, 살짝 겹침 */
 .avatar-stack.count-2{ height: 32px; width: 48px; position: relative; }
@@ -283,7 +283,7 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
 .avatar-stack.count-4 .av-4{ width: 22px; height: 22px; left: 22px; top: 17px; box-shadow: -2px 0 0 0 var(--stack-gap-color), 0 -2px 0 0 var(--stack-gap-color); }
 
 /* +N indicator position */
-.avatar-stack .avatar-item.more{ width: 18px; height: 18px; right: -6px; bottom: -6px; left: auto; top: auto; font-size: 10px; }
+.avatar-stack .avatar-item.more{ width: 18px; height: 18px; right: -12px; bottom: -9px; left: auto; top: auto; font-size: 10px; }
 .col-main { padding-top: 4px; padding-bottom: 4px; }
 .row-title{ display: flex; align-items: baseline; gap: 4px; line-height: 1.3; margin-bottom: 4px; }
 .row-title .title{ font-size: 13px; font-weight: 500; color: #212121; display: block; }
