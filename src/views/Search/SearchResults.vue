@@ -91,7 +91,7 @@
             <template v-slot:item.owner="{ item }">
               <div class="d-flex align-center">
                 <v-avatar size="24" class="mr-2">
-                  <img v-if="item.profileImageUrl" :src="item.profileImageUrl" alt="프로필" />
+                  <v-img v-if="item.profileImageUrl" :src="item.profileImageUrl" alt="프로필" />
                   <v-icon v-else small>mdi-account-circle</v-icon>
                 </v-avatar>
                 <span>{{ item.creatorName || '알 수 없음' }}</span>
@@ -131,9 +131,9 @@
               <div v-if="result.searchContent" class="result-snippet" v-html="highlightKeyword(result.searchContent)"></div>
               <div class="result-footer">
                 <div class="result-creator">
-                  <v-avatar size="18">
-                    <img v-if="result.profileImageUrl" :src="result.profileImageUrl" alt="프로필" />
-                    <v-icon v-else size="18">mdi-account-circle</v-icon>
+                  <v-avatar size="20">
+                    <v-img v-if="result.profileImageUrl" :src="result.profileImageUrl" alt="프로필" />
+                    <v-icon v-else size="20">mdi-account-circle</v-icon>
                   </v-avatar>
                   <span class="creator-name">{{ result.creatorName || '알 수 없음' }}</span>
                 </div>
