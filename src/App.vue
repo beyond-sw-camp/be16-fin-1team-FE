@@ -8,18 +8,11 @@
     </v-main>
 
     <!-- 전역 챗봇 버튼 및 오버레이 -->
-    <v-btn
-      v-if="!hideLayout && !hideChatbot"
-      class="chatbot-fab"
-      :class="{ dragging: isFabDragging }"
-      icon
-      :style="{ left: fabX + 'px', top: fabY + 'px' }"
-      @mousedown.prevent="onFabPointerDown($event)"
-      @touchstart.passive="onFabPointerDown($event)"
-      @click.stop.prevent="onFabClick"
-    >
-      <v-icon>mdi-robot-outline</v-icon>
-    </v-btn>
+    <ChatBotButton 
+      :hide-layout="hideLayout" 
+      :hide-chatbot="hideChatbot"
+      @open-chatbot="isChatBotOpen = true"
+    />
     <v-overlay v-if="!hideLayout && !hideChatbot" :model-value="isChatBotOpen" scrim="rgba(0,0,0,0.25)" @click:outside="isChatBotOpen = false" class="align-end justify-end" persistent>
       <ChatBotPage @close="isChatBotOpen = false" />
     </v-overlay>
@@ -44,6 +37,7 @@ import CreateWorkspaceModal from './views/Workspace/CreateWorkspaceModal.vue';
 import CreateProjectModal from './views/Project/CreateProjectModal.vue';
 import GlobalSnackbar from './components/GlobalSnackbar.vue';
 import ChatBotPage from './views/ChatBot/ChatBotPage.vue';
+import ChatBotButton from './views/ChatBot/ChatBotButton.vue';
 import CalendarDetailModal from './components/CalendarDetailModal.vue';
 import axios from 'axios';
 import { showSnackbar } from './services/snackbar.js';
@@ -59,34 +53,21 @@ export default {
     CreateWorkspaceModal,
     CreateProjectModal,
     ChatBotPage,
+    ChatBotButton,
     CalendarDetailModal,
   },
   data() {
     return {
       isChatBotOpen: false,
-      fabX: 0,
-      fabY: 0,
-      fabXPct: null,
-      fabYPct: null,
-      isFabDragging: false,
-      hasFabMoved: false,
-      dragOffsetX: 0,
-      dragOffsetY: 0,
-      fabSize: 56,
       showCreateModal: false,
       showProjectModal: false,
       isCalendarModalOpen: false,
-      calendarModalDetails: null
+      calendarModalDetails: null,
+      reconnectTimer: null
     };
   },
   mounted() {
     this.$nextTick(() => {
-      this.loadFabPosition();
-      window.addEventListener('mousemove', this.onFabPointerMove, { passive: false });
-      window.addEventListener('mouseup', this.onFabPointerUp, { passive: true });
-      window.addEventListener('touchmove', this.onFabPointerMove, { passive: false });
-      window.addEventListener('touchend', this.onFabPointerUp, { passive: true });
-      window.addEventListener('resize', this.onWindowResize, { passive: true });
       // Global modal open events
       window.addEventListener('openCreateWorkspaceModal', () => {
         this.showCreateModal = true;
@@ -105,11 +86,20 @@ export default {
     });
   },
   beforeUnmount() {
-    window.removeEventListener('mousemove', this.onFabPointerMove);
-    window.removeEventListener('mouseup', this.onFabPointerUp);
-    window.removeEventListener('touchmove', this.onFabPointerMove);
-    window.removeEventListener('touchend', this.onFabPointerUp);
-    window.removeEventListener('resize', this.onWindowResize);
+    // 재연결 타이머 정리
+    if (this.reconnectTimer) {
+      clearInterval(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    // STOMP 리스너 정리
+    if (this._notifOffClose) {
+      try { this._notifOffClose(); } catch(_) {}
+      this._notifOffClose = null;
+    }
+    if (this._notifUnsub) {
+      try { this._notifUnsub(); } catch(_) {}
+      this._notifUnsub = null;
+    }
   },
   computed: {
     hideLayout() {
@@ -125,6 +115,14 @@ export default {
         const id = localStorage.getItem('id');
         if (!id) return;
         await notificationStompManager.connect();
+        
+        // 연결 성공 시 재연결 타이머 정리
+        if (this.reconnectTimer) {
+          clearInterval(this.reconnectTimer);
+          this.reconnectTimer = null;
+          console.log('[notif] 재연결 성공, 타이머 정리');
+        }
+        
         const topic = `/topic/notification/${id}`;
         if (this._notifUnsub) { try { this._notifUnsub(); } catch(_) {} this._notifUnsub = null; }
         this._notifUnsub = await notificationStompManager.subscribe(topic, (payload) => {
@@ -140,139 +138,47 @@ export default {
               // Update chat unread badge when NEW_CHAT_MESSAGE
               if (String(payload.type).toUpperCase() === 'NEW_CHAT_MESSAGE') {
                 setChatUnreadCount(title);
+              } else {
+                // Broadcast for header notification list (fallback createdAt: now)
+                // NEW_CHAT_MESSAGE는 종 모양 알림에 표시하지 않음
+                const nowIso = new Date().toISOString();
+                const notif = {
+                  id: payload.id,
+                  title: title || '알림',
+                  content: body || '',
+                  readStatus: (payload.readStatus || 'UNREAD'),
+                  createdAt: payload.createdAt || nowIso,
+                };
+                window.dispatchEvent(new CustomEvent('pushNotification', { detail: notif }));
               }
-              // Broadcast for header notification list (fallback createdAt: now)
-              const nowIso = new Date().toISOString();
-              const notif = {
-                id: payload.id,
-                title: title || '알림',
-                content: body || '',
-                readStatus: (payload.readStatus || 'UNREAD'),
-                createdAt: payload.createdAt || nowIso,
-              };
-              window.dispatchEvent(new CustomEvent('pushNotification', { detail: notif }));
             } else {
               text = '새 알림이 도착했습니다.';
             }
             showSnackbar(text, { color: 'info' });
           } catch(_) {}
         });
-        // reconnect on close
+        // reconnect on close (10초마다 재연결 시도)
         if (!this._notifOffClose) {
-          this._notifOffClose = notificationStompManager.on('close', async () => {
-            try { await notificationStompManager.connect(); this.initNotificationSubscription(); } catch(_) {}
+          this._notifOffClose = notificationStompManager.on('close', () => {
+            console.log('[notif] STOMP 연결 끊김, 10초마다 재연결 시도');
+            // 기존 타이머가 있으면 정리
+            if (this.reconnectTimer) {
+              clearInterval(this.reconnectTimer);
+            }
+            // 10초마다 재연결 시도
+            this.reconnectTimer = setInterval(async () => {
+              try {
+                console.log('[notif] 재연결 시도 중...');
+                await this.initNotificationSubscription();
+              } catch(err) {
+                console.warn('[notif] 재연결 실패:', err);
+              }
+            }, 10000);
           });
         }
-      } catch(_) {}
-    },
-    onFabClick() {
-      if (this.hasFabMoved) { this.hasFabMoved = false; return; }
-      this.isChatBotOpen = true;
-    },
-    onFabPointerDown(e) {
-      const point = this.getPoint(e);
-      this.isFabDragging = true;
-      this.hasFabMoved = false;
-      this.dragOffsetX = point.x - this.fabX;
-      this.dragOffsetY = point.y - this.fabY;
-    },
-    onFabPointerMove(e) {
-      if (!this.isFabDragging) return;
-      const point = this.getPoint(e);
-      const nextX = point.x - this.dragOffsetX;
-      const nextY = point.y - this.dragOffsetY;
-      const clamped = this.clampToViewport(nextX, nextY);
-      if (Math.abs(clamped.x - this.fabX) > 1 || Math.abs(clamped.y - this.fabY) > 1) {
-        this.hasFabMoved = true;
+      } catch(err) {
+        console.warn('[notif] 초기 연결 실패:', err);
       }
-      this.fabX = clamped.x;
-      this.fabY = clamped.y;
-      // 스크롤 방지를 위해 touchmove 에서만 기본 동작 취소
-      if (e.cancelable && (e.type === 'touchmove' || (e.touches && e.touches.length))) e.preventDefault();
-    },
-    onFabPointerUp() {
-      if (!this.isFabDragging) return;
-      this.isFabDragging = false;
-      this.saveFabPosition();
-    },
-    getPoint(e) {
-      if (e.touches && e.touches[0]) {
-        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      }
-      return { x: e.clientX, y: e.clientY };
-    },
-    clampToViewport(x, y) {
-      const margin = 8;
-      const maxX = Math.max(margin, window.innerWidth - this.fabSize - margin);
-      const maxY = Math.max(margin, window.innerHeight - this.fabSize - margin);
-      const clampedX = Math.min(Math.max(x, margin), maxX);
-      const clampedY = Math.min(Math.max(y, margin), maxY);
-      return { x: clampedX, y: clampedY };
-    },
-    onWindowResize() {
-      // 상대값(퍼센트) 기준으로 다시 픽셀 위치 환산
-      const baseXPct = (this.fabXPct != null) ? this.fabXPct : (this.fabX / window.innerWidth);
-      const baseYPct = (this.fabYPct != null) ? this.fabYPct : (this.fabY / window.innerHeight);
-      const nextX = baseXPct * window.innerWidth;
-      const nextY = baseYPct * window.innerHeight;
-      const clamped = this.clampToViewport(nextX, nextY);
-      this.fabX = clamped.x;
-      this.fabY = clamped.y;
-    },
-    loadFabPosition() {
-      try {
-        // 1) 우선 최신 방식: 퍼센트 저장값을 사용
-        const xp = Number(localStorage.getItem('chatbotFabXPct'));
-        const yp = Number(localStorage.getItem('chatbotFabYPct'));
-        if (Number.isFinite(xp) && Number.isFinite(yp) && xp >= 0 && xp <= 1 && yp >= 0 && yp <= 1) {
-          this.fabXPct = xp;
-          this.fabYPct = yp;
-          const pxX = xp * window.innerWidth;
-          const pxY = yp * window.innerHeight;
-          const clamped = this.clampToViewport(pxX, pxY);
-          this.fabX = clamped.x;
-          this.fabY = clamped.y;
-          return;
-        }
-
-        // 2) 레거시: 픽셀 저장값이 있으면 그것을 사용 후 퍼센트로 승격 저장
-        const x = Number(localStorage.getItem('chatbotFabX'));
-        const y = Number(localStorage.getItem('chatbotFabY'));
-        if (Number.isFinite(x) && Number.isFinite(y)) {
-          if (!(x <= 24 && y <= 24)) {
-            const clampedStored = this.clampToViewport(x, y);
-            this.fabX = clampedStored.x;
-            this.fabY = clampedStored.y;
-            this.fabXPct = this.fabX / window.innerWidth;
-            this.fabYPct = this.fabY / window.innerHeight;
-            this.saveFabPosition();
-            return;
-          }
-        }
-      } catch (_) {}
-      // 3) 기본: 우하단 기준 상대값으로 배치
-      const defX = window.innerWidth - 24 - this.fabSize;
-      const defY = window.innerHeight - 24 - this.fabSize;
-      const clampedDefault = this.clampToViewport(defX, defY);
-      this.fabX = clampedDefault.x;
-      this.fabY = clampedDefault.y;
-      this.fabXPct = this.fabX / window.innerWidth;
-      this.fabYPct = this.fabY / window.innerHeight;
-      this.saveFabPosition();
-    },
-    saveFabPosition() {
-      try {
-        // 퍼센트(상대값)로 저장
-        const xp = Math.min(Math.max(this.fabX / window.innerWidth, 0), 1);
-        const yp = Math.min(Math.max(this.fabY / window.innerHeight, 0), 1);
-        this.fabXPct = xp;
-        this.fabYPct = yp;
-        localStorage.setItem('chatbotFabXPct', String(xp));
-        localStorage.setItem('chatbotFabYPct', String(yp));
-        // 레거시 호환을 위해 픽셀 값도 함께 저장
-        localStorage.setItem('chatbotFabX', String(this.fabX));
-        localStorage.setItem('chatbotFabY', String(this.fabY));
-      } catch (_) {}
     },
     closeCreateModal() {
       this.showCreateModal = false;
@@ -337,11 +243,6 @@ export default {
 }
 .with-offset { padding-top: 64px; padding-left: 280px; }
 .no-offset { padding: 0; }
-
-.chatbot-fab { position: fixed; background: #FFE364; color: #2A2828; cursor: grab; z-index: 1500; width: 56px; height: 56px; }
-.chatbot-fab.dragging { cursor: grabbing; }
-.chatbot-fab:focus, .chatbot-fab:focus-visible { outline: none !important; box-shadow: none !important; }
-.chatbot-fab { -webkit-tap-highlight-color: transparent; }
 </style>
 
 <style>

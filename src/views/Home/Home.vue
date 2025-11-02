@@ -5,20 +5,19 @@
       <!-- 상단 헤더 -->
       <div class="content-header">
         <div class="date-section">
-          <h1 class="main-title">오늘의 일정</h1>
           <p class="today-date">{{ todayDate }}</p>
         </div>
       </div>
 
       <!-- 컨텐츠 그리드 -->
       <div class="content-grid">
-        <!-- 첫 번째 열: 프로젝트 + Task -->
+        <!-- 첫 번째 열: 프로젝트 + 문서함 -->
         <div class="left-column">
           <!-- 프로젝트 목록 섹션 -->
           <div class="project-section">
             <div class="section-header">
-              <h2 class="section-title">프로젝트 목록</h2>
-              <button class="add-button">+ 프로젝트 추가</button>
+              <h2 class="section-title">진행중인 프로젝트</h2>
+              <button class="add-button" @click="openProjectCreateModal">+ 프로젝트 추가</button>
             </div>
             <div class="gantt-chart">
               <div class="gantt-header">
@@ -31,23 +30,47 @@
                 <div v-if="loading" class="loading-message">
                   프로젝트 로딩 중...
                 </div>
-                <div v-else-if="myProjects.length === 0" class="no-tasks-message">
-                  참여 중인 프로젝트가 없습니다.
+                <div v-else-if="myProjects.length === 0" class="no-projects-message">
+                  <div class="no-projects-text">진행중인 프로젝트가 없습니다.</div>
+                  <div class="no-projects-subtext">새롭게 시작해보세요!</div>
                 </div>
                 <div v-else>
-                  <div class="gantt-bar" v-for="project in myProjects" :key="project.id" :style="project.style">
-                    <div class="bar-content">
-                      <div class="project-name">{{ project.name }}</div>
-                      <div class="project-period">{{ formatProjectPeriod(project.startTime, project.endTime) }}</div>
-                      <div class="project-progress">{{ project.progress }}%</div>
+                  <div class="gantt-bar-wrapper" v-for="project in myProjects" :key="project.id">
+                    <div class="gantt-bar" :style="project.style" @click="goToProject(project)">
+                      <div class="progress-fill" :style="{ width: project.progress + '%' }"></div>
+                      <div class="bar-content">
+                        <div class="project-name">{{ project.name }}</div>
+                        <div class="project-progress">{{ project.progress }}%</div>
+                      </div>
                     </div>
+                    <div class="project-period" :style="{ left: project.style.left }">{{ formatProjectPeriod(project.startTime, project.endTime) }}</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 나의 Task 섹션 -->
+          <!-- 나의 스톤 문서함 섹션 -->
+          <div class="stone-documents-section">
+            <h2 class="section-title">나의 스톤 문서함</h2>
+            <div class="document-list">
+              <div class="document-folder" v-for="folder in documentFolders" :key="folder.id">
+                <div class="folder-header" :style="{ backgroundColor: folder.color }">
+                  <span class="folder-name">📁 {{ folder.name }}</span>
+                </div>
+                <div class="folder-content">
+                  <div class="document-item" v-for="doc in folder.documents" :key="doc.id">
+                    <span class="doc-icon">📄</span>
+                    <span class="doc-name">{{ doc.name }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 두 번째 열: 나의 Task (넓은 공간) -->
+        <div class="middle-column">
           <div class="urgent-tasks-section">
             <div class="section-header">
               <h2 class="section-title">📋 나의 Task</h2>
@@ -84,9 +107,6 @@
                   <h4 class="task-group-title">🔄 진행중인 Task ({{ pendingTasks.length }})</h4>
                   <div class="task-list">
                     <div class="task-item" v-for="task in pendingTasks" :key="task.id">
-                      <div class="task-progress-bar">
-                        <div class="progress-fill" :style="{ width: task.progress + '%', background: task.color }"></div>
-                      </div>
                       <div class="task-content">
                         <div class="task-info">
                           <span class="task-name">{{ task.name }}</span>
@@ -102,63 +122,53 @@
           </div>
         </div>
 
-        <!-- 두 번째 열: 문서함 (60% 비중) -->
-        <div class="middle-column">
-          <div class="stone-documents-section">
-            <h2 class="section-title">나의 스톤 문서함</h2>
-            <div class="document-list">
-              <div class="document-folder" v-for="folder in documentFolders" :key="folder.id">
-                <div class="folder-header" :style="{ backgroundColor: folder.color }">
-                  <span class="folder-name">📁 {{ folder.name }}</span>
-                </div>
-                <div class="folder-content">
-                  <div class="document-item" v-for="doc in folder.documents" :key="doc.id">
-                    <span class="doc-icon">📄</span>
-                    <span class="doc-name">{{ doc.name }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 세 번째 열: 채팅 알림 (40% 비중) -->
+        <!-- 세 번째 열: 채팅 알림 -->
         <div class="right-column">
           <div class="chat-notifications-section">
-            <div class="notifications-header">
-              <h2 class="section-title">채팅 알림</h2>
-              <div class="notification-badge">8</div>
-            </div>
-            <div class="notifications-list">
-              <div class="notification-item" v-for="notification in chatNotifications" :key="notification.id">
-                <div class="notification-avatar"></div>
-                <div class="notification-content">
-                  <div class="notification-header">
-                    <span class="sender-name">{{ notification.sender }}</span>
-                    <span class="notification-time">{{ notification.time }}</span>
-                  </div>
-                  <div class="notification-message">{{ notification.message }}</div>
-                </div>
-                <div class="notification-menu">
-                  <div class="menu-dot"></div>
-                </div>
-              </div>
-            </div>
+            <ChatRoomList 
+              embedded 
+              @select-room="handleChatRoomSelect"
+              @preview-summary="handlePreviewSummary"
+              :summaries-by-room-id="summariesByRoomId"
+              :selected-room-id="null"
+            />
           </div>
         </div>
       </div>
     </div>
   </div>
+  
+  <!-- 요약 미리보기 다이얼로그 -->
+  <v-dialog v-model="isSummaryDialogOpen" max-width="520px">
+    <v-card class="summary-card">
+      <v-card-title class="text-h6 summary-title">요약 미리보기</v-card-title>
+      <v-card-text class="summary-body">
+        <div v-if="summaryDialogLoading" class="d-flex align-center justify-center" style="min-height:120px">
+          <v-progress-circular indeterminate :size="42" :width="4" color="#FFE364" />
+        </div>
+        <div v-else v-html="formatMultiline(summaryDialogText)" style="white-space: normal; line-height: 1.5;"></div>
+      </v-card-text>
+      <v-card-actions class="justify-end summary-actions">
+        <v-btn class="summary-btn" variant="flat" @click="isSummaryDialogOpen = false">닫기</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script>
 import { workspaceWatcher } from '@/mixins/workspaceWatcher';
 import { getMyTasks, getMyProjects } from '@/api/task.js';
 import { useWorkspaceStore } from '@/stores/workspace.js';
+import ChatRoomList from '@/views/Chat/ChatRoomList.vue';
+import stompManager from '@/services/stompService.js';
+import axios from 'axios';
 
 export default {
   name: "Home",
   mixins: [workspaceWatcher],
+  components: {
+    ChatRoomList
+  },
   
   data() {
     return {
@@ -198,27 +208,12 @@ export default {
           ]
         }
       ],
-      chatNotifications: [
-        {
-          id: 1,
-          sender: '조민형',
-          message: '어제 미팅자료 잘 정리해놓으세요~~',
-          time: '15분 전'
-        },
-        {
-          id: 2,
-          sender: '조민형 외 2명',
-          message: '어제 미팅자료 잘 정리해놓으세요~~',
-          time: '어제'
-        },
-        {
-          id: 3,
-          sender: '김현지 외 4명',
-          message: '어제 미팅자료 잘 정리하시고 각자 맡은 업...',
-          time: '2025-09-23'
-        }
-      ],
-      loading: false
+      loading: false,
+      summariesByRoomId: {},
+      summaryUnsub: null,
+      isSummaryDialogOpen: false,
+      summaryDialogLoading: false,
+      summaryDialogText: ''
     };
   },
   
@@ -231,6 +226,22 @@ export default {
       this.loadMyTasks(),
       this.loadMyProjects()
     ]);
+    
+    // 프로젝트 생성 후 목록 새로고침
+    window.addEventListener('projectCreated', this.onProjectCreated);
+    
+    // 채팅 요약 STOMP 구독
+    this.initChatSummarySubscription();
+  },
+  
+  beforeUnmount() {
+    window.removeEventListener('projectCreated', this.onProjectCreated);
+    
+    // 채팅 요약 구독 해제
+    if (this.summaryUnsub) {
+      try { this.summaryUnsub(); } catch (_) {}
+      this.summaryUnsub = null;
+    }
   },
   
   computed: {
@@ -253,18 +264,32 @@ export default {
       const minDate = new Date(Math.min(...allDates));
       const maxDate = new Date(Math.max(...allDates));
       
-      // 30일 간격으로 라벨 생성
+      // 4개의 날짜 라벨 생성 (첫 날짜 + 2개 중간 + 마지막 날짜)
       const labels = [];
-      const current = new Date(minDate);
-      const end = new Date(maxDate);
+      const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+      const interval = totalDays / 3; // 3등분
       
-      while (current <= end) {
+      // 첫 번째 날짜
+      labels.push({
+        date: new Date(minDate),
+        label: `${minDate.getMonth() + 1}/${minDate.getDate()}`
+      });
+      
+      // 중간 날짜 2개
+      for (let i = 1; i <= 2; i++) {
+        const intermediateDate = new Date(minDate);
+        intermediateDate.setDate(minDate.getDate() + Math.round(interval * i));
         labels.push({
-          date: new Date(current),
-          label: `${current.getMonth() + 1}/${current.getDate()}`
+          date: new Date(intermediateDate),
+          label: `${intermediateDate.getMonth() + 1}/${intermediateDate.getDate()}`
         });
-        current.setDate(current.getDate() + 30);
       }
+      
+      // 마지막 날짜
+      labels.push({
+        date: new Date(maxDate),
+        label: `${maxDate.getMonth() + 1}/${maxDate.getDate()}`
+      });
       
       return labels;
     },
@@ -382,7 +407,9 @@ export default {
             // 프로젝트 기간 계산 (일 단위)
             const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
             const elapsedDays = Math.max(0, Math.ceil((now - startDate) / (1000 * 60 * 60 * 24)));
-            const progress = Math.min(100, Math.round((elapsedDays / totalDays) * 100));
+            
+            // 마일스톤 진행률 (서버에서 이미 계산된 값)
+            const progress = Number(project.milestone) || 0;
             
             return {
               id: project.projectId,
@@ -395,6 +422,11 @@ export default {
               elapsedDays: elapsedDays,
               style: {} // 임시로 빈 객체 설정
             };
+          });
+          
+          // 시작 일자가 빠른 순으로 정렬
+          this.myProjects.sort((a, b) => {
+            return new Date(a.startTime) - new Date(b.startTime);
           });
           
           // myProjects 설정 후 스타일 계산
@@ -438,9 +470,7 @@ export default {
               startTime: task.startTime,
               endTime: task.endTime,
               isDone: isDone,
-              deadline: isDone ? '완료' : this.calculateDeadline(task.endTime),
-              progress: isDone ? 100 : this.calculateProgress(task.startTime, task.endTime),
-              color: isDone ? 'linear-gradient(135deg, #4CAF50 0%, #45A049 100%)' : this.getTaskColor(task.endTime)
+              deadline: isDone ? '완료' : this.calculateDeadline(task.endTime)
             };
           });
         }
@@ -468,43 +498,6 @@ export default {
       }
     },
     
-    // 진행률 계산 (시작일과 종료일 기준)
-    calculateProgress(startTime, endTime) {
-      const now = new Date();
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-      
-      if (now < start) {
-        return 0;
-      } else if (now > end) {
-        return 100;
-      } else {
-        const totalDuration = end - start;
-        const elapsed = now - start;
-        return Math.round((elapsed / totalDuration) * 100);
-      }
-    },
-    
-    // Task 색상 결정
-    getTaskColor(endTime) {
-      const now = new Date();
-      const end = new Date(endTime);
-      const diffTime = end - now;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays < 0) {
-        return 'linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%)'; // 기한 초과
-      } else if (diffDays <= 1) {
-        return 'linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%)'; // 긴급
-      } else if (diffDays <= 3) {
-        return 'linear-gradient(135deg, #FFA726 0%, #FF9800 100%)'; // 주의
-      } else if (diffDays <= 7) {
-        return 'linear-gradient(135deg, #42A5F5 0%, #2196F3 100%)'; // 보통
-      } else {
-        return 'linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%)'; // 여유
-      }
-    },
-    
     // 프로젝트 간트 차트 스타일 계산 (프로젝트 기간 기준)
     calculateProjectStyle(startDate, endDate, now) {
       const range = this.getProjectDateRange();
@@ -520,8 +513,7 @@ export default {
         console.log('동일한 날짜 범위, 0% 위치 반환');
         return {
           left: '0%',
-          width: '100%',
-          backgroundColor: '#FFE364'
+          width: '100%'
         };
       }
       
@@ -543,8 +535,7 @@ export default {
       
       return {
         left: `${Math.max(0, leftPercent)}%`,
-        width: `${Math.min(100, widthPercent)}%`,
-        backgroundColor: '#FFE364'
+        width: `${Math.min(100, widthPercent)}%`
       };
     },
     
@@ -569,6 +560,90 @@ export default {
       const day = String(today.getDate()).padStart(2, '0');
       
       return `Today ${year}.${month}.${day}`;
+    },
+    
+    // 프로젝트 생성 모달 열기
+    openProjectCreateModal() {
+      window.dispatchEvent(new CustomEvent('openCreateProjectModal'));
+    },
+    
+    // 프로젝트 생성 후 목록 새로고침
+    async onProjectCreated() {
+      console.log('Home: 프로젝트 생성됨, 목록 새로고침');
+      await this.loadMyProjects();
+    },
+    
+    // 프로젝트 페이지로 이동
+    goToProject(project) {
+      console.log('프로젝트로 이동:', project);
+      this.$router.push({ path: '/project', query: { id: project.id } });
+    },
+    
+    // 채팅 요약 STOMP 구독 초기화
+    async initChatSummarySubscription() {
+      try {
+        const id = localStorage.getItem('id');
+        if (!id) return;
+        
+        await stompManager.connect();
+        const topic = `/topic/summary/${id}`;
+        
+        this.summaryUnsub = await stompManager.subscribe(topic, (summary) => {
+          try {
+            console.log('[Home][summary] incoming', summary);
+            if (summary && summary.roomId != null) {
+              this.summariesByRoomId = {
+                ...this.summariesByRoomId,
+                [summary.roomId]: {
+                  ...(this.summariesByRoomId[summary.roomId] || {}),
+                  ...summary,
+                },
+              };
+            }
+          } catch(_) {}
+        });
+      } catch (error) {
+        console.warn('[Home] 채팅 요약 구독 실패:', error);
+      }
+    },
+    
+    // 채팅방 선택 시 채팅 페이지로 이동
+    handleChatRoomSelect(room) {
+      console.log('채팅방 선택:', room);
+      // 채팅방 ID를 localStorage에 저장
+      if (room && room.roomId) {
+        localStorage.setItem('selectedChatRoomId', room.roomId);
+      }
+      this.$router.push({ path: '/chat/main' });
+    },
+    
+    // 채팅 요약 미리보기
+    async handlePreviewSummary(room) {
+      this.isSummaryDialogOpen = true;
+      this.summaryDialogLoading = true;
+      this.summaryDialogText = '';
+      
+      try {
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        console.log('[summary] request roomId=', room?.roomId);
+        const { data } = await axios.get(`${baseURL}/workspace-service/chatbot/message/chat-room/${room.roomId}`);
+        console.log('[summary] response data=', data);
+        const text = (data && data.result && typeof data.result === 'object') 
+          ? (data.result.text || '') 
+          : (typeof data?.result === 'string' ? data.result : '');
+        this.summaryDialogText = String(text || '');
+      } catch (e) {
+        console.error('[summary] request failed', e);
+        this.summaryDialogText = '요약을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+      } finally {
+        this.summaryDialogLoading = false;
+      }
+    },
+    
+    // 멀티라인 텍스트 포맷팅
+    formatMultiline(text) {
+      if (!text) return '';
+      return String(text).replace(/\n/g, '<br/>');
     }
   }
 };
@@ -577,20 +652,20 @@ export default {
 <style scoped>
 .home-container {
   width: 100%;
-  height: 100vh;
+  height: calc(100vh - 64px);
   background: #F5F5F5;
   overflow: hidden;
 }
 
 .main-content {
-  padding: 20px 0 0 0;
-  height: 100vh;
+  padding: 10px 0 0 0;
+  height: 100%;
   overflow-y: auto;
   width: 100%;
 }
 
 .content-header {
-  margin-bottom: 30px;
+  margin-bottom: 10px;
   padding: 0 20px;
 }
 
@@ -615,16 +690,16 @@ export default {
 .content-grid {
   display: grid;
   grid-template-columns: 1fr 1.2fr 0.8fr;
-  gap: 20px;
-  margin-bottom: 20px;
-  height: calc(100vh - 120px);
-  padding: 0 20px;
+  gap: 15px;
+  margin-bottom: 0;
+  height: calc(100% - 50px);
+  padding: 0 20px 10px 20px;
 }
 
 .left-column {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
   height: 100%;
 }
 
@@ -643,24 +718,34 @@ export default {
 /* 프로젝트 섹션 */
 .project-section {
   background: #FFFFFF;
-  border-radius: 15px;
-  padding: 20px;
+  border-radius: 16px;
+  padding: 18px;
   flex: 1;
-  min-height: 280px;
+  min-height: 0;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.project-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .section-title {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 20px;
-  line-height: 24px;
+  font-size: 18px;
+  line-height: 22px;
   color: #1C0F0F;
   margin: 0;
 }
@@ -672,22 +757,43 @@ export default {
   color: #FFFFFF;
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 10px;
-  line-height: 12px;
-  padding: 5px 12px;
+  font-size: 12px;
+  line-height: 14px;
+  padding: 8px 16px;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-button:hover {
+  background: #3A3838;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.add-button:focus,
+.add-button:focus-visible,
+.add-button:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* 간트 차트 */
 .gantt-chart {
-  height: 200px;
+  flex: 1;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: visible;
 }
 
 .gantt-header {
   position: relative;
-  height: 40px;
-  margin-bottom: 20px;
+  height: auto;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #E0E0E0;
+  overflow: visible;
 }
 
 .month-labels {
@@ -695,65 +801,122 @@ export default {
   justify-content: space-between;
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 10px;
-  line-height: 12px;
+  font-size: 12px;
+  line-height: 14px;
   color: #666666;
+  padding-bottom: 6px;
+}
+
+.month-labels span {
+  position: relative;
+}
+
+.month-labels span::after {
+  content: '';
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 8px;
+  background: #E0E0E0;
 }
 
 .today-line {
   position: absolute;
-  top: 20px;
+  bottom: 0;
   width: 2px;
-  height: 20px;
-  background: #FF4444;
-  border: 2px dashed #FF4444;
+  height: calc(100% + 100px);
+  background: transparent;
+  z-index: 10;
+  pointer-events: none;
 }
 
 .today-line::before {
   content: 'Today';
   position: absolute;
-  top: -15px;
-  left: -15px;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
   font-size: 10px;
   line-height: 12px;
   color: #FF4444;
   background: #FFFFFF;
-  padding: 2px 4px;
+  padding: 2px 6px;
   border-radius: 3px;
   white-space: nowrap;
+  z-index: 11;
+  pointer-events: auto;
+}
+
+.today-line::after {
+  content: '';
+  position: absolute;
+  bottom: -320px;
+  left: 0;
+  width: 2px;
+  height: calc(100% + 200px);
+  border-left: 2px dashed rgba(255, 68, 68, 0.6);
 }
 
 .gantt-bars {
   position: relative;
-  height: 120px;
+  flex: 1;
+  min-height: 230px;
+  z-index: 1;
+}
+
+.gantt-bar-wrapper {
+  position: absolute;
+  width: 100%;
+}
+
+.gantt-bar-wrapper:nth-child(1) {
+  top: 0px;
+}
+
+.gantt-bar-wrapper:nth-child(2) {
+  top: 60px;
+}
+
+.gantt-bar-wrapper:nth-child(3) {
+  top: 120px;
+}
+
+.gantt-bar-wrapper:nth-child(4) {
+  top: 180px;
 }
 
 .gantt-bar {
   position: absolute;
-  height: 20px;
-  border-radius: 4px;
+  height: 30px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  padding: 0 8px;
+  padding: 0 16px;
+  z-index: 2;
+  background: #E9ECEF;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gantt-bar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.progress-fill {
+  position: absolute;
+  left: 0;
   top: 0;
-}
-
-.gantt-bar:nth-child(1) {
-  top: 0px;
-}
-
-.gantt-bar:nth-child(2) {
-  top: 30px;
-}
-
-.gantt-bar:nth-child(3) {
-  top: 60px;
-}
-
-.gantt-bar:nth-child(4) {
-  top: 90px;
+  height: 100%;
+  background: #FFE364;
+  border-radius: 8px;
+  transition: width 0.3s ease;
+  z-index: 1;
 }
 
 .bar-content {
@@ -761,30 +924,35 @@ export default {
   align-items: center;
   gap: 8px;
   width: 100%;
+  position: relative;
+  z-index: 2;
 }
 
 .project-name {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 8px;
-  line-height: 10px;
+  font-size: 13px;
+  line-height: 16px;
   color: #2A2828;
   flex: 1;
 }
 
 .project-period {
+  position: absolute;
+  top: 32px;
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 8px;
-  line-height: 10px;
+  font-size: 10px;
+  line-height: 12px;
   color: #666666;
+  white-space: nowrap;
 }
 
 .project-progress {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 8px;
-  line-height: 10px;
+  font-size: 13px;
+  line-height: 16px;
   color: #000000;
 }
 
@@ -793,27 +961,42 @@ export default {
 /* 나의 Task 섹션 */
 .urgent-tasks-section {
   background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
-  border-radius: 15px;
-  padding: 20px;
-  flex: 1;
-  min-height: 280px;
-  overflow-y: auto;
+  border-radius: 16px;
+  padding: 18px;
+  height: 100%;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.urgent-tasks-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .task-stats {
   display: flex;
-  gap: 15px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 8px;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: #F8F9FA;
   border-radius: 8px;
-  min-width: 60px;
+  min-width: 55px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.stat-item:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .stat-item.completed {
@@ -845,12 +1028,21 @@ export default {
   margin-top: 2px;
 }
 
+.progress-section {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
 .task-sections {
-  margin-top: 20px;
+  margin-top: 15px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .task-group {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .task-group:last-child {
@@ -863,8 +1055,8 @@ export default {
   font-size: 12px;
   line-height: 14px;
   color: #1C0F0F;
-  margin: 0 0 10px 0;
-  padding-bottom: 5px;
+  margin: 0 0 8px 0;
+  padding-bottom: 4px;
   border-bottom: 1px solid #E9ECEF;
 }
 
@@ -886,26 +1078,20 @@ export default {
 .task-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.task-item:last-child {
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.task-progress-bar {
-  width: 200px;
-  height: 8px;
-  background: #E2E8F0;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
+.task-item:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: translateX(2px);
+  cursor: pointer;
 }
 
 .task-content {
@@ -913,37 +1099,48 @@ export default {
   flex-direction: column;
   gap: 4px;
   flex: 1;
+  min-width: 0;
 }
 
 .task-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .task-name {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 10px;
-  line-height: 12px;
+  font-size: 13px;
+  line-height: 16px;
   color: #1C0F0F;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .task-project {
   font-family: 'Pretendard', sans-serif;
   font-weight: 400;
-  font-size: 8px;
-  line-height: 10px;
+  font-size: 11px;
+  line-height: 13px;
   color: #666666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .task-deadline {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 9px;
-  line-height: 11px;
+  font-size: 12px;
+  line-height: 14px;
   color: #FF6B6B;
   text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .loading-message,
@@ -957,25 +1154,70 @@ export default {
   padding: 20px;
 }
 
+.no-projects-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+}
+
+.no-projects-text {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 17px;
+  color: #666666;
+}
+
+.no-projects-subtext {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14px;
+  color: #999999;
+}
+
 
 /* 나의 스톤 문서함 섹션 */
 .stone-documents-section {
   background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
-  border-radius: 15px;
-  padding: 20px;
-  height: 100%;
-  overflow-y: auto;
+  border-radius: 16px;
+  padding: 18px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.stone-documents-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .document-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .document-folder {
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+
+.document-folder:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .folder-header {
@@ -1019,120 +1261,92 @@ export default {
 /* 채팅 알림 섹션 */
 .chat-notifications-section {
   background: #FFFFFF;
-  border-radius: 20px;
-  padding: 20px;
+  border-radius: 16px;
+  padding: 0;
   height: 100%;
-  overflow-y: auto;
-}
-
-.notifications-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.notification-badge {
-  background: #FF1717;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  font-size: 10px;
-  line-height: 12px;
-  color: #FFFFFF;
-}
-
-.notifications-list {
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
 }
 
-.notification-item {
+.chat-notifications-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* ChatRoomList 컴포넌트 임베드 스타일 조정 */
+.chat-notifications-section :deep(.chatlist-wrapper) {
+  padding: 0;
+  min-height: 100%;
+  height: 100%;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid #F0F0F0;
 }
 
-.notification-avatar {
-  width: 32px;
-  height: 32px;
-  background: #2A2828;
-  border-radius: 50%;
+.chat-notifications-section :deep(.chatlist-card) {
+  border: none;
+  border-radius: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-notifications-section :deep(.chatlist-banner) {
+  border-radius: 16px 16px 0 0;
   flex-shrink: 0;
 }
 
-.notification-content {
+.chat-notifications-section :deep(.chatlist-body) {
   flex: 1;
+  overflow-y: auto;
 }
 
-.notification-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
+.chat-notifications-section :deep(.v-container) {
+  padding: 0;
+  height: 100%;
 }
 
-.sender-name {
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  font-size: 10px;
-  line-height: 12px;
-  color: #000000;
+.chat-notifications-section :deep(.v-row) {
+  margin: 0;
+  height: 100%;
 }
 
-.notification-time {
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  font-size: 10px;
-  line-height: 12px;
-  color: #484646;
+.chat-notifications-section :deep(.v-col) {
+  padding: 0;
+  height: 100%;
 }
 
-.notification-message {
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  font-size: 10px;
-  line-height: 12px;
-  color: #484646;
+/* Summary dialog styling */
+.summary-card { 
+  --v-card-border-radius: 15px; 
+  border-radius: 15px !important; 
+  overflow: hidden; 
 }
 
-.notification-menu {
-  position: relative;
-  cursor: pointer;
+.summary-title { 
+  background: #FFE364; 
+  color: #1C0F0F; 
+  font-weight: 700; 
 }
 
-.menu-dot {
-  width: 4px;
-  height: 4px;
-  background: #2A2828;
-  border-radius: 50%;
+.summary-body { 
+  padding-top: 16px; 
 }
 
-.menu-dot::before,
-.menu-dot::after {
-  content: '';
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: #2A2828;
-  border-radius: 50%;
+.summary-actions { 
+  padding: 12px 16px; 
 }
 
-.menu-dot::before {
-  top: -6px;
+.summary-btn { 
+  background: #FFE364 !important; 
+  color: #2A2828 !important; 
+  font-weight: 600; 
 }
 
-.menu-dot::after {
-  top: 6px;
-}
 
 /* 반응형 레이아웃 */
 @media (max-width: 1400px) {
