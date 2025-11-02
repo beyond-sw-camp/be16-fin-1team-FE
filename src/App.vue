@@ -38,7 +38,7 @@ import CreateProjectModal from './views/Project/CreateProjectModal.vue';
 import GlobalSnackbar from './components/GlobalSnackbar.vue';
 import ChatBotPage from './views/ChatBot/ChatBotPage.vue';
 import ChatBotButton from './views/ChatBot/ChatBotButton.vue';
-import CalendarDetailModal from './components/CalendarDetailModal.vue';
+import CalendarDetailModal from './components/schedule/CalendarDetailModal.vue';
 import axios from 'axios';
 import { showSnackbar } from './services/snackbar.js';
 import notificationStompManager from './services/notificationStompService.js';

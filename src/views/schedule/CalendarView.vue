@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import CalendarBase from "@/components/CalendarBase.vue";
-import StoneDetailModal from "@/components/modal/StoneDetailModal.vue";
+import StoneDetailModal from "@/views/Project/StoneDetailModal.vue";
 import axios from "axios";
 
 const events = ref([]);
