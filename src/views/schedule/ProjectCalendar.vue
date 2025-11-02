@@ -7,29 +7,30 @@ import StoneDetailModal from "@/views/Project/StoneDetailModal.vue";
 
 const router = useRouter();
 
-const workspaceId = "ws_5"; // 필요 시 props로 받을 수도 있음
+const workspaceId = localStorage.getItem("selectedWorkspaceId");
 
 // ✅ 일정 배열
 const events = ref([]);
 const currentView = ref("dayGridMonth");
 const showSidebar = ref(false);
-const currentDate = ref(new Date(2025, 8)); // 2025-09
+const currentDate = ref(new Date());
 const showStoneModal = ref(false);
 const selected = ref(null);
 
-// ✅ 스톤 + 태스크 일정 불러오기
+// ✅ 참여 스톤 & 태스크 불러오기
 const fetchEvents = async () => {
   try {
+    const userId = localStorage.getItem("id");
     const [stoneRes, taskRes] = await Promise.all([
       axios.get(`/workspace-service/workspace/${workspaceId}/my-stones`, {
-        headers: { "X-User-Id": localStorage.getItem("userId") },
+        headers: { "X-User-Id": userId },
       }),
       axios.get(`/workspace-service/workspace/${workspaceId}/my-tasks`, {
-        headers: { "X-User-Id": localStorage.getItem("userId") },
+        headers: { "X-User-Id": userId },
       }),
     ]);
 
-    const stoneEvents = stoneRes.data.result.map((s) => ({
+    const stoneEvents = (stoneRes.data.result || []).map((s) => ({
       id: s.stoneId,
       title: `[스톤] ${s.stoneName}`,
       start: s.startTime,
@@ -39,7 +40,7 @@ const fetchEvents = async () => {
       color: "#A3B8FF",
     }));
 
-    const taskEvents = taskRes.data.result.map((t) => ({
+    const taskEvents = (taskRes.data.result || []).map((t) => ({
       id: t.taskId,
       title: `[태스크] ${t.taskName}`,
       start: t.startTime,
@@ -51,8 +52,8 @@ const fetchEvents = async () => {
     }));
 
     events.value = [...stoneEvents, ...taskEvents];
-  } catch (err) {
-    console.error("캘린더 일정 조회 실패:", err);
+  } catch (e) {
+    console.error("❌ 프로젝트 캘린더 이벤트 불러오기 실패:", e);
   }
 };
 
@@ -103,18 +104,19 @@ function toggleVisibility(item) {
 
     <!-- 📅 캘린더 -->
     <div class="calendar-container">
-        <CalendarBase
-            :events="events"
-            :viewType="currentView"
-            :initialDate="currentDate"
-            @openStoneModal="selected = $event"
-        />
-        <StoneDetailModal
-            v-if="selected"
-            :stoneId="selected.id"
-            :type="selected.type"
-            @close="selected = null"
-        />
+      <CalendarBase
+        :events="events"
+        :viewType="currentView"
+        :initialDate="currentDate"
+        @openStoneModal="selected = $event"
+      />
+
+      <StoneDetailModal
+        v-if="selected"
+        :stoneId="selected.id"
+        :type="selected.type"
+        @close="selected = null"
+      />
     </div>
 
     <!-- 👁️ 사이드바 -->
@@ -160,4 +162,12 @@ function toggleVisibility(item) {
 
 .slide-enter-active, .slide-leave-active { transition: all .3s ease; }
 .slide-enter-from, .slide-leave-to { opacity: 0; transform: translateX(20px); }
+.calendar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
 </style>

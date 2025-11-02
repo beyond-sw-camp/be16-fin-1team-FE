@@ -88,6 +88,14 @@ onBeforeUnmount(() => {
     calendar = null;
   }
 });
+
+// const updateEvents = (newEvents) => {
+//   if (!calendar) return;
+//   calendar.removeAllEvents();
+//   calendar.addEventSource(newEvents);
+// };
+// defineExpose({ updateEvents });
+
 </script>
 
 <template>
