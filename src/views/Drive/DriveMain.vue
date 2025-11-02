@@ -566,6 +566,7 @@ export default {
       currentFolderName: '내 드라이브',
       currentRootType: null,
       currentRootId: null,
+      rootName: null,  // 문서함 이름
       folderPath: [],  // 폴더 경로 [{ id, name }, ...]
       
       // 폴더 트리
@@ -649,6 +650,7 @@ export default {
 
   computed: {
     driveRootName() {
+      // 사이드바 헤더는 type별로 고정
       const rt = this.currentRootType;
       if (rt === 'WORKSPACE') return '워크스페이스 문서함';
       if (rt === 'PROJECT') return '프로젝트 문서함';
@@ -1245,6 +1247,14 @@ export default {
       if (rootType && rootId) {
         this.currentRootType = rootType;
         this.currentRootId = rootId;
+        // 루트 이름 가져오기
+        try {
+          const nameResponse = await driveService.getRootName(rootType, rootId);
+          this.rootName = nameResponse.result || nameResponse.name || null;
+        } catch (error) {
+          console.error('루트 이름 가져오기 실패:', error);
+          this.rootName = null;
+        }
       }
       
       // folderId가 있으면 폴더 내용 로드
@@ -1286,9 +1296,7 @@ export default {
             // 트리는 같은 루트면 유지, 다른 루트면 재생성
             if (!isSameRoot) {
               // 폴더 트리 업데이트 (루트만 설정, 하위 폴더는 토글 시 lazy loading)
-              const rootName = rootType === 'WORKSPACE' ? '워크스페이스 문서함' : 
-                               rootType === 'PROJECT' ? '프로젝트 문서함' : 
-                               rootType === 'STONE' ? '스톤 문서함' : '문서함';
+              const rootName = this.rootName || this.driveRootName || "문서함";
               const rootFolder = {
                 id: 'root',
                 name: rootName,
@@ -1306,9 +1314,7 @@ export default {
           } else {
             this.items = [];
             if (!isSameRoot) {
-              const rootName = rootType === 'WORKSPACE' ? '워크스페이스 문서함' : 
-                               rootType === 'PROJECT' ? '프로젝트 문서함' : 
-                               rootType === 'STONE' ? '스톤 문서함' : '문서함';
+              const rootName = this.rootName || this.driveRootName || "문서함";
               this.folderTree = [{ id: 'root', name: rootName, children: [] }];
               this.treeInitializedForKey = key;
               // 트리 재로딩 시에도 열려있던 토글 유지
@@ -1359,7 +1365,7 @@ export default {
         
         const rootFolder = {
           id: 'root',
-          name: this.driveRootName,
+          name: this.rootName || this.driveRootName || "문서함",
           // 초기에는 자식 미로딩. 사용자가 최상위 토글할 때 로드
           children: [],
         };
@@ -1471,6 +1477,16 @@ export default {
         if (rootType && rootId) {
           this.currentRootType = rootType;
           this.currentRootId = rootId;
+          // 루트 이름 가져오기 (아직 없을 때만)
+          if (!this.rootName) {
+            try {
+              const nameResponse = await driveService.getRootName(rootType, rootId);
+              this.rootName = nameResponse.result || nameResponse.name || null;
+            } catch (error) {
+              console.error('루트 이름 가져오기 실패:', error);
+              this.rootName = null;
+            }
+          }
         }
         
         // folderId가 있으면 해당 폴더의 내용 로드
@@ -1634,7 +1650,7 @@ export default {
     // 브레드크럼 업데이트
     updateBreadcrumbs(folderId, data, rootType) {
       console.log('updateBreadcrumbs - rootType:', rootType, 'currentRootType:', this.currentRootType);
-      const rootName = "문서함 이름";
+      const rootName = this.rootName || this.driveRootName || "문서함";
       
       if (!folderId || folderId === 'root') {
         // 루트로 돌아왔을 때 경로 초기화

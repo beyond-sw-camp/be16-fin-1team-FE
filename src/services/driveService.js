@@ -172,5 +172,10 @@ export default {
   getChildFolders(folderId) {
     return driveApi.get(`/folder/${folderId}/folders`);
   },
+
+  // 루트 이름 가져오기
+  getRootName(rootType, rootId) {
+    return driveApi.get(`/${rootType}/${rootId}/name`);
+  },
 };
 
