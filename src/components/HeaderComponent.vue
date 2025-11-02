@@ -32,12 +32,15 @@
         <div v-if="showSuggestions && suggestions.length > 0" class="suggestions-dropdown">
           <div 
             v-for="(suggestion, index) in suggestions" 
-            :key="index"
+            :key="suggestion.id || index"
             class="suggestion-item"
             @mousedown.prevent="selectSuggestion(suggestion)"
           >
-            <v-icon small class="mr-2">mdi-magnify</v-icon>
-            <span>{{ suggestion }}</span>
+            <v-icon small class="mr-2" :color="getDocTypeIconColor(suggestion.docType)">
+              {{ getDocTypeIcon(suggestion.docType) }}
+            </v-icon>
+            <span class="suggestion-type-label mr-2">{{ getDocTypeLabel(suggestion.docType) }}</span>
+            <span class="suggestion-title">{{ suggestion.searchTitle }}</span>
           </div>
         </div>
       </div>
@@ -385,7 +388,11 @@ export default {
     // 자동완성 항목 선택
     selectSuggestion(suggestion) {
       console.log('Suggestion selected:', suggestion);
-      this.searchKeyword = suggestion;
+      // suggestion이 객체인 경우 searchTitle을 사용, 문자열인 경우 그대로 사용
+      const keyword = typeof suggestion === 'object' && suggestion.searchTitle 
+        ? suggestion.searchTitle 
+        : suggestion;
+      this.searchKeyword = keyword;
       this.showSuggestions = false;
       this.performSearch();
     },
@@ -426,6 +433,39 @@ export default {
       const keyword = this.searchKeyword.trim();
       const regex = new RegExp(`(${keyword})`, 'gi');
       return text.replace(regex, '<strong>$1</strong>');
+    },
+
+    // 문서 타입 아이콘 (자동완성용)
+    getDocTypeIcon(docType) {
+      const iconMap = {
+        DOCUMENT: 'mdi-file-document-outline',
+        FILE: 'mdi-file-outline',
+        STONE: 'mdi-folder-star-outline',
+        PROJECT: 'mdi-folder-outline',
+      };
+      return iconMap[docType] || 'mdi-file-outline';
+    },
+
+    // 문서 타입 아이콘 색상 (자동완성용)
+    getDocTypeIconColor(docType) {
+      const colorMap = {
+        DOCUMENT: '#1976d2',
+        FILE: '#ff9800',
+        STONE: '#9c27b0',
+        PROJECT: '#1976d2',
+      };
+      return colorMap[docType] || '#757575';
+    },
+
+    // 문서 타입 라벨 (자동완성용)
+    getDocTypeLabel(docType) {
+      const labelMap = {
+        DOCUMENT: '[문서]',
+        FILE: '[파일]',
+        STONE: '[스톤]',
+        PROJECT: '[프로젝트]',
+      };
+      return labelMap[docType] || docType;
     },
 
     // 문서 타입 이름
@@ -684,6 +724,17 @@ export default {
 .suggestion-item strong {
   color: #1976d2;
   font-weight: 600;
+}
+
+.suggestion-type-label {
+  color: #757575;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.suggestion-title {
+  color: #333;
+  font-weight: 400;
 }
 
 /* 검색 결과 모달 */
