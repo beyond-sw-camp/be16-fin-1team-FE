@@ -48,7 +48,7 @@
       <!-- 테이블 푸터 -->
       <div class="table-footer">
         <div class="footer-info">
-          <span class="total-count">총 {{ members.length }}명의 회원</span>
+          <span class="total-count">총 {{ totalMembers }}명의 회원</span>
         </div>
         <div class="footer-actions">
           <button class="action-btn invite-btn" @click="inviteMember">
@@ -153,9 +153,9 @@ export default {
     async loadMembers() {
       try {
         this.loading = true;
-        const token = localStorage.getItem('token');
-        const userId = localStorage.getItem('userId') || 'user123';
-        const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_1';
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+        const userId = localStorage.getItem('id') || localStorage.getItem('userId') || 'user123';
+        const workspaceId = this.workspaceStore.getCurrentWorkspaceId || localStorage.getItem('selectedWorkspaceId') || 'ws_1';
         
         const response = await axios.get(
           `http://localhost:8080/workspace-service/workspace/${workspaceId}/participants`,

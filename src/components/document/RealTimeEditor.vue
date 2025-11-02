@@ -2,6 +2,7 @@
   <v-card class="editor-wrapper" elevation="2">
     <!-- 연결 상태 표시 -->
     <v-alert
+      v-if="showConnectionStatus"
       :model-value="true"
       :type="connectionStatusType"
       :icon="connectionStatusIcon"
@@ -149,6 +150,42 @@
           </v-btn>
         </v-btn-toggle>
 
+        <v-divider vertical class="mx-2"></v-divider>
+
+        <!-- 이모지/기호 삽입 -->
+        <v-menu>
+          <template v-slot:activator="{ props }">
+            <v-btn v-bind="props" variant="outlined" title="이모지/기호">
+              <v-icon>mdi-emoticon-outline</v-icon>
+            </v-btn>
+          </template>
+          <v-card>
+            <v-card-text>
+              <div class="emoji-picker">
+                <h4>이모지</h4>
+                <div class="emoji-grid">
+                  <button
+                    v-for="e in emojiList"
+                    :key="e"
+                    class="emoji-item"
+                    @click="insertEmoji(e)"
+                  >{{ e }}</button>
+                </div>
+
+                <h4 class="mt-3">기호</h4>
+                <div class="emoji-grid">
+                  <button
+                    v-for="s in symbolList"
+                    :key="s"
+                    class="emoji-item"
+                    @click="insertEmoji(s)"
+                  >{{ s }}</button>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-menu>
+
         <v-spacer></v-spacer>
 
         <div class="online-users-container">
@@ -160,14 +197,15 @@
             <template v-slot:activator="{ props }">
               <v-avatar
                 v-bind="props"
-                :color="onlineUser.color"
+                :color="onlineUser.profileImage ? 'transparent' : onlineUser.color"
                 size="32"
                 class="user-avatar"
               >
-                <span class="white--text text-h6">{{ onlineUser.userId.charAt(0).toUpperCase() }}</span>
+                <v-img v-if="onlineUser.profileImage" :src="onlineUser.profileImage" />
+                <span v-else class="white--text text-h6">{{ onlineUser.userName ? onlineUser.userName.charAt(0).toUpperCase() : 'U' }}</span>
               </v-avatar>
             </template>
-            <span>{{ onlineUser.userId }}</span>
+            <span>{{ onlineUser.userName || onlineUser.userId }}</span>
           </v-tooltip>
         </div>
 
@@ -209,7 +247,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from 'prosemirror-state';
@@ -455,11 +493,23 @@ const props = defineProps({
   userId: {
     type: String,
     required: true,
-  }
+  },
+  userName: {
+    type: String,
+    default: '사용자',
+  },
+  profileImage: {
+    type: String,
+    default: '',
+  },
+  showConnectionStatus: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 // Emits 정의
-const emit = defineEmits(['document-line-updated', 'document-line-deleted']);
+const emit = defineEmits(['document-line-updated', 'document-line-deleted', 'online-users-updated', 'connection-status-changed']);
 
 // 반응형 변수 선언
 const editor = ref(null);
@@ -497,7 +547,8 @@ const fontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72];
 
 
 const user = {
-  name: props.userId,
+  id: props.userId,
+  name: props.userName,
   color: '#' + Math.floor(Math.random() * 16777215).toString(16),
 };
 
@@ -510,6 +561,20 @@ const getUserColor = (userId) => {
     userColors[userId] = availableColors[Object.keys(userColors).length % availableColors.length];
   }
   return userColors[userId];
+};
+
+// 이모지/기호 간단 목록
+const emojiList = [
+  '😀','😂','😊','😍','😎','🥳','😇','🙌','👍','🙏',
+  '💡','🔥','✨','💯','✅','❗','❓','📝','📎','📌'
+];
+const symbolList = [
+  '•','–','—','→','⇒','⇨','✓','✗','★','☆','■','□','▲','△','◆','◇','™','©','®','§'
+];
+
+const insertEmoji = (ch) => {
+  if (!editor.value) return;
+  editor.value.chain().focus().insertContent(ch).run();
 };
 
 const connectionStatusType = computed(() => {
@@ -689,6 +754,8 @@ const fetchOnlineUsers = async () => {
     if (response.data && response.data.result) {
       onlineUsers.value = response.data.result.map(user => ({
         userId: user.userId,
+        userName: user.userName || user.userId, // userName이 없으면 userId 사용
+        profileImage: user.profileImage || '', // profileImage 추가
         color: getUserColor(user.userId)
       }));
     }
@@ -706,7 +773,7 @@ const sendBatchChanges = () => {
   const payload = {
     messageType: 'EDITOR_BATCH_MESSAGE',
     documentId: props.documentId,
-    senderId: user.name,
+    senderId: user.id,
     changesList: changesQueue.value,
     content: ''
   };
@@ -757,16 +824,80 @@ const clearFontSize = () => {
   }
 };
 
+// 페이지 visibility 변경 감지 함수
+const handleVisibilityChange = () => {
+  if (document.hidden && connectionStatus.value === 'connected' && currentSelectionIds.value.size > 0) {
+    // 페이지가 숨겨질 때 (탭 전환, 최소화 등) 모든 잠긴 라인 해제
+    const linesToRelease = [...currentSelectionIds.value];
+    
+    // 로컬에서 먼저 잠금 해제
+    linesToRelease.forEach(lineId => {
+      if (lockedLines.value.get(lineId) === user.name) {
+        lockedLines.value.delete(lineId);
+      }
+    });
+    
+    // 서버에 잠금 해제 요청 전송
+    const changesList = linesToRelease.map(lineId => ({ lineId }));
+    sendStompMessage({
+      destination: '/publish/editor/unlock-line',
+      body: {
+        messageType: 'UNLOCK_LINE',
+        documentId: props.documentId,
+        senderId: user.id,
+        changesList: changesList,
+        content: '',
+      },
+    });
+    
+    // 현재 선택 상태 초기화
+    currentSelectionIds.value = new Set();
+    lockedLines.value = new Map(lockedLines.value);
+    
+    if (editor.value) {
+      editor.value.view.dispatch(editor.value.state.tr);
+    }
+  }
+};
+
+// 온라인 사용자 변경 감지
+watch(onlineUsers, (newUsers) => {
+  emit('online-users-updated', newUsers);
+}, { deep: true });
+
+// 연결 상태 변경 감지
+watch(connectionStatus, (newVal) => {
+  try { emit('connection-status-changed', newVal); } catch (_) {}
+});
+
+// 부모에서 사용할 수 있도록 undo/redo 및 가능 여부 노출
+const undo = () => { try { if (editor.value) editor.value.chain().focus().undo().run(); } catch(_) {} };
+const redo = () => { try { if (editor.value) editor.value.chain().focus().redo().run(); } catch(_) {} };
+const canUndo = () => { try { return !!editor.value && editor.value.can().undo(); } catch(_) { return false; } };
+const canRedo = () => { try { return !!editor.value && editor.value.can().redo(); } catch(_) { return false; } };
+
+// 현재 문서를 HTML로 내보내기
+const getHtml = () => {
+  try { return editor.value ? editor.value.getHTML() : ''; } catch (_) { return ''; }
+};
+
+defineExpose({ undo, redo, canUndo, canRedo, getHtml });
+
 // 라이프사이클 훅
 onMounted(async () => {
   // 온라인 사용자 목록을 먼저 가져옵니다.
   await fetchOnlineUsers();
+  
+  // Visibility API 이벤트 리스너 등록
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 
   // 자기 자신을 온라인 사용자 목록에 추가합니다.
-  if (!onlineUsers.value.some(u => u.userId === user.name)) {
+  if (!onlineUsers.value.some(u => u.userId === user.id)) {
     onlineUsers.value.unshift({
-      userId: user.name,
-      color: getUserColor(user.name)
+      userId: user.id,
+      userName: user.name,
+      profileImage: props.profileImage || '',
+      color: getUserColor(user.id)
     });
   }
 
@@ -798,6 +929,42 @@ onMounted(async () => {
     content: props.initialContent || '<p></p>', // 초기 콘텐츠가 비어있을 경우를 대비
     editorProps: {
       handleDOMEvents: {
+        blur: (view, event) => {
+          // 에디터가 포커스를 잃을 때 모든 잠긴 라인 해제
+          if (connectionStatus.value === 'connected' && currentSelectionIds.value.size > 0) {
+            const linesToRelease = [...currentSelectionIds.value];
+            
+            // 로컬에서 먼저 잠금 해제 (Optimistic Unlock)
+            linesToRelease.forEach(lineId => {
+              if (lockedLines.value.get(lineId) === user.name) {
+                lockedLines.value.delete(lineId);
+              }
+            });
+            
+            // 서버에 잠금 해제 요청 전송
+            const changesList = linesToRelease.map(lineId => ({ lineId }));
+            sendStompMessage({
+              destination: '/publish/editor/unlock-line',
+              body: {
+                messageType: 'UNLOCK_LINE',
+                documentId: props.documentId,
+                senderId: user.id,
+                changesList: changesList,
+                content: '',
+              },
+            });
+            
+            // 현재 선택 상태 초기화
+            currentSelectionIds.value = new Set();
+            lockedLines.value = new Map(lockedLines.value);
+            
+            // UI 갱신
+            if (editor.value) {
+              editor.value.view.dispatch(editor.value.state.tr);
+            }
+          }
+          return false;
+        },
       },
       handleDrop: (view, event, slice, moved) => {
         // 드롭 위치 계산
@@ -962,7 +1129,7 @@ onMounted(async () => {
         const payload = {
           messageType: 'EDITOR_BATCH_MESSAGE',
           documentId: props.documentId,
-          senderId: user.name,
+          senderId: user.id,
           changesList: immediateChanges,
           content: ''
         };
@@ -1027,7 +1194,7 @@ onMounted(async () => {
           body: {
             messageType: 'UNLOCK_LINE',
             documentId: props.documentId,
-            senderId: user.name,
+            senderId: user.id,
             changesList: changesList,
             content: '',
           },
@@ -1042,7 +1209,7 @@ onMounted(async () => {
             body: {
               messageType: 'LOCK_LINE',
               documentId: props.documentId,
-              senderId: user.name,
+              senderId: user.id,
               content: JSON.stringify({ lineId }),
             },
           });
@@ -1103,7 +1270,7 @@ onMounted(async () => {
           body: {
             messageType: 'CURSOR_UPDATE',
             documentId: props.documentId,
-            senderId: user.name,
+            senderId: user.id,
             content: JSON.stringify({ selections, user }),
           },
         });
@@ -1113,7 +1280,7 @@ onMounted(async () => {
 
   connectStomp(
     props.documentId,
-    user.name,
+    user.id,
     handleIncomingMessage, // 메시지 수신 콜백
     () => { // 연결 성공 콜백
       connectionStatus.value = 'connected';
@@ -1134,6 +1301,10 @@ onBeforeUnmount(() => {
     clearTimeout(typingTimer.value);
   }
   sendBatchChanges(); // 컴포넌트 파괴 전 마지막으로 변경사항 전송
+  
+  // Visibility API 이벤트 리스너 제거
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  
   // disconnectStomp(props.documentId, user.name);
   if (editor.value) {
     editor.value.destroy();
@@ -1198,7 +1369,7 @@ const applyDelete = (change) => {
 };
 
 const handleIncomingMessage = (message) => {
-  if (!editor.value || message.senderId === user.name) {
+  if (!editor.value || message.senderId === user.id) {
     return;
   }
 
@@ -1297,6 +1468,8 @@ const handleIncomingMessage = (message) => {
   } else if (message.messageType === 'JOIN') {
     const joiningUser = {
       userId: message.senderId,
+      userName: message.senderName || message.senderId,
+      profileImage: message.profileImage || '',
       color: getUserColor(message.senderId),
     };
     // 중복 추가 방지
@@ -1369,7 +1542,7 @@ const handleIncomingMessage = (message) => {
 
 .editor-toolbar {
   border-bottom: 1px solid #e0e0e0;
-  padding: 0 8px;
+  padding: 0 16px; /* 가로 여백 확대 */
 }
 
 .online-users-container {
@@ -1498,4 +1671,26 @@ const handleIncomingMessage = (message) => {
 .v-btn.is-active {
   background-color: rgba(0, 0, 0, 0.1);
 }
+
+/* 이모지/기호 픽커 */
+.emoji-picker { min-width: 260px; }
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+}
+.emoji-item {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  height: 32px;
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+.emoji-item:hover { background: #f5f5f5; }
+.emoji-item:active { transform: scale(0.98); }
 </style>

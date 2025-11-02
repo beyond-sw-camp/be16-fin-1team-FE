@@ -1,30 +1,43 @@
 <template>
-  <div v-if="isVisible" class="stone-detail-modal" @click="closeModal" @mounted="console.log('스톤 상세 모달 표시됨')">
-    <div class="modal-content" @click.stop>
+  <div v-if="isVisible" class="stone-detail-modal" :class="{ 'expanded': isExpandedToCenter }" @click="closeModal" @mounted="console.log('스톤 상세 모달 표시됨')">
+    <div class="modal-content" :class="{ 'expanded': isExpandedToCenter }" @click.stop="handleModalContentClick">
       <!-- 모달 헤더 -->
       <div class="modal-header" @mounted="console.log('모달 헤더 렌더링됨')">
         <div class="header-left">
-          <button class="collapse-btn" @click="toggleCollapse">
-            <svg v-if="!isCollapsed" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 18L15 12L9 6" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <button class="close-modal-btn" @click.stop="closeModal" title="모달 닫기">
+            <svg v-if="!isExpandedToCenter" width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12.08,4.08L20,12L12.08,19.92L10.67,18.5L16.17,13H2V11H16.17L10.67,5.5L12.08,4.08M20,12V22H22V2H20V12Z" />
             </svg>
-            <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
             </svg>
           </button>
-          <button class="expand-btn" @click="toggleExpand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 3H5C3.89543 3 3 3.89543 3 5V8M21 3H18M21 21V18M3 21V18" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <button class="expand-center-btn" @click.stop="toggleExpandToCenter" :title="isExpandedToCenter ? '사이드 축소' : '중앙 확장'">
+            <svg v-if="!isExpandedToCenter" width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10,21V19H6.41L10.91,14.5L9.5,13.09L5,17.59V14H3V21H10M14.5,10.91L19,6.41V10H21V3H14V5H17.59L13.09,9.5L14.5,10.91Z" />
+            </svg>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19.5,3.09L15,7.59V4H13V11H20V9H16.41L20.91,4.5L19.5,3.09M4,13V15H7.59L3.09,19.5L4.5,20.91L9,16.41V20H11V13H4Z" />
             </svg>
           </button>
         </div>
         <div class="header-right">
-          <!-- 휴지통 아이콘 제거됨 -->
+          <button v-if="!currentStoneData?.isProject" class="edit-header-btn" @click.stop="editStone" title="스톤 수정">
+            <svg width="18" height="18" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10.5 1.5L12.5 3.5L11 5L9 3L10.5 1.5Z" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 3L11 5L4.5 11.5L1 13L2.5 9.5L9 3Z" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="trash-btn" @click.stop="deleteStone" title="삭제">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#666666" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M9,8H11V17H9V8M13,8H15V17H13V8Z" />
+            </svg>
+          </button>
         </div>
       </div>
 
         <!-- 모달 본문 -->
-        <div v-if="!isCollapsed" class="modal-body">
+        <div class="modal-body">
           <!-- 로딩 상태 -->
           <div v-if="isLoading" class="loading-container">
             <div class="loading-spinner"></div>
@@ -37,9 +50,6 @@
         <div class="stone-title-container">
           <div class="stone-title-section">
             <div class="stone-title">{{ currentStoneData?.isProject ? (currentStoneData?.projectName || currentStoneData?.stoneName) : currentStoneData?.stoneName }}</div>
-            <div class="stone-status" :class="getStoneStatusClass(currentStoneData?.stoneStatus)">
-              {{ getStoneStatusText(currentStoneData?.stoneStatus) }}
-            </div>
           </div>
           <div class="action-buttons">
             <button 
@@ -48,23 +58,7 @@
               @click="completeStone" 
               title="스톤 완료"
             >
-              완료
-            </button>
-            <button 
-              v-if="!currentStoneData?.isProject" 
-              class="edit-stone-btn" 
-              @click="editStone" 
-              title="스톤 수정"
-            >
-              수정
-            </button>
-            <button 
-              v-if="!currentStoneData?.isProject" 
-              class="delete-stone-btn" 
-              @click="deleteStone" 
-              title="스톤 삭제"
-            >
-              삭제
+              완료 처리
             </button>
           </div>
         </div>
@@ -76,7 +70,7 @@
           <!-- 프로젝트 목표 -->
           <div class="info-section">
             <div class="info-label">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M2 17L12 22L22 17" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M2 12L12 17L22 12" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -89,10 +83,8 @@
           <!-- 프로젝트 설명 -->
           <div class="info-section">
             <div class="info-label">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M14 2V8H20" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M16 13H8M16 17H8M10 9H8" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14,17H7V15H14M17,13H7V11H17M17,9H7V7H17M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z" />
               </svg>
               <span>설명</span>
             </div>
@@ -102,7 +94,7 @@
           <!-- 스톤 개수 -->
           <div class="info-section">
             <div class="info-label">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="10" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M8 12H16M12 8V16" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -115,13 +107,28 @@
         <!-- 기간 정보 -->
         <div class="info-section">
           <div class="info-label">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 2V5M16 2V5M3.5 9.09H20.5M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12 13H12.01M12 17H12.01M16 13H16.01M16 17H16.01M8 13H8.01M8 17H8.01" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9,10V12H7V10H9M13,10V12H11V10H13M17,10V12H15V10H17M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H6V1H8V3H16V1H18V3H19M19,19V8H5V19H19M9,14V16H7V14H9M13,14V16H11V14H13M17,14V16H15V14H17Z" />
             </svg>
             <span>기간</span>
           </div>
           <div class="info-value">{{ formatDateRange(currentStoneData?.startTime, currentStoneData?.endTime) }}</div>
+        </div>
+
+        <!-- 진행도 정보 -->
+        <div class="info-section">
+          <div class="info-label">
+            <svg width="24" height="24" viewBox="0 0 32 32" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+              <path d="M16,2A14,14,0,1,0,30,16,14.0158,14.0158,0,0,0,16,2Zm0,26A12,12,0,0,1,16,4V16l8.4812,8.4814A11.9625,11.9625,0,0,1,16,28Z"/>
+            </svg>
+            <span>진행도</span>
+          </div>
+          <div class="info-value-with-status">
+            <span class="progress-percent">{{ currentStoneData?.milestone || 0 }}%</span>
+            <div class="stone-status" :class="getStoneStatusClass(currentStoneData?.stoneStatus)">
+              {{ getStoneStatusText(currentStoneData?.stoneStatus) }}
+            </div>
+          </div>
         </div>
 
         <!-- 스톤 정보 (일반 스톤인 경우에만 표시) -->
@@ -129,9 +136,8 @@
           <!-- 담당자 정보 -->
           <div class="info-section">
             <div class="info-label">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="12" cy="7" r="4" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
               </svg>
               <span>담당자</span>
             </div>
@@ -140,13 +146,12 @@
               <button class="edit-user-btn" @click="editManager" title="담당자 수정">
                 <div class="icon-with-plus">
                   <!-- 담당자 아이콘 -->
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" :stroke="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="7" r="4" :stroke="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <svg width="16" height="16" viewBox="0 0 24 24" :fill="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#666666'" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
                   </svg>
                   <!-- + 기호 (오른쪽에 별도 위치) -->
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 5V19M5 12H19" :stroke="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5V19M5 12H19" :stroke="currentStoneData?.manager && currentStoneData?.manager !== '김올빗' ? '#F4CE53' : '#666666'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
               </button>
@@ -156,11 +161,8 @@
           <!-- 참여자 정보 -->
           <div class="info-section">
             <div class="info-label" :class="{ 'empty-label': !currentStoneData?.participants || currentStoneData?.participants === '비어 있음' }">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? 'rgba(244, 206, 83, 0.4)' : 'rgba(102, 102, 102, 0.4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="9" cy="7" r="4" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? 'rgba(244, 206, 83, 0.4)' : 'rgba(102, 102, 102, 0.4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M23 21V19C23 17.9391 22.5786 16.9217 21.8284 16.1716C21.0783 15.4214 20.0609 15 19 15H16" stroke="rgba(102, 102, 102, 0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45768C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="rgba(102, 102, 102, 0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg width="24" height="24" viewBox="0 0 24 24" :fill="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16.5,12A2.5,2.5 0 0,0 19,9.5A2.5,2.5 0 0,0 16.5,7A2.5,2.5 0 0,0 14,9.5A2.5,2.5 0 0,0 16.5,12M9,11A3,3 0 0,0 12,8A3,3 0 0,0 9,5A3,3 0 0,0 6,8A3,3 0 0,0 9,11M16.5,14C14.67,14 11,14.92 11,16.75V19H22V16.75C22,14.92 18.33,14 16.5,14M9,13C6.67,13 2,14.17 2,16.5V19H9V16.75C9,15.9 9.33,14.41 11.37,13.28C10.5,13.1 9.66,13 9,13Z" />
               </svg>
               <span>참여자</span>
             </div>
@@ -169,15 +171,12 @@
               <button class="edit-user-btn" @click="editParticipants" title="참여자 수정">
                 <div class="icon-with-plus">
                   <!-- 참여자 아이콘 -->
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="9" cy="7" r="4" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M23 21V19C23 17.9391 22.5786 16.9217 21.8284 16.1716C21.0783 15.4214 20.0609 15 19 15H16" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="19" cy="7" r="3" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <svg width="16" height="16" viewBox="0 0 24 24" :fill="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#666666'" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16.5,12A2.5,2.5 0 0,0 19,9.5A2.5,2.5 0 0,0 16.5,7A2.5,2.5 0 0,0 14,9.5A2.5,2.5 0 0,0 16.5,12M9,11A3,3 0 0,0 12,8A3,3 0 0,0 9,5A3,3 0 0,0 6,8A3,3 0 0,0 9,11M16.5,14C14.67,14 11,14.92 11,16.75V19H22V16.75C22,14.92 18.33,14 16.5,14M9,13C6.67,13 2,14.17 2,16.5V19H9V16.75C9,15.9 9.33,14.41 11.37,13.28C10.5,13.1 9.66,13 9,13Z" />
                   </svg>
                   <!-- + 기호 (오른쪽에 별도 위치) -->
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 5V19M5 12H19" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5V19M5 12H19" :stroke="currentStoneData?.participants && currentStoneData?.participants !== '비어 있음' ? '#F4CE53' : '#666666'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
               </button>
@@ -187,45 +186,21 @@
           <!-- 채팅방 -->
           <div class="info-section">
             <div class="info-label" :class="{ 'empty-label': !currentStoneData?.chatCreation }">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" :stroke="currentStoneData?.chatCreation ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M13 8H13.01M9 8H9.01M17 8H17.01" :stroke="currentStoneData?.chatCreation ? '#F4CE53' : '#999999'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg width="24" height="24" viewBox="0 0 24 24" :fill="currentStoneData?.chatCreation ? '#F4CE53' : '#999999'" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12,3C17.5,3 22,6.58 22,11C22,15.42 17.5,19 12,19C10.76,19 9.57,18.82 8.47,18.5C5.55,21 2,21 2,21C4.33,18.67 4.7,17.1 4.75,16.5C3.05,15.07 2,13.13 2,11C2,6.58 6.5,3 12,3M17,12V10H15V12H17M13,12V10H11V12H13M9,12V10H7V12H9Z" />
               </svg>
               <span>채팅방</span>
             </div>
             <div class="info-value">
-              <div class="chat-link" :class="{ 'disabled': !currentStoneData?.chatCreation }">
+              <div class="chat-link" :class="{ 'disabled': !currentStoneData?.chatCreation }" @click="goToChatRoom">
                 <span :class="{ 'empty-value': !currentStoneData?.chatCreation }">{{ currentStoneData?.chatCreation ? '바로가기' : '채팅방 없음' }}</span>
-                <svg v-if="currentStoneData?.chatCreation" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M15 3H21V9" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M10 14L21 3" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <svg v-if="currentStoneData?.chatCreation" width="18" height="18" viewBox="0 0 24 24" fill="#F6D365" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <!-- 문서함 -->
-          <div class="info-section">
-            <div class="info-label">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M14 2V8H20" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M16 13H8M16 17H8M10 9H8" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>문서함</span>
-            </div>
-            <div class="info-value">
-              <div class="document-link">
-                <span>{{ currentStoneData?.documentLink || '바로가기' }}</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18 13V19C18 19.5304 17.7893 20.0391 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V8C3 7.46957 3.21071 6.96086 3.58579 6.58579C3.96086 6.21071 4.46957 6 5 6H11" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M15 3H21V9" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M10 14L21 3" stroke="#F6D365" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- 태스크 섹션 (일반 스톤인 경우에만 표시) -->
@@ -235,7 +210,41 @@
 
           <!-- 태스크 섹션 -->
           <div class="tasks-section">
-            <div class="section-title">태스크</div>
+            <div class="section-title">
+              <div class="section-title-left">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 6L21 6.00072M11 12L21 12.0007M11 18L21 18.0007M3 11.9444L4.53846 13.5L8 10M3 5.94444L4.53846 7.5L8 4M4.5 18H4.51M5 18C5 18.2761 4.77614 18.5 4.5 18.5C4.22386 18.5 4 18.2761 4 18C4 17.7239 4.22386 17.5 4.5 17.5C4.77614 17.5 5 17.7239 5 18Z" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>태스크</span>
+              </div>
+              <div class="task-sort-dropdown" ref="sortDropdown">
+                <button class="sort-btn" @click.stop="toggleSortDropdown">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H21M7 12H17M11 18H13" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <div v-if="showSortDropdown" class="sort-dropdown-menu" @click.stop>
+                  <div class="sort-option" @click="setSortOption('incomplete-first')">
+                    <span>미완료된 태스크 순</span>
+                    <svg v-if="taskSortOption === 'incomplete-first'" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" fill="#F4CE53" stroke="#F4CE53" stroke-width="1"/>
+                    </svg>
+                  </div>
+                  <div class="sort-option" @click="setSortOption('completed-first')">
+                    <span>완료된 태스크 순</span>
+                    <svg v-if="taskSortOption === 'completed-first'" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" fill="#F4CE53" stroke="#F4CE53" stroke-width="1"/>
+                    </svg>
+                  </div>
+                  <div class="sort-option" @click="setSortOption('dday-asc')">
+                    <span>D-day 임박 순</span>
+                    <svg v-if="taskSortOption === 'dday-asc'" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" fill="#F4CE53" stroke="#F4CE53" stroke-width="1"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="task-list">
               <!-- 태스크 로딩 상태 -->
               <div v-if="isLoadingTasks" class="task-loading">
@@ -245,10 +254,13 @@
               
               <!-- 태스크 목록 -->
               <div v-else-if="taskList.length > 0">
-                <div v-for="task in taskList" :key="task.id" class="task-item">
+                <div v-for="task in sortedTaskList" :key="task.id" class="task-item">
                 <div class="task-checkbox" :class="{ 'completed': task.completed }" @click="toggleTaskComplete(task)">
-                  <svg v-if="task.completed" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 12L11 14L15 10" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <svg v-if="task.completed" width="28" height="28" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,5V19H5V5H19M10,17L6,13L7.41,11.58L10,14.17L16.59,7.58L18,9" />
+                  </svg>
+                  <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z" />
                   </svg>
                 </div>
                 <div class="task-content">
@@ -256,16 +268,13 @@
                   <div class="task-period">{{ formatDateRange(task.startTime, task.endTime) }}</div>
                 </div>
                   <div class="task-assignee">
-                    <div class="assignee-info">
-                      <div class="assignee-name">{{ task.assigneeName || '담당자 없음' }}</div>
+                    <div class="assignee-info" @click="openTaskAssigneeEditModal(task)" title="담당자 변경">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="#F4CE53" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
+                      </svg>
+                      <span class="assignee-name">{{ task.assigneeName || '담당자 없음' }}</span>
                     </div>
                     <div class="assignee-icons">
-                      <div class="icon-button" @click="openTaskAssigneeEditModal(task)" title="담당자 변경">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="user-icon">
-                          <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <circle cx="12" cy="7" r="4" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                      </div>
                       <div class="icon-button" @click="deleteTask(task)" title="태스크 삭제">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="trash-icon">
                           <path d="M3 6H5H21" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -294,10 +303,35 @@
                 @click="addTask"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 5V19M5 12H19" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 5V19M5 12H19" stroke="#666666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 <span>{{ isStoneCompleted ? '완료된 스톤' : '태스크 추가' }}</span>
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 문서함 섹션 (일반 스톤인 경우에만 표시) -->
+        <div v-if="!currentStoneData?.isProject">
+          <!-- 구분선 -->
+          <div class="divider"></div>
+
+          <!-- 문서함 섹션 -->
+          <div class="documents-section">
+            <div class="section-title">
+              <div class="section-title-left">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22,4H14L12,2H6A2,2 0 0,0 4,4V16A2,2 0 0,0 6,18H22A2,2 0 0,0 24,16V6A2,2 0 0,0 22,4M2,6H0V11H0V20A2,2 0 0,0 2,22H20V20H2V6Z" fill="#F4CE53"/>
+                </svg>
+                <span>문서함</span>
+              </div>
+            </div>
+            
+            <!-- 문서함 컨테이너 -->
+            <div class="stone-drive-wrapper">
+              <div class="stone-drive-container">
+                <DriveMain :stone-id="currentStoneData?.stoneId || currentStoneData?.id" />
+              </div>
             </div>
           </div>
         </div>
@@ -719,13 +753,15 @@ import { showSnackbar } from '@/services/snackbar.js';
 import TaskDeleteConfirmModal from '@/components/modal/TaskDeleteConfirmModal.vue';
 import TaskCompleteConfirmModal from '@/components/modal/TaskCompleteConfirmModal.vue';
 import StoneCompleteConfirmModal from '@/components/modal/StoneCompleteConfirmModal.vue';
+import DriveMain from '@/views/Drive/DriveMain.vue';
 
 export default {
   name: 'StoneDetailModal',
   components: {
     TaskDeleteConfirmModal,
     TaskCompleteConfirmModal,
-    StoneCompleteConfirmModal
+    StoneCompleteConfirmModal,
+    DriveMain
   },
   props: {
     isVisible: {
@@ -752,6 +788,7 @@ export default {
   data() {
     return {
       isCollapsed: false,
+      isExpandedToCenter: false,
       showDeleteConfirm: false,
       isDeleting: false,
       showManagerSelectModal: false,
@@ -786,6 +823,8 @@ export default {
       isTaskAssigneeSearching: false,
       taskList: [],
       isLoadingTasks: false,
+      showSortDropdown: false,
+      taskSortOption: 'incomplete-first',
       showTaskAssigneeEditModal: false,
       editingTaskId: null,
       editingTaskName: '',
@@ -820,6 +859,40 @@ export default {
     // 스톤이 완료되었는지 확인
     isStoneCompleted() {
       return this.currentStoneData?.stoneStatus === 'COMPLETED' || this.currentStoneData?.milestone === 100;
+    },
+    
+    // 정렬된 태스크 리스트
+    sortedTaskList() {
+      if (!this.taskList || this.taskList.length === 0) return [];
+      
+      const tasks = [...this.taskList];
+      
+      switch (this.taskSortOption) {
+        case 'completed-first':
+          // 완료된 것 먼저
+          return tasks.sort((a, b) => {
+            if (a.completed === b.completed) return 0;
+            return a.completed ? -1 : 1;
+          });
+          
+        case 'incomplete-first':
+          // 미완료 먼저
+          return tasks.sort((a, b) => {
+            if (a.completed === b.completed) return 0;
+            return a.completed ? 1 : -1;
+          });
+          
+        case 'dday-asc':
+          // D-day 임박 순 (종료일이 가까운 순)
+          return tasks.sort((a, b) => {
+            const dateA = new Date(a.endTime);
+            const dateB = new Date(b.endTime);
+            return dateA - dateB;
+          });
+          
+        default:
+          return tasks;
+      }
     }
   },
   methods: {
@@ -856,11 +929,36 @@ export default {
     closeModal() {
       this.$emit('close')
     },
+    goToChatRoom() {
+      if (!this.currentStoneData?.chatCreation) {
+        return;
+      }
+      // 스톤메신저로 이동
+      this.$router.push('/chat/main');
+      // 모달 닫기
+      this.$emit('close');
+    },
+    toggleSortDropdown() {
+      this.showSortDropdown = !this.showSortDropdown;
+    },
+    setSortOption(option) {
+      this.taskSortOption = option;
+      this.showSortDropdown = false;
+    },
+    handleModalContentClick(event) {
+      // 모달 콘텐츠 내부 클릭 시 정렬 드롭다운 외부 클릭 체크
+      if (this.showSortDropdown && this.$refs.sortDropdown && !this.$refs.sortDropdown.contains(event.target)) {
+        this.showSortDropdown = false;
+      }
+    },
     toggleCollapse() {
       this.isCollapsed = !this.isCollapsed
     },
     toggleExpand() {
       this.$emit('expand')
+    },
+    toggleExpandToCenter() {
+      this.isExpandedToCenter = !this.isExpandedToCenter
     },
     editStone() {
       console.log('수정 버튼 클릭됨!', this.stoneData)
@@ -1635,7 +1733,7 @@ export default {
           year: 'numeric',
           month: '2-digit',
           day: '2-digit'
-        }).replace(/\./g, '.').replace(/\s/g, '')
+        }).replace(/\s/g, '').slice(0, -1)
       }
       
       return `${formatDate(startDate)} - ${formatDate(endDate)}`
@@ -1814,7 +1912,7 @@ export default {
 <style scoped>
 .stone-detail-modal {
   position: fixed;
-  top: 0;
+  top: 64px;
   left: 0;
   right: 0;
   bottom: 0;
@@ -1823,7 +1921,14 @@ export default {
   display: flex;
   justify-content: flex-end;
   align-items: stretch;
+  padding-left: 280px;
   animation: fadeIn 0.3s ease-out;
+}
+
+.stone-detail-modal.expanded {
+  justify-content: center;
+  align-items: center;
+  padding-left: 280px;
 }
 
 @keyframes fadeIn {
@@ -1839,7 +1944,7 @@ export default {
   width: 50vw;
   max-width: 600px;
   min-width: 400px;
-  height: 100vh;
+  height: calc(100vh - 64px);
   background: #FFFFFF;
   overflow: visible;
   border-left: 1px solid rgba(42, 40, 40, 0.5);
@@ -1848,6 +1953,28 @@ export default {
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
   position: relative;
   animation: slideIn 0.3s ease-out;
+}
+
+.modal-content.expanded {
+  width: 85vw;
+  max-width: 1400px;
+  height: calc(90vh - 64px);
+  border-left: none;
+  border: 1px solid rgba(42, 40, 40, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  animation: expandToCenter 0.3s ease-out;
+}
+
+@keyframes expandToCenter {
+  from {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
@@ -1863,48 +1990,130 @@ export default {
   display: flex !important;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 30px;
-  border-bottom: 1px solid rgba(42, 40, 40, 0.1);
-  background: #F5F5F5;
-  min-height: 60px;
+  padding: 12px 20px !important;
+  border-bottom: none;
+  background: #FFFFFF !important;
+  min-height: 50px !important;
+  height: auto !important;
   visibility: visible !important;
   opacity: 1 !important;
-  overflow: visible;
+  overflow: visible !important;
   position: relative;
+  z-index: 10;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.modal-content.expanded .modal-header {
+  border-radius: 12px 12px 0 0;
 }
 
 .header-left {
-  display: flex;
+  display: flex !important;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .header-right {
-  display: flex;
+  display: flex !important;
   align-items: center;
-  gap: 10px;
-  padding-right: 10px;
-  margin-right: -10px;
+  gap: 12px;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
+.close-modal-btn,
+.expand-center-btn,
 .collapse-btn,
 .expand-btn,
-.delete-btn {
-  background: none;
-  border: none;
+.delete-btn,
+.trash-btn,
+.edit-header-btn {
+  background: none !important;
+  border: none !important;
   cursor: pointer;
-  padding: 8px;
+  padding: 4px;
   border-radius: 4px;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  visibility: visible !important;
+  opacity: 1 !important;
+  outline: none !important;
 }
 
+.close-modal-btn:focus,
+.expand-center-btn:focus,
+.collapse-btn:focus,
+.expand-btn:focus,
+.delete-btn:focus,
+.trash-btn:focus,
+.edit-header-btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.close-modal-btn svg,
+.expand-center-btn svg,
+.collapse-btn svg,
+.expand-btn svg,
+.trash-btn svg,
+.edit-header-btn svg {
+  display: block !important;
+  pointer-events: none;
+  transition: all 0.2s;
+}
+
+.close-modal-btn:hover,
+.expand-center-btn:hover,
 .collapse-btn:hover,
 .expand-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(244, 206, 83, 0.1) !important;
 }
 
-.edit-stone-btn,
-.delete-stone-btn,
+.close-modal-btn:hover svg,
+.expand-center-btn:hover svg {
+  fill: #F4CE53;
+}
+
+.edit-header-btn:hover {
+  background: rgba(244, 206, 83, 0.1) !important;
+}
+
+.edit-header-btn:hover svg path {
+  stroke: #F4CE53;
+}
+
+.trash-btn:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+.trash-btn:hover svg {
+  fill: #EF4444;
+}
+
+.collapse-btn:hover svg path,
+.expand-btn:hover svg path {
+  stroke: #F4CE53;
+}
+
+.close-modal-btn:active,
+.expand-center-btn:active,
+.collapse-btn:active,
+.expand-btn:active,
+.trash-btn:active,
+.edit-header-btn:active {
+  transform: scale(0.95);
+}
+
 .complete-stone-btn {
   padding: 6px 12px;
   border: 1px solid #D1D5DB;
@@ -1920,43 +2129,6 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.edit-stone-btn {
-  background: #F9FAFB;
-  color: #374151;
-  border-color: #D1D5DB;
-}
-
-.edit-stone-btn:hover {
-  background: #F3F4F6;
-  border-color: #9CA3AF;
-  transform: translateY(-1px);
-}
-
-.edit-stone-btn:active {
-  transform: translateY(0);
-  background: #E5E7EB;
-}
-
-.delete-stone-btn {
-  background: #FEF2F2;
-  color: #DC2626;
-  border-color: #FECACA;
-}
-
-.delete-stone-btn:hover {
-  background: #FEE2E2;
-  border-color: #FCA5A5;
-  transform: translateY(-1px);
-}
-
-.delete-stone-btn:active {
-  transform: translateY(0);
-  background: #FECACA;
-}
-
-.complete-stone-btn {
   background: #F0FDF4;
   color: #16A34A;
   border-color: #BBF7D0;
@@ -1975,9 +2147,13 @@ export default {
 
 .modal-body {
   flex: 1;
-  padding: 30px;
+  padding: 24px;
   overflow-y: auto;
   background: #FFFFFF;
+}
+
+.modal-content.expanded .modal-body {
+  border-radius: 0 0 12px 12px;
 }
 
 .modal-body::-webkit-scrollbar {
@@ -2001,13 +2177,13 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 16px;
 }
 
 .stone-title-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .stone-status {
@@ -2048,9 +2224,9 @@ export default {
 
 .stone-title {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 800;
-  font-size: 28px;
-  line-height: 33px;
+  font-weight: 710;
+  font-size: 24px;
+  line-height: 26px;
   color: #1C0F0F;
   flex: 1;
   text-align: left;
@@ -2058,10 +2234,11 @@ export default {
 
 .info-section {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  margin-bottom: 25px;
-  padding: 12px 0;
+  margin-bottom: 9px;
+  padding: 6px 0;
+  gap: 40px;
 }
 
 .info-label {
@@ -2069,12 +2246,13 @@ export default {
   align-items: center;
   gap: 8px;
   font-family: 'Pretendard', sans-serif;
-  font-weight: 800;
-  font-size: 20px;
-  line-height: 24px;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 20px;
   color: #666666;
   white-space: nowrap;
   flex-shrink: 0;
+  min-width: 100px;
 }
 
 .info-label svg {
@@ -2084,10 +2262,10 @@ export default {
 .info-value {
   font-family: 'Pretendard', sans-serif;
   font-weight: 600;
-  font-size: 18px;
-  line-height: 22px;
+  font-size: 15px;
+  line-height: 20px;
   color: #1C0F0F;
-  text-align: right;
+  text-align: left;
   word-wrap: break-word;
   word-break: break-word;
   white-space: normal;
@@ -2095,10 +2273,27 @@ export default {
 }
 
 .info-value-with-action {
-  display: flex;
+  display: flex !important;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start !important;
   gap: 8px;
+  text-align: left !important;
+}
+
+.info-value-with-status {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start !important;
+  gap: 12px;
+  text-align: left !important;
+}
+
+.progress-percent {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 20px;
+  color: #1C0F0F;
 }
 
 .edit-user-btn {
@@ -2111,24 +2306,34 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .edit-user-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(244, 206, 83, 0.1);
   opacity: 1;
   transform: scale(1.1);
 }
 
+.edit-user-btn:hover svg path,
+.edit-user-btn:hover svg circle {
+  stroke: #F4CE53 !important;
+}
+
 .edit-user-btn:active {
   transform: scale(0.95);
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(244, 206, 83, 0.15);
 }
 
 .icon-with-plus {
   display: flex;
   align-items: center;
   gap: 1px;
+}
+
+.icon-with-plus svg path,
+.icon-with-plus svg circle {
+  stroke-width: 2.5;
 }
 
 /* 빈 값일 때 회색 스타일 */
@@ -2150,6 +2355,7 @@ export default {
 .chat-link {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
   cursor: pointer;
   transition: color 0.2s;
@@ -2172,31 +2378,154 @@ export default {
   width: 100%;
   height: 1px;
   background: rgba(42, 40, 40, 0.5);
-  margin: 30px 0;
+  margin: 16px 0;
 }
 
 .tasks-section {
-  margin-top: 20px;
+  margin-top: 8px;
+}
+
+.documents-section {
+  margin-top: 8px;
+}
+
+.stone-drive-wrapper {
+  width: 100%;
+  border-radius: 12px;
+  background: #FFFFFF;
+  border: 1px solid rgba(42, 40, 40, 0.1);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.stone-drive-wrapper:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: rgba(244, 206, 83, 0.3);
+}
+
+.stone-drive-container {
+  width: 100%;
+  height: 600px;
+  overflow: hidden;
+  background: #FFFFFF;
+}
+
+.stone-drive-container :deep(.drive-container) {
+  height: 100%;
+  padding: 0;
+  background: #FFFFFF;
+}
+
+.stone-drive-container :deep(.drive-layout) {
+  height: 100%;
+}
+
+.stone-drive-container :deep(.drive-sidebar) {
+  background: #FAFAFA;
+  border-right: 1px solid rgba(42, 40, 40, 0.1);
+}
+
+.stone-drive-container :deep(.drive-content) {
+  background: #FFFFFF;
 }
 
 .section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-family: 'Pretendard', sans-serif;
-  font-weight: 800;
-  font-size: 20px;
-  line-height: 24px;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 20px;
   color: #666666;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+}
+
+.section-title-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title svg {
+  flex-shrink: 0;
+}
+
+.task-sort-dropdown {
+  position: relative;
+}
+
+.sort-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+  outline: none !important;
+}
+
+.sort-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.sort-btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.sort-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 180px;
+  overflow: hidden;
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.sort-option:hover {
+  background: rgba(244, 206, 83, 0.1);
+}
+
+.sort-option span {
+  flex: 1;
+}
+
+.sort-option svg {
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 8px;
 }
 
 .task-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 15px;
   padding: 15px 0;
   border-bottom: 1px solid rgba(42, 40, 40, 0.1);
@@ -2207,11 +2536,8 @@ export default {
 }
 
 .task-checkbox {
-  width: 24px;
-  height: 24px;
-  border: 3px solid #F4CE53;
-  border-radius: 2px;
-  background: #FFFFFF;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2220,9 +2546,15 @@ export default {
   flex-shrink: 0;
 }
 
+.task-checkbox svg {
+  transition: all 0.2s;
+}
+
+.task-checkbox:hover:not(.completed) {
+  transform: scale(1.1);
+}
+
 .task-checkbox.completed {
-  background: #F4CE53;
-  border-color: #F4CE53;
   cursor: not-allowed;
 }
 
@@ -2230,14 +2562,15 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
 }
 
 .task-name {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 800;
-  font-size: 20px;
-  line-height: 24px;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 20px;
   color: #666666;
 }
 
@@ -2248,8 +2581,8 @@ export default {
 
 .task-period {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 800;
-  font-size: 20px;
+  font-weight: 600;
+  font-size: 13px;
   line-height: 24px;
   color: #666666;
 }
@@ -2257,33 +2590,38 @@ export default {
 .task-assignee {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   flex-shrink: 0;
-  gap: 12px;
+  gap: 0px;
 }
 
 .task-assignee .assignee-info {
   display: flex;
   align-items: center;
-  flex: 1;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.task-assignee .assignee-info:hover {
+  background: rgba(244, 206, 83, 0.15);
 }
 
 .task-assignee .assignee-name {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 14px;
   line-height: 18px;
-  color: #374151;
-  background: #F3F4F6;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid #E5E7EB;
+  color: #000000;
 }
 
 .assignee-icons {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-right: -8px;
 }
 
 .icon-button {
@@ -2314,8 +2652,8 @@ export default {
 
 /* 태스크 추가 버튼 스타일 */
 .add-task-section {
-  margin-top: 20px;
-  padding-top: 20px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid rgba(42, 40, 40, 0.1);
 }
 
@@ -2336,12 +2674,6 @@ export default {
   color: #666666;
   width: 100%;
   justify-content: center;
-}
-
-.add-task-btn:hover {
-  background: #F4CE53;
-  color: #FFFFFF;
-  border-color: #F4CE53;
 }
 
 .add-task-btn:active {
@@ -2427,8 +2759,8 @@ export default {
   }
   
   .stone-title {
-    font-size: 24px;
-    line-height: 28px;
+    font-size: 22px;
+    line-height: 24px;
   }
   
   .info-label,
@@ -4043,10 +4375,6 @@ export default {
   padding: 4px;
 }
 
-.task-assignee:hover {
-  background: rgba(244, 206, 83, 0.1);
-  transform: scale(1.1);
-}
 
 .task-assignee:active {
   transform: scale(0.95);

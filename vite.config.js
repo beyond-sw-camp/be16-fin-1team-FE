@@ -31,5 +31,8 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@Project': fileURLToPath(new URL('./src/views/Project', import.meta.url))
     }
+  },
+  optimizeDeps: {
+    include: ['docx', 'file-saver']
   }
 })

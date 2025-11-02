@@ -8,6 +8,8 @@ import ForgotPassword_InputEmail from "../views/User/ForgotPassword_InputEmail.v
 import ForgotPassword_ValidateEmail from "../views/User/ForgotPassword_ValidateEmail.vue";
 import ForgotPassword_InputInfo from "../views/User/ForgotPassword_InputInfo.vue";
 import UserMyInfo from "../views/User/UserMyInfo.vue";
+import LandingPage from "../components/LandingPage.vue";
+
 
 
 export const userRouter = [
@@ -69,5 +71,11 @@ export const userRouter = [
         path: "/my-info",
         name: "UserMyInfo",
         component: UserMyInfo,
+    },
+    {
+        path: "/landing-page",
+        name: "LandingPage",
+        component: LandingPage,
+        meta: { hideLayout: true, hideChatbot: true }
     },
 ]

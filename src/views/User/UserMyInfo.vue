@@ -280,7 +280,7 @@ export default {
 </script>
 
 <style scoped>
-.login-full { position: fixed; top: 64px; left: 240px; right: 0; bottom: 0; background-color: #F5F5F5; }
+.login-full { position: fixed; top: 64px; left: 240px; right: 0; bottom: 0; background-color: #F5F5F5; overflow-y: auto; }
 .fill-container {
   height: 100%;
 }

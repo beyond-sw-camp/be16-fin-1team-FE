@@ -1,24 +1,43 @@
 <script setup>
-import { onMounted } from "vue";
+import { onMounted, defineEmits, watch } from "vue";
+
+const props = defineProps({
+  events: Array,
+});
+const emit = defineEmits(["openStoneModal"]);
 
 onMounted(() => {
   const el = document.getElementById("calendar");
 
   const calendar = new FullCalendar.Calendar(el, {
     initialView: "dayGridMonth",
-    events: [
-      { title: "ERD 설계", start: "2025-09-10", end: "2025-09-13", color: "#6A7FDB" },
-      { title: "JWT Filter 구현", start: "2025-09-22", end: "2025-09-29", color: "#FFD93D" },
-    ],
+    events: props.events,
+    eventClick: (info) => {
+      emit("openStoneModal", {
+        id: info.event.id,
+        type: info.event.extendedProps.type,
+      });
+    },
   });
 
   calendar.render();
+
+  // Vue props 변경 시 다시 렌더링
+  watch(
+    () => props.events,
+    (newEvents) => {
+      calendar.removeAllEvents();
+      calendar.addEventSource(newEvents);
+    },
+    { deep: true }
+  );
 });
 </script>
 
 <template>
   <div id="calendar" style="padding: 20px;"></div>
 </template>
+
 
 <style scoped>
 #calendar {

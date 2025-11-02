@@ -1,35 +1,59 @@
-<script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+<script setup>
+import { ref, onMounted } from "vue";
 import CalendarBase from "@/components/CalendarBase.vue";
-import CalendarToolbar from "@/components/CalendarToolbar.vue"; // 선택 사항
+import StoneDetailModal from "@/components/modal/StoneDetailModal.vue";
+import axios from "axios";
 
-// ✅ 예시: 임시 이벤트 데이터
-const events = ref([
-  { title: "팀 회의", start: "2025-11-03" },
-  { title: "코드 리뷰", start: "2025-11-05" },
-  { title: "Orbit 배포", start: "2025-11-10" },
-]);
+const events = ref([]);
+const selected = ref(null);
 
-// ✅ 보기 타입 변경 가능 (month/week/day)
-const viewType = ref("dayGridMonth");
+const workspaceId = "ws_5";
 
-// ✅ 동적으로 변경 가능하도록 watch 처리
-const safeEvents = computed(() => (Array.isArray(events.value) ? events.value : []));
+const fetchEvents = async () => {
+  const [stoneRes, taskRes] = await Promise.all([
+    axios.get(`/workspace-service/workspace/${workspaceId}/my-stones`),
+    axios.get(`/workspace-service/workspace/${workspaceId}/my-tasks`)
+  ]);
 
-onMounted(() => {
-  console.log("📅 CalendarView mounted: ", safeEvents.value);
-});
+  const stoneEvents = stoneRes.data.result.map(s => ({
+    id: s.stoneId,
+    title: `[스톤] ${s.stoneName}`,
+    start: s.startTime,
+    end: s.endTime,
+    project: s.projectName,
+    type: "STONE",
+    color: "#A3B8FF",
+  }));
+
+  const taskEvents = taskRes.data.result.map(t => ({
+    id: t.taskId,
+    title: `[태스크] ${t.taskName}`,
+    start: t.startTime,
+    end: t.endTime,
+    project: t.projectName,
+    stone: t.stoneName,
+    type: "TASK",
+    color: "#FFD93D",
+  }));
+
+  events.value = [...stoneEvents, ...taskEvents];
+};
+
+onMounted(fetchEvents);
 </script>
 
 <template>
   <div class="calendar-container">
-    <!-- 툴바 -->
-    <CalendarToolbar />
-
-    <!-- 캘린더 -->
-    <CalendarBase :events="safeEvents" :viewType="viewType" />
+    <CalendarBase :events="events" @openStoneModal="selected = $event" />
+    <StoneDetailModal
+      v-if="selected"
+      :stoneId="selected.id"
+      :type="selected.type"
+      @close="selected = null"
+    />
   </div>
 </template>
+
 
 <style scoped>
 .calendar-container {

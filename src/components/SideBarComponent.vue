@@ -2,7 +2,7 @@
   <v-navigation-drawer class="app-sidebar" permanent>
     <!-- 로고 섹션 -->
     <div class="logo-section" @click="toggleWorkspaceDropdown">
-      <div class="logo-icon"></div>
+      <img src="@/assets/icons/logo/1_2.svg" alt="Logo" class="logo-icon" />
       <div class="logo-text-container">
         <div class="logo-text">{{ selectedWorkspace?.workspaceName || '워크스페이스 선택' }}</div>
       </div>
@@ -53,7 +53,7 @@
       </div>
       
       <!-- 채팅 -->
-      <div class="nav-item">
+      <div class="nav-item" :class="{ active: currentRoute.startsWith('/chat') }" @click="navigateToChat">
         <img src="@/assets/icons/sidebar/chat.svg" alt="채팅" class="nav-icon" />
         <div class="nav-text">스톤 메신저</div>
         <div v-if="chatUnreadCount > 0" class="badge">{{ chatUnreadCount }}</div>
@@ -105,7 +105,7 @@
     <!-- 스토리지 사용량 -->
     <div class="storage-section">
       <div class="storage-indicator">
-        <div class="storage-dot"></div>
+        <img src="@/assets/icons/header/database.svg" alt="Storage" class="storage-icon" />
         <div class="storage-text">스토리지 사용량</div>
       </div>
       
@@ -329,6 +329,9 @@ export default {
         // 워크스페이스 ID가 없으면 기본 드라이브로
         this.$router.push('/drive');
       }
+    },
+    navigateToChat() {
+      this.$router.push('/chat/main');
     },
     
     selectProject(project) {
@@ -562,10 +565,10 @@ export default {
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  background: #FFDD44;
-  border-radius: 4px;
+  width: 25px;
+  height: 25px;
+  border-radius: 5px;
+  object-fit: contain;
 }
 
 .logo-text-container {
@@ -767,7 +770,7 @@ export default {
   height: 18px;
   padding: 0 6px;
   border-radius: 9px;
-  background: #FF3B30;
+  background: #EF5350;
   color: #FFFFFF;
   font-size: 11px;
   font-weight: 700;
@@ -935,24 +938,24 @@ export default {
 
 .storage-indicator {
   position: relative;
-  height: 14px;
+  height: 16px;
   margin-bottom: 10px;
 }
 
-.storage-dot {
+.storage-icon {
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
-  background: #FFDD44;
-  border-radius: 6px;
+  width: 16px;
+  height: 16px;
+  /* 노란색 #F4CE53 필터 적용 */
+  filter: brightness(0) saturate(100%) invert(81%) sepia(35%) saturate(730%) hue-rotate(359deg) brightness(102%) contrast(93%);
 }
 
 .storage-text {
   position: absolute;
-  left: 18px;
+  left: 22px;
   top: 0;
   font-family: 'Pretendard', sans-serif;
   font-weight: 800;

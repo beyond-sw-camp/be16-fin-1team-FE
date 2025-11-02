@@ -30,3 +30,20 @@ export const getMyProjects = async (workspaceId) => {
     throw error;
   }
 };
+
+// 나의 스톤 목록 조회 (워크스페이스 내)
+export const getMyStones = async (workspaceId) => {
+  try {
+    const userId = localStorage.getItem("id");
+    const response = await http.get(
+      `/workspace-service/workspace/${workspaceId}/my-stones`,
+      {
+        headers: { "X-User-Id": userId },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("❌ 나의 스톤 조회 실패:", error);
+    throw error;
+  }
+};
