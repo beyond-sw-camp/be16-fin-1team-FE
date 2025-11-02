@@ -112,75 +112,6 @@
       </v-list>
     </v-menu>
 
-    <!-- 검색 결과 모달 -->
-    <v-dialog v-model="searchDialog" max-width="900" scrollable>
-      <v-card>
-        <v-card-title class="search-result-header">
-          <v-icon class="mr-2">mdi-magnify</v-icon>
-          검색 결과: "{{ currentSearchKeyword }}"
-          <v-spacer></v-spacer>
-          <v-btn icon @click="searchDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
-        <v-divider></v-divider>
-        
-        <v-card-text class="search-results-container">
-          <!-- 로딩 -->
-          <div v-if="searchLoading" class="text-center py-8">
-            <v-progress-circular indeterminate color="primary"></v-progress-circular>
-            <div class="mt-3">검색 중...</div>
-          </div>
-
-          <!-- 검색 결과 -->
-          <div v-else-if="searchResults.length > 0">
-            <div 
-              v-for="result in searchResults" 
-              :key="result.id"
-              class="search-result-item"
-              @click="openResult(result)"
-            >
-              <div class="result-header">
-                <v-chip small :color="getTypeColor(result.docType)" text-color="white" class="mr-2">
-                  {{ getTypeName(result.docType) }}
-                </v-chip>
-                <div class="result-title" v-html="result.searchTitle"></div>
-              </div>
-              
-              <div v-if="result.searchContent" class="result-content" v-html="result.searchContent"></div>
-              
-              <div class="result-meta">
-                <div class="result-creator">
-                  <v-avatar size="20" class="mr-1">
-                    <img v-if="result.profileImageUrl" :src="result.profileImageUrl" />
-                    <v-icon v-else small>mdi-account-circle</v-icon>
-                  </v-avatar>
-                  {{ result.creatorName }}
-                </div>
-                <div class="result-date">
-                  {{ formatDate(result.dateTime) }}
-                </div>
-                <div v-if="result.participants && result.participants.length > 0" class="result-participants">
-                  <v-avatar-group size="20" max="3">
-                    <v-avatar v-for="participant in result.participants" :key="participant.id" size="20">
-                      <img v-if="participant.profileImage" :src="participant.profileImage" />
-                      <v-icon v-else small>mdi-account</v-icon>
-                    </v-avatar>
-                  </v-avatar-group>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 결과 없음 -->
-          <div v-else class="text-center py-8 grey--text">
-            <v-icon size="64" color="grey lighten-1">mdi-magnify</v-icon>
-            <div class="mt-4 text-h6">검색 결과가 없습니다</div>
-            <div class="text-body-2">다른 검색어를 시도해보세요</div>
-          </div>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
   </v-app-bar>
 </template>
 
@@ -194,12 +125,8 @@ export default {
   data() {
     return {
       searchKeyword: '',
-      currentSearchKeyword: '',
       suggestions: [],
       showSuggestions: false,
-      searchDialog: false,
-      searchResults: [],
-      searchLoading: false,
       suggestTimer: null,
       userMenu: false,
       notifMenu: false,
@@ -388,17 +315,33 @@ export default {
     // 자동완성 항목 선택
     selectSuggestion(suggestion) {
       console.log('Suggestion selected:', suggestion);
-      // suggestion이 객체인 경우 searchTitle을 사용, 문자열인 경우 그대로 사용
-      const keyword = typeof suggestion === 'object' && suggestion.searchTitle 
-        ? suggestion.searchTitle 
-        : suggestion;
-      this.searchKeyword = keyword;
-      this.showSuggestions = false;
-      this.performSearch();
+      
+      // suggestion이 객체인 경우
+      if (typeof suggestion === 'object' && suggestion.id) {
+        // DOCUMENT 타입인 경우 바로 문서 뷰어로 이동
+        if (suggestion.docType === 'DOCUMENT') {
+          this.showSuggestions = false;
+          const routeData = this.$router.resolve(`/viewer/${suggestion.id}`);
+          window.open(routeData.href, '_blank');
+          return;
+        }
+        
+        // 다른 타입이거나 객체가 아닌 경우 검색 수행
+        const keyword = suggestion.searchTitle || suggestion;
+        this.searchKeyword = keyword;
+        this.showSuggestions = false;
+        this.performSearch();
+      } else {
+        // 문자열인 경우 그대로 사용하여 검색
+        const keyword = typeof suggestion === 'string' ? suggestion : String(suggestion);
+        this.searchKeyword = keyword;
+        this.showSuggestions = false;
+        this.performSearch();
+      }
     },
 
     // 검색 수행
-    async performSearch() {
+    performSearch() {
       const keyword = this.searchKeyword.trim();
       
       if (!keyword) {
@@ -406,33 +349,12 @@ export default {
         return;
       }
 
-      this.currentSearchKeyword = keyword;
       this.showSuggestions = false;
-      this.searchDialog = true;
-      this.searchLoading = true;
-
-      try {
-        const response = await searchService.search(keyword);
-        if (response.result && Array.isArray(response.result)) {
-          this.searchResults = response.result;
-        } else {
-          this.searchResults = [];
-        }
-      } catch (error) {
-        console.error('검색 실패:', error);
-        showSnackbar('검색에 실패했습니다.', 'error');
-        this.searchResults = [];
-      } finally {
-        this.searchLoading = false;
-      }
-    },
-
-    // 검색어 하이라이트
-    highlightKeyword(text) {
-      if (!this.searchKeyword) return text;
-      const keyword = this.searchKeyword.trim();
-      const regex = new RegExp(`(${keyword})`, 'gi');
-      return text.replace(regex, '<strong>$1</strong>');
+      // 검색 결과 페이지로 이동
+      this.$router.push({
+        path: '/search',
+        query: { keyword: keyword }
+      });
     },
 
     // 문서 타입 아이콘 (자동완성용)
@@ -468,53 +390,6 @@ export default {
       return labelMap[docType] || docType;
     },
 
-    // 문서 타입 이름
-    getTypeName(docType) {
-      const typeMap = {
-        stones: '프로젝트',
-        documents: '문서',
-        files: '파일',
-        tasks: '태스크',
-      };
-      return typeMap[docType] || docType;
-    },
-
-    // 문서 타입 색상
-    getTypeColor(docType) {
-      const colorMap = {
-        stones: 'blue',
-        documents: 'green',
-        files: 'orange',
-        tasks: 'purple',
-      };
-      return colorMap[docType] || 'grey';
-    },
-
-    // 날짜 포맷
-    formatDate(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('ko-KR');
-    },
-
-    // 검색 결과 열기
-    openResult(result) {
-      this.searchDialog = false;
-      
-      // 문서 타입에 따라 라우팅
-      if (result.docType === 'documents') {
-        // 문서는 독립적인 뷰어로 새 탭에서 열기
-        const routeData = this.$router.resolve(`/viewer/${result.id}`);
-        window.open(routeData.href, '_blank');
-      } else if (result.docType === 'stones') {
-        this.$router.push({ path: '/project', query: { id: result.id } });
-      } else if (result.docType === 'files') {
-        // 파일은 다운로드 또는 미리보기
-        showSnackbar('파일 미리보기 기능은 준비 중입니다.', 'info');
-      } else if (result.docType === 'tasks') {
-        showSnackbar('태스크 상세 페이지는 준비 중입니다.', 'info');
-      }
-    },
 
     // 외부 클릭 처리
     handleClickOutside(event) {
