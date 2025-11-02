@@ -154,25 +154,27 @@
 
       <!-- 대시보드 -->
       <div v-if="activeTab === 'dashboard'" class="tab-content">
-        <div class="content-header">
-          <h1 class="main-title">대시보드</h1>
-          <p class="sub-title">워크스페이스의 현황을 확인하세요</p>
-        </div>
-        
         <!-- 프로젝트 스톤 마일스톤 섹션 (1번 - 가장 큰 영역) -->
-        <div class="dashboard-section milestone-section">
-          <div class="section-header">
-            <div class="dashboard-header">
-              <h2 class="section-title">프로젝트 스톤 마일스톤</h2>
-              <!-- 프로젝트 선택 네비게이션 -->
-              <div v-if="milestoneForestData.length > 0 && selectedProjectData" class="project-navigation">
-                <span class="arrow" @click="selectPreviousProject">◀</span>
-                <span class="nav-text">{{ selectedProjectData.projectName }}</span>
-                <span class="arrow" @click="selectNextProject">▶</span>
-                <span class="page-info">{{ selectedProjectIndex + 1 }} / {{ milestoneForestData.length }}</span>
+        <div class="milestone-section-wrapper">
+          <h2 class="milestone-section-title">프로젝트별 마일스톤</h2>
+          <div class="dashboard-section milestone-section">
+            <div class="section-header">
+              <div class="dashboard-header">
+        <!-- 프로젝트 선택 네비게이션 -->
+        <div v-if="milestoneForestData.length > 0 && selectedProjectData" class="project-navigation">
+          <span class="arrow" @click="selectPreviousProject">
+            <img src="/src/assets/icons/header/chevron-left.svg" alt="이전" class="arrow-icon" />
+          </span>
+          <div class="nav-content" :style="{ width: maxNavContentWidth }">
+            <span class="nav-text">{{ selectedProjectData.projectName }}</span>
+            <span class="page-info">{{ selectedProjectIndex + 1 }} / {{ milestoneForestData.length }}</span>
+          </div>
+          <span class="arrow" @click="selectNextProject">
+            <img src="/src/assets/icons/header/chevron-right.svg" alt="다음" class="arrow-icon" />
+          </span>
+        </div>
               </div>
             </div>
-          </div>
           
           <div v-if="loadingMilestones" class="loading-container">
             <div class="loading-spinner"></div>
@@ -190,14 +192,13 @@
             class="milestone-forest-wrapper"
             v-if="selectedProjectData"
           />
+          </div>
         </div>
         
         <!-- 워크스페이스별 프로젝트 현황 섹션 -->
-        <div class="dashboard-section workspace-section">
-          <div class="section-header">
-            <h2 class="section-title">워크스페이스별 프로젝트 현황</h2>
-            <p class="section-subtitle">프로젝트별 스톤 진행률 및 현황</p>
-          </div>
+        <div class="workspace-section-wrapper">
+          <h2 class="workspace-section-title">프로젝트 전체 현황</h2>
+          <div class="dashboard-section workspace-section">
           
           <!-- 로딩 상태 -->
           <div v-if="loadingWorkspaceProjects" class="loading-container">
@@ -265,14 +266,13 @@
               </div>
             </div>
           </div>
+          </div>
         </div>
         
         <!-- 사용자 그룹별 프로젝트 현황 섹션 -->
-        <div class="dashboard-section user-group-section">
-          <div class="section-header">
-            <h2 class="section-title">사용자 그룹별 프로젝트 현황</h2>
-            <p class="section-subtitle">사용자 그룹별 프로젝트 수 및 진행 상태</p>
-          </div>
+        <div class="user-group-section-wrapper">
+          <h2 class="user-group-section-title">사용자 그룹별 프로젝트 현황</h2>
+          <div class="dashboard-section user-group-section">
           
           <!-- 로딩 상태 -->
           <div v-if="loadingUserGroupProgress" class="loading-container">
@@ -307,6 +307,7 @@
                 <span class="group-count">{{ group.projectCount }}개 프로젝트</span>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -501,7 +502,6 @@ export default {
       
       // 프로젝트 선택 관련
       selectedProjectIndex: 0,
-      
     };
   },
   setup() {
@@ -1586,9 +1586,14 @@ export default {
       if (!this.projectMilestones || this.projectMilestones.length === 0) return [];
       
       return this.projectMilestones.map(project => {
+        // workspaceProjects에서 startedAt, endedAt 정보 가져오기
+        const projectInfo = this.workspaceProjects.find(p => p.projectId === project.projectId);
+        const startedAt = projectInfo?.startedAt || project.startedAt || null;
+        const endedAt = projectInfo?.endedAt || project.endedAt || null;
+        
         // 각 프로젝트의 마일스톤을 루트 노드로 변환
         const rootNodes = (project.milestoneResDtoList || []).map(milestone => 
-          this.convertStoneToNode(milestone)
+          this.convertStoneToNode(milestone, true, { startedAt, endedAt })
         );
         
         // 프로젝트 전체 진행률 계산
@@ -1601,6 +1606,8 @@ export default {
             id: `root_${project.projectId}`,
             name: project.projectName,
             percent: projectPercent,
+            startedAt: startedAt,
+            endedAt: endedAt,
             children: []
           };
         } else if (rootNodes.length === 1) {
@@ -1611,6 +1618,8 @@ export default {
             id: `root_${project.projectId}`,
             name: project.projectName,
             percent: projectPercent,
+            startedAt: startedAt,
+            endedAt: endedAt,
             children: rootNodes
           };
         }
@@ -1619,31 +1628,46 @@ export default {
           projectId: project.projectId,
           projectName: project.projectName,
           percent: projectPercent,
+          startedAt: startedAt,
           root: root
         };
       });
     },
     
     // 스톤 데이터를 노드 형식으로 변환
-    convertStoneToNode(stone) {
-      return {
+    convertStoneToNode(stone, isRoot = false, projectInfo = null) {
+      const node = {
         id: stone.stoneId || `stone_${Date.now()}`,
         name: stone.stoneName,
         percent: stone.milestone || 0,
         children: (stone.children || []).map(child => this.convertStoneToNode(child))
       };
+      
+      // 루트 노드인 경우 프로젝트 시작일/종료일 추가
+      if (isRoot && projectInfo) {
+        node.startedAt = projectInfo.startedAt;
+        node.endedAt = projectInfo.endedAt;
+      }
+      
+      return node;
     },
     
     // 프로젝트 네비게이션 메서드
     selectPreviousProject() {
       if (this.selectedProjectIndex > 0) {
         this.selectedProjectIndex--;
+      } else {
+        // 첫 번째에서 이전 버튼 누르면 마지막으로
+        this.selectedProjectIndex = this.milestoneForestData.length - 1;
       }
     },
     
     selectNextProject() {
       if (this.selectedProjectIndex < this.milestoneForestData.length - 1) {
         this.selectedProjectIndex++;
+      } else {
+        // 마지막에서 다음 버튼 누르면 첫 번째로
+        this.selectedProjectIndex = 0;
       }
     }
   },
@@ -1651,7 +1675,14 @@ export default {
   computed: {
     // computed로 미리 계산하여 반응성 보장
     milestoneForestData() {
-      return this.transformToMilestoneForestData();
+      const transformedData = this.transformToMilestoneForestData();
+      // 시작시간 기준으로 정렬 (빠른 시간이 먼저)
+      return transformedData.sort((a, b) => {
+        if (!a.startedAt) return 1;
+        if (!b.startedAt) return -1;
+        
+        return new Date(a.startedAt) - new Date(b.startedAt);
+      });
     },
     
     // 선택된 프로젝트 데이터
@@ -1662,6 +1693,33 @@ export default {
       // 인덱스 범위 체크
       const index = Math.max(0, Math.min(this.selectedProjectIndex, this.milestoneForestData.length - 1));
       return this.milestoneForestData[index];
+    },
+    
+    // 가장 긴 프로젝트명의 너비 계산
+    maxNavContentWidth() {
+      if (!this.milestoneForestData || this.milestoneForestData.length === 0) {
+        return '300px';
+      }
+      
+      // 브라우저 환경이 아니면 기본값 반환
+      if (typeof document === 'undefined') {
+        return '300px';
+      }
+      
+      // Canvas를 사용하여 텍스트 너비 측정
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      context.font = '700 16px Pretendard, sans-serif';
+      
+      let maxWidth = 0;
+      this.milestoneForestData.forEach(project => {
+        const metrics = context.measureText(project.projectName);
+        maxWidth = Math.max(maxWidth, metrics.width);
+      });
+      
+      // 최소 200px, 최대 400px, 좌우 여백 추가
+      const calculatedWidth = Math.max(200, Math.min(400, maxWidth + 20));
+      return calculatedWidth + 'px';
     }
   },
   
@@ -1762,13 +1820,14 @@ export default {
 .admin-content {
   flex: 1;
   padding: 30px;
+  padding-bottom: 50px;
   overflow-y: auto;
   background: #F5F5F5;
 }
 
 .tab-content {
   width: 100%;
-  height: 100%;
+  min-height: 100%;
 }
 
 .content-header {
@@ -2432,7 +2491,7 @@ export default {
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
+  border: 4px solid #e0e0e0;
   border-top: 4px solid #FFDD44;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -2884,123 +2943,143 @@ export default {
 /* 대시보드 섹션 스타일 */
 .dashboard-section {
   background: #fff;
-  border: none !important;
-  border-radius: 8px;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
   padding: 30px;
   margin-bottom: 30px;
-  box-shadow: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s ease;
+}
+
+.dashboard-section:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .section-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: flex-start;
-  margin-bottom: 25px;
+  margin-bottom: 0;
 }
 
 .header-left {
   flex: 1;
 }
 
-.section-title {
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  font-size: 24px;
-  line-height: 29px;
-  color: #1C0F0F;
-  margin: 0 0 8px 0;
+/* 프로젝트 스톤 마일스톤 섹션 래퍼 */
+.milestone-section-wrapper {
+  margin-bottom: 40px;
 }
 
-.section-subtitle {
+.milestone-section-title {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 17px;
-  color: #666666;
-  margin: 0;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 22px;
+  color: #4a4a4a;
+  margin: 0 0 12px 0;
 }
 
 /* 프로젝트 스톤 마일스톤 섹션 (1번 - 가장 큰 영역) */
 .milestone-section {
-  background: #2d2d2d;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  min-height: 70vh;
-  margin-bottom: 40px;
+  background-color: #FFFFFF;
+  background-image: radial-gradient(circle, rgba(217, 217, 217, 0.5) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-repeat: repeat;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
+  height: 60vh;
+  max-height: 60vh;
+  margin-bottom: 0;
   padding: 0;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.milestone-section:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 /* 제목 영역 (1번) - 화이트 배경 */
 .milestone-section .section-header {
   background: #ffffff;
-  padding: 8px 16px;
+  padding: 20px 16px;
   margin-bottom: 0;
-  border-radius: 6px 6px 0 0;
+  border-radius: 12px 12px 0 0;
+  flex-shrink: 0;
 }
 
 .milestone-section .dashboard-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   width: 100%;
-  padding-top: 4px;
-}
-
-.milestone-section .section-title {
-  font-family: 'Pretendard', sans-serif;
-  font-size: 24px;
-  line-height: 29px;
-  font-weight: 700;
-  color: #000;
-  margin: 0;
-}
-
-.milestone-section .section-subtitle {
-  color: #666666;
+  padding: 0;
+  position: relative;
 }
 
 /* 프로젝트 네비게이션 */
 .milestone-section .project-navigation {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  width: auto;
+  justify-content: center;
+  gap: 12px;
   background: transparent;
   font-family: 'Pretendard', sans-serif;
 }
 
 .milestone-section .arrow {
-  color: #000;
-  font-size: 18px;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.2s;
+  padding: 4px 8px;
 }
 
 .milestone-section .arrow:hover {
-  color: #ffd700;
+  opacity: 0.7;
+  transform: scale(1.1);
+}
+
+.milestone-section .arrow-icon {
+  width: 24px;
+  height: 24px;
+  fill: #4a4a4a;
+  transition: fill 0.2s;
+}
+
+.milestone-section .arrow:hover .arrow-icon {
+  fill: #FFDD44;
+}
+
+.milestone-section .nav-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .milestone-section .nav-text {
-  color: #000;
-  font-size: 14px;
-  font-weight: 600;
+  color: #4a4a4a;
+  font-size: 16px;
+  font-weight: 700;
   text-align: center;
-  width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  width: 100%;
 }
 
 .milestone-section .page-info {
-  color: #555;
+  color: #666666;
   font-size: 13px;
   font-weight: 500;
-  margin-left: 16px;
 }
 
 .milestone-tree {
@@ -3082,34 +3161,131 @@ export default {
   overflow-x: auto;
   overflow-y: auto;
   max-width: 100%;
-  max-height: 80vh;
-  background-color: #1e1e1e;
+  flex: 1;
+  background: transparent;
   padding: 20px;
   margin: 0 auto;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
+}
+
+/* MilestoneForest 컴포넌트 내부 스타일 override (밝은 배경용) */
+.milestone-forest-wrapper :deep(.project-card) {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+.milestone-forest-wrapper :deep(.link) {
+  stroke: rgba(0, 0, 0, 0.3) !important;
+}
+
+.milestone-forest-wrapper :deep(.node-rect) {
+  fill: url(#nodeGradient) !important;
+  stroke: #888888 !important;
+  stroke-width: 1px !important;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2)) !important;
+  paint-order: fill stroke;
+  transition: all 0.2s ease !important;
+}
+
+.milestone-forest-wrapper :deep(.node:hover .node-rect) {
+  fill: url(#nodeGradient) !important;
+  stroke: #555555 !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35)) !important;
+}
+
+.milestone-forest-wrapper :deep(.node-root) {
+  fill: url(#nodeGradient) !important;
+  stroke: #888888 !important;
+  stroke-width: 1.2px !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25)) !important;
+  paint-order: fill stroke;
+  transition: all 0.2s ease !important;
+}
+
+.milestone-forest-wrapper :deep(.node:hover .node-root) {
+  fill: url(#nodeGradient) !important;
+  stroke: #555555 !important;
+  stroke-width: 2.5px !important;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4)) !important;
+}
+
+.milestone-forest-wrapper :deep(.node-text) {
+  fill: #FFFFFF !important;
+  transition: all 0.2s ease !important;
+}
+
+.milestone-forest-wrapper :deep(.node:hover .node-text) {
+  fill: #FFFFFF !important;
+}
+
+.milestone-forest-wrapper :deep(.node-percent) {
+  fill: rgba(255, 255, 255, 0.7) !important;
+  transition: all 0.2s ease !important;
+}
+
+.milestone-forest-wrapper :deep(.node:hover .node-percent) {
+  fill: rgba(255, 255, 255, 0.9) !important;
+}
+
+.milestone-forest-wrapper :deep(.node-date) {
+  transition: all 0.2s ease !important;
+}
+
+.milestone-forest-wrapper :deep(.node:hover .node-date) {
+  fill: rgba(255, 255, 255, 0.8) !important;
 }
 
 .milestone-section .no-data {
-  color: #ffffff;
-  background: #2d2d2d;
+  color: #666666;
+  background: transparent;
   padding: 40px;
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 12px 12px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .milestone-section .loading-container {
-  background: #2d2d2d;
-  border-radius: 0 0 6px 6px;
+  background: transparent;
+  border-radius: 0 0 12px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .milestone-section .loading-container p {
-  color: #ffffff;
+  color: #666666;
+}
+
+/* 워크스페이스별 프로젝트 현황 섹션 래퍼 */
+.workspace-section-wrapper {
+  margin-bottom: 30px;
+}
+
+.workspace-section-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 22px;
+  color: #4a4a4a;
+  margin: 0 0 12px 0;
 }
 
 /* 워크스페이스별 프로젝트 현황 섹션 */
 .workspace-section {
   background: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+  border: 1px solid #E0E0E0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.workspace-section:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 /* 프로젝트 그리드 레이아웃 */
@@ -3227,9 +3403,29 @@ export default {
   font-weight: 400;
 }
 
+/* 사용자 그룹별 프로젝트 현황 섹션 래퍼 */
+.user-group-section-wrapper {
+  margin-bottom: 0;
+}
+
+.user-group-section-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 22px;
+  color: #4a4a4a;
+  margin: 0 0 12px 0;
+}
+
 /* 사용자 그룹별 프로젝트 현황 섹션 */
 .user-group-section {
   background: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
+  border: 1px solid #E0E0E0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.user-group-section:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .user-group-stats {
