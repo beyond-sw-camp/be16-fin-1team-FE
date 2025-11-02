@@ -12,6 +12,10 @@
             @blur="updateDocumentTitle"
             @keypress.enter="$event.target.blur()"
           />
+          <div v-if="folderName" class="folder-name">
+            <v-icon size="14" color="#5f6368">mdi-folder-outline</v-icon>
+            <span>{{ folderName }}</span>
+          </div>
         </div>
       </div>
       
@@ -132,6 +136,7 @@ const editorInitialContent = ref('');
 const isContentLoaded = ref(false);
 const lockedLinesMap = ref(new Map());
 const documentTitle = ref('제목 없는 문서');
+const folderName = ref(null);
 const onlineUsers = ref([]);
 const connectionStatus = ref('connecting'); // 'connecting' | 'connected' | 'offline'
 const connectionStatusText = computed(() => {
@@ -218,8 +223,10 @@ const fetchDocumentInfo = async () => {
     const doc = res?.data?.result || res?.data;
     if (doc) {
       documentTitle.value = doc.title || doc.name || '제목 없는 문서';
+      folderName.value = doc.folderName || null;
     } else {
       documentTitle.value = '제목 없는 문서';
+      folderName.value = null;
     }
   } catch (error) {
     console.error('문서 정보 로딩 실패:', error);
@@ -228,6 +235,7 @@ const fetchDocumentInfo = async () => {
       return;
     }
     documentTitle.value = '제목 없는 문서';
+    folderName.value = null;
   }
 };
 
@@ -524,6 +532,9 @@ onBeforeRouteLeave((to, from, next) => {
 .title-section {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .document-title {
@@ -533,7 +544,8 @@ onBeforeRouteLeave((to, from, next) => {
   outline: none;
   padding: 6px 8px;
   border-radius: 4px;
-  width: 100%;
+  flex: 0 1 auto;
+  min-width: 0;
   max-width: 500px;
   transition: background-color 0.2s;
 }
@@ -545,6 +557,29 @@ onBeforeRouteLeave((to, from, next) => {
 .document-title:focus {
   background-color: #fff;
   box-shadow: 0 0 0 2px #4285f4;
+}
+
+.folder-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #5f6368;
+  padding: 4px 10px;
+  background-color: #f1f3f4;
+  border-radius: 16px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.folder-name:hover {
+  background-color: #e8eaed;
+}
+
+.folder-name .v-icon {
+  margin: 0;
 }
 
 .header-right {

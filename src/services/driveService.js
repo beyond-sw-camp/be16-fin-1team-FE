@@ -162,5 +162,15 @@ export default {
   getContentsByRoot(rootType, rootId) {
     return driveApi.get(`/${rootType}/${rootId}`);
   },
+
+  // 루트에서 하위 폴더들만 가져오기
+  getFoldersByRoot(rootType, rootId) {
+    return driveApi.get(`/${rootType}/${rootId}/folders`);
+  },
+
+  // 특정 폴더의 하위 폴더들만 가져오기
+  getChildFolders(folderId) {
+    return driveApi.get(`/folder/${folderId}/folders`);
+  },
 };
 
