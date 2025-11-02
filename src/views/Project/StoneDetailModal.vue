@@ -768,10 +768,10 @@ export default {
       type: Boolean,
       default: false
     },
-    isLoading: {
-      type: Boolean,
-      default: false
-    },
+    // isLoading: {
+    //   type: Boolean,
+    //   default: false
+    // },
     stoneId: {
       type: [String, Number],
       default: null
@@ -787,6 +787,7 @@ export default {
   },
   data() {
     return {
+      isLoading: false,
       isCollapsed: false,
       isExpandedToCenter: false,
       showDeleteConfirm: false,
@@ -902,7 +903,14 @@ export default {
         this.isLoading = true;
         
         // 스톤 상세 정보 조회 API 호출
-        const response = await fetch(`/api/stones/${stoneId}`, {
+        // const response = await fetch(`/api/stone/${stoneId}`, {
+        //   method: 'GET',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //     'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        //   }
+        // });
+        const response = await fetch(`/workspace-service/stone/${stoneId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -914,8 +922,24 @@ export default {
           throw new Error('스톤 데이터를 불러올 수 없습니다.');
         }
         
-        const stoneData = await response.json();
-        this.loadedStoneData = stoneData;
+        // const stoneData = await response.json();
+        // this.loadedStoneData = stoneData;
+
+        // Postman 결과 구조와 동일하게 result로 래핑되어 있음
+        const json = await response.json();
+        this.loadedStoneData = json.result;
+
+        // taskList도 세팅
+        if (json.result?.taskResDtoList?.length) {
+          this.taskList = json.result.taskResDtoList.map(t => ({
+            id: t.taskId,
+            name: t.taskName,
+            completed: t.isDone,
+            startTime: t.startTime,
+            endTime: t.endTime,
+            assigneeName: t.taskManagerName,
+          }));
+        }
         
       } catch (error) {
         console.error('스톤 데이터 로드 실패:', error);

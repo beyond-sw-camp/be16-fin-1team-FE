@@ -30,10 +30,18 @@ onMounted(() => {
     displayEventTime: false,
 
     // 클릭 → 모달 오픈 이벤트 전달
+    // eventClick: (info) => {
+    //   emit("openStoneModal", {
+    //     id: info.event.id,
+    //     type: info.event.extendedProps?.type, // STONE / TASK 등
+    //   });
+    // },
     eventClick: (info) => {
+      const eventData = info.event.extendedProps || {};
       emit("openStoneModal", {
+        ...eventData,
         id: info.event.id,
-        type: info.event.extendedProps?.type, // STONE / TASK 등
+        title: info.event.title,
       });
     },
   });

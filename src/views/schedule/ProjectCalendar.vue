@@ -6,7 +6,6 @@ import CalendarBase from "@/components/CalendarBase.vue";
 import StoneDetailModal from "@/views/Project/StoneDetailModal.vue";
 
 const router = useRouter();
-
 const workspaceId = localStorage.getItem("selectedWorkspaceId");
 
 // ✅ 일정 배열
@@ -14,8 +13,11 @@ const events = ref([]);
 const currentView = ref("dayGridMonth");
 const showSidebar = ref(false);
 const currentDate = ref(new Date());
-const showStoneModal = ref(false);
 const selected = ref(null);
+
+// ✅ 모달 제어
+const showStoneModal = ref(false);
+const selectedStoneId = ref<string | null>(null);
 
 // ✅ 참여 스톤 & 태스크 불러오기
 const fetchEvents = async () => {
@@ -38,6 +40,7 @@ const fetchEvents = async () => {
       project: s.projectName,
       type: "STONE",
       color: "#A3B8FF",
+      stoneId: s.stoneId,
     }));
 
     const taskEvents = (taskRes.data.result || []).map((t) => ({
@@ -49,6 +52,7 @@ const fetchEvents = async () => {
       stone: t.stoneName,
       type: "TASK",
       color: "#FFD93D",
+      stoneId: t.stoneId,
     }));
 
     events.value = [...stoneEvents, ...taskEvents];
@@ -80,6 +84,21 @@ const sidebarItems = ref([
 function toggleVisibility(item) {
   item.visible = !item.visible;
 }
+
+// ✅ 모달 열기 (CalendarBase에서 emit)
+function handleOpenStoneModal(eventData: any) {
+  console.log("🟢 클릭된 일정:", eventData);
+  // 태스크 클릭 시 stoneId를 사용
+  const stoneId = eventData.stoneId || eventData.id;
+  if (!stoneId) return;
+
+  selectedStoneId.value = stoneId;
+  showStoneModal.value = true;
+}
+function closeStoneModal() {
+  showStoneModal.value = false;
+  selectedStoneId.value = null;
+}
 </script>
 
 <template>
@@ -108,14 +127,16 @@ function toggleVisibility(item) {
         :events="events"
         :viewType="currentView"
         :initialDate="currentDate"
-        @openStoneModal="selected = $event"
+        @openStoneModal="handleOpenStoneModal"
       />
 
+      <!-- ✅ 스톤 상세 모달 -->
       <StoneDetailModal
-        v-if="selected"
-        :stoneId="selected.id"
-        :type="selected.type"
-        @close="selected = null"
+        v-if="showStoneModal"
+        :is-visible="showStoneModal"
+        :stone-id="selectedStoneId"
+        :workspace-id="workspaceId"
+        @close="closeStoneModal"
       />
     </div>
 
