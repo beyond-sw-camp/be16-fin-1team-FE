@@ -494,6 +494,18 @@
           
           <div class="form-group">
             <label class="form-label">
+              스톤 설명
+            </label>
+            <textarea 
+              class="form-textarea" 
+              v-model="newStone.stoneDescribe"
+              placeholder="스톤 설명을 입력하세요"
+              rows="4"
+            ></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
               채팅방 생성
               <span v-if="isChatCreationDisabled" class="disabled-text">(이미 채팅방이 생성되어 있습니다)</span>
             </label>
@@ -944,7 +956,8 @@ export default {
         endTime: '',
         assignee: '', // loadCurrentUserInfo에서 설정됨
         participants: '',
-        createChat: false
+        createChat: false,
+        stoneDescribe: '' // 스톤 설명 (nullable)
       },
       showUserSelectModal: false,
       userSelectType: '', // 'assignee' or 'participants'
@@ -1605,6 +1618,7 @@ export default {
             documentLink: '바로가기', // API에 문서 링크가 없으므로 기본값
             chatCreation: stoneDetail.chatCreation,
             stoneStatus: stoneDetail.stoneStatus,
+            stoneDescribe: stoneDetail.stoneDescribe, // 스톤 설명 추가
             tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
               id: task.taskId || index + 1,
               name: task.taskName || '태스크',
@@ -1675,6 +1689,7 @@ export default {
             documentLink: '바로가기',
             chatCreation: stoneDetail.chatCreation,
             stoneStatus: stoneDetail.stoneStatus,
+            stoneDescribe: stoneDetail.stoneDescribe, // 스톤 설명 추가
             tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
               id: task.taskId || index + 1,
               name: task.taskName || '태스크',
@@ -2638,7 +2653,8 @@ export default {
         endTime: '',
         assignee: this.currentUser.name || '김을빗', // 현재 사용자 이름으로 설정
         participants: '',
-        createChat: false
+        createChat: false,
+        stoneDescribe: '' // 스톤 설명 초기화
       };
     },
     
@@ -2667,7 +2683,8 @@ export default {
           startTime: this.newStone.startTime + 'T09:00:00',
           endTime: this.newStone.endTime + 'T18:00:00',
           chatCreation: this.newStone.createChat,
-          participantIds: participantIds
+          participantIds: participantIds,
+          stoneDescribe: this.newStone.stoneDescribe?.trim() || null // nullable
         };
         
         const response = await axios.post(

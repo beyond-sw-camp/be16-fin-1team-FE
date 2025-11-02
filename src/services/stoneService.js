@@ -217,6 +217,11 @@ export const modifyStone = async (stoneData) => {
       requestData.chatCreation = stoneData.chatCreation;
     }
     
+    // stoneDescribe가 있는 경우 추가 (nullable)
+    if (stoneData.stoneDescribe !== undefined) {
+      requestData.stoneDescribe = stoneData.stoneDescribe;
+    }
+    
     console.log('스톤 수정 API 요청 데이터:', requestData);
     
     const response = await axios.patch(`${baseURL}/workspace-service/stone`, requestData, {

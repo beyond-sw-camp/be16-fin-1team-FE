@@ -183,6 +183,19 @@
             </div>
           </div>
 
+          <!-- 스톤 설명 -->
+          <div class="info-section">
+            <div class="info-label" :class="{ 'empty-label': !currentStoneData?.stoneDescribe }">
+              <svg width="24" height="24" viewBox="0 0 24 24" :fill="currentStoneData?.stoneDescribe ? '#F4CE53' : '#999999'" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14,17H7V15H14M17,13H7V11H17M17,9H7V7H17M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3Z" />
+              </svg>
+              <span>설명</span>
+            </div>
+            <div class="info-value">
+              <span :class="{ 'empty-value': !currentStoneData?.stoneDescribe }">{{ currentStoneData?.stoneDescribe || '설명 없음' }}</span>
+            </div>
+          </div>
+
           <!-- 채팅방 -->
           <div class="info-section">
             <div class="info-label" :class="{ 'empty-label': !currentStoneData?.chatCreation }">
@@ -449,6 +462,16 @@
               class="form-input" 
               v-model="editForm.endDate"
             />
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">스톤 설명</label>
+            <textarea 
+              class="form-textarea" 
+              v-model="editForm.stoneDescribe"
+              placeholder="스톤 설명을 입력하세요"
+              rows="4"
+            ></textarea>
           </div>
           
           <div class="form-group">
@@ -803,7 +826,8 @@ export default {
         stoneName: '',
         startDate: '',
         endDate: '',
-        createChat: false
+        createChat: false,
+        stoneDescribe: '' // 스톤 설명 (nullable)
       },
       showTaskAddModal: false,
       isCreatingTask: false,
@@ -1033,7 +1057,8 @@ export default {
         stoneName: this.currentStoneData?.stoneName || '',
         startDate: this.formatDateForInput(this.currentStoneData?.startTime),
         endDate: this.formatDateForInput(this.currentStoneData?.endTime),
-        createChat: this.currentStoneData?.chatCreation || false
+        createChat: this.currentStoneData?.chatCreation || false,
+        stoneDescribe: this.currentStoneData?.stoneDescribe || '' // 스톤 설명 초기화
       };
       
       console.log('초기화된 editForm:', this.editForm);
@@ -1046,7 +1071,8 @@ export default {
         stoneName: '',
         startDate: '',
         endDate: '',
-        createChat: false
+        createChat: false,
+        stoneDescribe: '' // 스톤 설명 초기화
       };
     },
     
@@ -1097,7 +1123,8 @@ export default {
           stoneName: this.editForm.stoneName,
           startTime: this.editForm.startDate + 'T09:00:00',
           endTime: this.editForm.endDate + 'T18:00:00',
-          chatCreation: this.editForm.createChat
+          chatCreation: this.editForm.createChat,
+          stoneDescribe: this.editForm.stoneDescribe?.trim() || null // nullable
         });
         
         console.log('=== 스톤 수정 API 응답 ===');
@@ -1115,7 +1142,8 @@ export default {
           stoneName: this.editForm.stoneName,
           startTime: this.editForm.startDate,
           endTime: this.editForm.endDate,
-          chatCreation: this.editForm.createChat
+          chatCreation: this.editForm.createChat,
+          stoneDescribe: this.editForm.stoneDescribe?.trim() || null
         });
         
         // 전역 이벤트 발생으로 다른 컴포넌트들에 알림
@@ -1124,7 +1152,8 @@ export default {
           stoneName: this.editForm.stoneName,
           startTime: this.editForm.startDate,
           endTime: this.editForm.endDate,
-          chatCreation: this.editForm.createChat
+          chatCreation: this.editForm.createChat,
+          stoneDescribe: this.editForm.stoneDescribe?.trim() || null
         };
         
         console.log('=== 스톤 수정 완료 - 전역 이벤트 발생 ===');
@@ -2910,6 +2939,35 @@ export default {
 }
 
 .edit-stone-modal .form-input::placeholder {
+  color: #9CA3AF;
+}
+
+.edit-stone-modal .form-textarea {
+  width: 100%;
+  min-height: 80px;
+  background: #FFFFFF;
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  border: 1px solid #D1D5DB;
+  padding: 12px 16px;
+  font-family: 'Pretendard', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 20px;
+  color: #1C0F0F;
+  box-sizing: border-box;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.edit-stone-modal .form-textarea:focus {
+  outline: none;
+  border-color: #F4CE53;
+  box-shadow: 0 0 0 3px rgba(244, 206, 83, 0.1);
+}
+
+.edit-stone-modal .form-textarea::placeholder {
   color: #9CA3AF;
 }
 
