@@ -105,8 +105,8 @@
                     {{ label.label }}
                   </span>
                 </div>
-                <div v-if="showTaskTodayLine" class="task-today-line" :style="{ left: taskTodayLinePosition }"></div>
               </div>
+              <div v-if="showTaskTodayLine" class="task-today-line" :style="{ left: taskTodayLinePosition }"></div>
               
               <!-- Task 바들 -->
               <div class="task-timeline-bars">
@@ -1253,9 +1253,9 @@ export default {
 
 .task-today-line {
   position: absolute;
+  top: 0;
   bottom: 0;
   width: 2px;
-  height: calc(100% + 100%);
   background: transparent;
   z-index: 10;
   pointer-events: none;
@@ -1264,7 +1264,7 @@ export default {
 .task-today-line::before {
   content: 'Today';
   position: absolute;
-  bottom: -6px;
+  top: 12px;
   left: 50%;
   transform: translateX(-50%);
   font-family: 'Pretendard', sans-serif;
@@ -1283,10 +1283,10 @@ export default {
 .task-today-line::after {
   content: '';
   position: absolute;
-  top: 0;
+  top: 32px;
+  bottom: 0;
   left: 0;
   width: 2px;
-  height: calc(100% + 240px);
   border-left: 2px dashed rgba(255, 68, 68, 0.6);
 }
 
