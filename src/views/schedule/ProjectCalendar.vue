@@ -1,12 +1,11 @@
-<!-- src/views/schedule/ProjectCalendar.vue -->
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import CalendarView from "@/components/schedule/CalendarView.vue";
+import CalendarBase from "@/components/CalendarBase.vue";
 
 const router = useRouter();
 
-// 임시 이벤트
+// ✅ 임시 이벤트 (테스트용)
 const events = ref([
   { title: "JWT Filter 구현", start: "2025-09-10", end: "2025-09-13", color: "#FFD93D" },
   { title: "ERD 설계",       start: "2025-09-22", end: "2025-09-29", color: "#6A7FDB" },
@@ -18,7 +17,7 @@ const showSidebar = ref(false);
 const currentDate = ref(new Date(2025, 8)); // 2025-09
 
 function goScheduleHome() { router.push({ path: "/schedule" }); }
-function goSharedCalendar() { router.push({ path: "/schedule/shared" }); } // 추후 실제 라우트
+function goSharedCalendar() { router.push({ path: "/schedule/shared" }); }
 
 function toggleSidebar() {
   showSidebar.value = !showSidebar.value;
@@ -49,11 +48,11 @@ function toggleVisibility(item: any) { item.visible = !item.visible; }
 <template>
   <div class="project-calendar-wrap">
     <!-- 탭 -->
-    <!-- <div class="tabs">
+    <div class="tabs">
       <button class="tab" @click="goScheduleHome">일정 홈</button>
       <button class="tab active">프로젝트 캘린더</button>
       <button class="tab" @click="goSharedCalendar">공유 캘린더</button>
-    </div> -->
+    </div>
 
     <!-- 툴바 -->
     <div class="toolbar">
@@ -75,7 +74,7 @@ function toggleVisibility(item: any) { item.visible = !item.visible; }
 
     <!-- 캘린더 -->
     <div class="calendar-container">
-      <CalendarView :events="events" :viewType="currentView" />
+      <CalendarBase :events="events" :viewType="currentView" />
     </div>
 
     <!-- 사이드바 -->
