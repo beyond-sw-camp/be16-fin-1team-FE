@@ -682,6 +682,12 @@ import { showSnackbar } from '@/services/snackbar';
 
 export default {
   name: "DriveMain",
+  props: {
+    projectId: {
+      type: String,
+      default: null
+    }
+  },
   data() {
     return {
       loading: false,
@@ -942,21 +948,29 @@ export default {
   },
 
   mounted() {
-    console.log('[DriveMain] mounted. rootType/rootId:', this.$route.params?.rootType, this.$route.params?.rootId);
-    const { rootType, rootId, folderId } = this.$route.params;
+    console.log('[DriveMain] mounted. projectId:', this.projectId);
     
-    if (rootType && rootId && folderId) {
-      // rootType/rootId/folder/folderId 형태로 접근한 경우 (폴더 내부)
-      this.initializeDrive(folderId, rootType, rootId);
-    } else if (rootType && rootId) {
-      // rootType/rootId 형태로 접근한 경우 (루트)
-      this.initializeDrive(null, rootType, rootId);
-    } else if (folderId) {
-      // 기존 folderId 형태로 접근한 경우 (deprecated)
-      this.initializeDrive(folderId);
+    // projectId prop이 있으면 프로젝트 문서함 초기화
+    if (this.projectId) {
+      this.initializeDrive(null, 'PROJECT', this.projectId);
     } else {
-      // 기본 드라이브
-      this.initializeDrive(null, 'WORKSPACE', localStorage.getItem('selectedWorkspaceId'));
+      // 일반 모드: route 기반 초기화
+      console.log('[DriveMain] mounted. rootType/rootId:', this.$route.params?.rootType, this.$route.params?.rootId);
+      const { rootType, rootId, folderId } = this.$route.params;
+      
+      if (rootType && rootId && folderId) {
+        // rootType/rootId/folder/folderId 형태로 접근한 경우 (폴더 내부)
+        this.initializeDrive(folderId, rootType, rootId);
+      } else if (rootType && rootId) {
+        // rootType/rootId 형태로 접근한 경우 (루트)
+        this.initializeDrive(null, rootType, rootId);
+      } else if (folderId) {
+        // 기존 folderId 형태로 접근한 경우 (deprecated)
+        this.initializeDrive(folderId);
+      } else {
+        // 기본 드라이브
+        this.initializeDrive(null, 'WORKSPACE', localStorage.getItem('selectedWorkspaceId'));
+      }
     }
     
     // 테이블 높이 계산
@@ -985,6 +999,9 @@ export default {
   watch: {
     '$route.params': {
       handler(newParams) {
+        // projectId prop이 있으면 route 변경 무시
+        if (this.projectId) return;
+        
         const { rootType, rootId, folderId } = newParams;
         
         if (rootType && rootId && folderId) {
@@ -999,6 +1016,12 @@ export default {
         }
       },
       deep: true
+    },
+    // projectId 변경 시 재초기화
+    projectId(newProjectId, oldProjectId) {
+      if (newProjectId && newProjectId !== oldProjectId) {
+        this.initializeDrive(null, 'PROJECT', newProjectId);
+      }
     },
     // 폴더 트리 확장 상태 변화에 따른 하위 폴더 지연 로딩
     openFolders(newOpen, oldOpen) {
@@ -1576,6 +1599,16 @@ export default {
       if (selectedIds && selectedIds.length > 0) {
         const folderId = selectedIds[0];
         
+        // projectId가 있으면 라우팅 대신 내부 상태만 업데이트
+        if (this.projectId) {
+          if (folderId === 'root') {
+            this.loadFolderContents(null, 'PROJECT', this.projectId);
+          } else {
+            this.loadFolderContents(folderId, 'PROJECT', this.projectId);
+          }
+          return;
+        }
+        
         if (folderId === 'root') {
           // 루트로 이동 (현재 rootType/rootId 유지)
           if (this.currentRootType && this.currentRootId) {
@@ -1823,6 +1856,16 @@ export default {
     navigateToBreadcrumb(item) {
       if (item.disabled) return;
       
+      // projectId가 있으면 라우팅 대신 내부 상태만 업데이트
+      if (this.projectId) {
+        if (!item.folderId) {
+          this.loadFolderContents(null, 'PROJECT', this.projectId);
+        } else {
+          this.loadFolderContents(item.folderId, 'PROJECT', this.projectId);
+        }
+        return;
+      }
+      
       if (!item.folderId) {
         // 루트로 이동
         if (this.currentRootType && this.currentRootId) {
@@ -1852,6 +1895,17 @@ export default {
     // 폴더 트리 항목 클릭 시 해당 폴더로 이동
     onTreeItemClick(item) {
       if (!item) return;
+      
+      // projectId가 있으면 라우팅 대신 내부 상태만 업데이트
+      if (this.projectId) {
+        if (item.id === 'root') {
+          this.loadFolderContents(null, 'PROJECT', this.projectId);
+        } else {
+          this.loadFolderContents(item.id, 'PROJECT', this.projectId);
+        }
+        return;
+      }
+      
       if (item.id === 'root') {
         if (this.currentRootType && this.currentRootId) {
           this.$router.push({ 
@@ -2003,6 +2057,12 @@ export default {
       // folder: 계층 구조로 폴더 탐색
       if (item.type === 'folder') {
         console.log('Navigating to folder:', item.id);
+        
+        // projectId가 있으면 라우팅 대신 내부 상태만 업데이트
+        if (this.projectId) {
+          this.loadFolderContents(item.id, 'PROJECT', this.projectId);
+          return;
+        }
         
         // 폴더 경로에 추가 (폴더 이름 정보가 있으므로)
         // 백엔드에서 ancestors 오면 덮어쓰기

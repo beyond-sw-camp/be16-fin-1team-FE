@@ -1,5 +1,5 @@
 <template>
-  <div class="project-container">
+  <div class="project-container" :class="{ 'documents-tab-mode': activeTab === 'documents' }">
     <!-- 프로젝트 헤더 (바디 안의 헤더) -->
     <div class="project-header">
       <div class="title-wrapper" ref="titleWrapper">
@@ -354,12 +354,14 @@
     </div>
     
     <!-- 다른 탭들 -->
-    <div v-else class="other-tabs">
+    <div v-else class="other-tabs" :class="{ 'documents-tab-active': activeTab === 'documents' }">
       <div v-if="activeTab === 'dashboard'" class="dashboard-placeholder">
         <div class="dashboard-box">대시보드 임시 화면</div>
       </div>
       <p v-if="activeTab === 'gantt'" class="placeholder-text">간트차트 컨텐츠</p>
-      <p v-if="activeTab === 'documents'" class="placeholder-text">문서함 컨텐츠</p>
+      <div v-if="activeTab === 'documents'" class="project-drive-container">
+        <DriveMain :project-id="$route.query.id" />
+      </div>
     </div>
     
     <!-- 확대/축소 컨트롤 (ProjectList에 직접 추가) -->
@@ -863,6 +865,7 @@
 import axios from 'axios';
 import * as d3 from 'd3';
 import StoneDetailModal from '@Project/StoneDetailModal.vue';
+import DriveMain from '@/views/Drive/DriveMain.vue';
 import { searchWorkspaceParticipants, getStoneDetail } from '@/services/stoneService.js';
 import pinIcon from '@/assets/icons/project/pin.svg';
 import pinOutlineIcon from '@/assets/icons/project/pin-outline.svg';
@@ -870,7 +873,8 @@ import pinOutlineIcon from '@/assets/icons/project/pin-outline.svg';
 export default {
   name: 'ProjectList',
   components: {
-    StoneDetailModal
+    StoneDetailModal,
+    DriveMain
   },
   data() {
     return {
@@ -3528,6 +3532,11 @@ export default {
   background: #F5F5F5;
 }
 
+.project-container.documents-tab-mode {
+  display: flex;
+  flex-direction: column;
+}
+
 /* 프로젝트 헤더 (바디 안의 헤더) */
 .project-header {
   background: #F5F5F5;
@@ -3535,6 +3544,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .title-wrapper {
@@ -3626,6 +3636,7 @@ export default {
 .project-description-section {
   background: #F5F5F5;
   padding: 0 50px 32px 50px;
+  flex-shrink: 0;
 }
 
 .project-description-text {
@@ -3643,6 +3654,7 @@ export default {
   padding: 0 50px;
   border-bottom: none;
   position: relative;
+  flex-shrink: 0;
 }
 
 .tab-menu {
@@ -4487,6 +4499,15 @@ export default {
   background: #F5F5F5;
 }
 
+.other-tabs.documents-tab-active {
+  padding: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
 .dashboard-placeholder {
   width: 100%;
   display: flex;
@@ -4494,6 +4515,23 @@ export default {
   justify-content: center;
   padding: 40px 50px;
   box-sizing: border-box;
+}
+
+.project-drive-container {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.project-drive-container :deep(.drive-container) {
+  height: 100%;
+  padding: 0;
+}
+
+.project-drive-container :deep(.drive-layout) {
+  height: 100%;
 }
 
 .dashboard-box {
