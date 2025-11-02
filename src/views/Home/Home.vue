@@ -74,7 +74,7 @@
                   <span class="folder-name">📁 {{ folder.name }}</span>
                 </div>
                 <div class="folder-content">
-                  <div class="document-item" v-for="doc in folder.documents" :key="doc.id">
+                  <div class="document-item" v-for="doc in folder.documents" :key="doc.id" @click="goToStoneDrive(doc)">
                     <span class="doc-icon">📄</span>
                     <span class="doc-name">{{ doc.name }}</span>
                   </div>
@@ -94,7 +94,7 @@
             <div v-if="loading" class="loading-message">
               로딩 중...
             </div>
-            <div v-else-if="myTasks.length === 0" class="no-tasks-message">
+            <div v-else-if="pendingTasks.length === 0" class="no-tasks-message">
               할당된 Task가 없습니다.
             </div>
             <div v-else class="task-timeline-chart">
@@ -110,7 +110,7 @@
               
               <!-- Task 바들 -->
               <div class="task-timeline-bars">
-                <div class="task-bar-wrapper" v-for="task in myTasks" :key="task.id">
+                <div class="task-bar-wrapper" v-for="task in pendingTasks" :key="task.id">
                   <div class="task-bar" :style="calculateTaskBarStyle(task)" @click="goToTask(task)">
                     <div class="task-bar-content">
                       <div class="task-bar-name">{{ task.name }}</div>
@@ -310,11 +310,11 @@ export default {
     
     // Task 타임라인 라벨 (Task 전체 기간 기준 MM/DD)
     taskTimelineLabels() {
-      if (this.myTasks.length === 0) return [];
+      if (this.pendingTasks.length === 0) return [];
       
       // 모든 Task의 시작일과 종료일 찾기
       const allDates = [];
-      this.myTasks.forEach(task => {
+      this.pendingTasks.forEach(task => {
         allDates.push(new Date(task.startTime));
         allDates.push(new Date(task.endTime));
       });
@@ -354,7 +354,7 @@ export default {
     
     // Task Today 라인 위치
     taskTodayLinePosition() {
-      if (this.myTasks.length === 0) return '0%';
+      if (this.pendingTasks.length === 0) return '0%';
       
       const today = new Date();
       const range = this.getTaskDateRange();
@@ -374,7 +374,7 @@ export default {
     
     // Task Today 라인 표시 여부
     showTaskTodayLine() {
-      if (this.myTasks.length === 0) return false;
+      if (this.pendingTasks.length === 0) return false;
       
       const today = new Date();
       const range = this.getTaskDateRange();
@@ -757,12 +757,12 @@ export default {
     
     // Task 기간 범위 계산
     getTaskDateRange() {
-      if (this.myTasks.length === 0) {
+      if (this.pendingTasks.length === 0) {
         return { start: new Date(), end: new Date() };
       }
       
       const allDates = [];
-      this.myTasks.forEach(task => {
+      this.pendingTasks.forEach(task => {
         allDates.push(new Date(task.startTime));
         allDates.push(new Date(task.endTime));
       });
@@ -815,6 +815,19 @@ export default {
       const endDay = end.getDate();
       
       return `${startMonth}/${startDay} - ${endMonth}/${endDay}`;
+    },
+    
+    // 스톤 문서함으로 이동
+    goToStoneDrive(doc) {
+      console.log('스톤 문서함으로 이동:', doc);
+      if (doc.stoneId) {
+        this.$router.push({
+          name: 'driveRoot',
+          params: { rootType: 'STONE', rootId: doc.stoneId }
+        });
+      } else {
+        console.error('stoneId를 찾을 수 없음:', doc);
+      }
     },
     
     // Task 페이지로 이동 (stone 모달 열기)
@@ -1648,6 +1661,12 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 4px 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.document-item:hover {
+  color: #2A2828;
 }
 
 .doc-icon {
