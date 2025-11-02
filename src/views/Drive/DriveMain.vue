@@ -953,10 +953,13 @@ export default {
 
     // 트리에 폴더 추가
     addFolderToTree(folderId, folderName, parentId) {
+      console.log('[DriveMain] addFolderToTree 호출:', { folderId, folderName, parentId });
+      
       // 이미 존재하는지 확인 (중복 방지)
       const existingNode = this.findNodeById(this.folderTree, folderId);
       if (existingNode) {
         // 이미 존재하면 추가하지 않음 (중복 방지)
+        console.log('[DriveMain] addFolderToTree: 이미 존재하는 폴더:', folderId);
         return;
       }
 
@@ -966,8 +969,10 @@ export default {
         children: [], // 빈 배열로 초기화 (토글 표시를 위해)
       };
 
-      // parentId가 null이면 루트 하위에 추가
-      if (!parentId || parentId === 'root') {
+      // parentId가 null이거나 'root'이면 루트 하위에 추가
+      const normalizedParentId = !parentId || parentId === 'root' ? 'root' : parentId;
+      
+      if (normalizedParentId === 'root') {
         const rootNode = this.findNodeById(this.folderTree, 'root');
         if (rootNode) {
           if (!rootNode.children) {
@@ -976,6 +981,9 @@ export default {
           // 중복 체크
           if (!rootNode.children.find(f => f.id === folderId)) {
             rootNode.children.push(newFolder);
+            // Vue 반응성을 위해 배열을 새로 할당
+            rootNode.children = [...rootNode.children];
+            
             // 캐시에도 추가
             if (!this.folderCache['root']) {
               this.folderCache['root'] = [];
@@ -984,11 +992,16 @@ export default {
             if (!this.folderCache['root'].find(f => f.id === folderId)) {
               this.folderCache['root'].push(newFolder);
             }
+            console.log('[DriveMain] addFolderToTree: 루트 하위에 폴더 추가 성공:', folderId);
+          } else {
+            console.log('[DriveMain] addFolderToTree: 루트 하위에 이미 존재:', folderId);
           }
+        } else {
+          console.error('[DriveMain] addFolderToTree: 루트 노드를 찾을 수 없습니다');
         }
       } else {
         // 특정 폴더 하위에 추가
-        const parentNode = this.findNodeById(this.folderTree, parentId);
+        const parentNode = this.findNodeById(this.folderTree, normalizedParentId);
         if (parentNode) {
           if (!parentNode.children) {
             parentNode.children = [];
@@ -996,15 +1009,23 @@ export default {
           // 중복 체크
           if (!parentNode.children.find(f => f.id === folderId)) {
             parentNode.children.push(newFolder);
+            // Vue 반응성을 위해 배열을 새로 할당
+            parentNode.children = [...parentNode.children];
+            
             // 캐시에도 추가
-            if (!this.folderCache[parentId]) {
-              this.folderCache[parentId] = [];
+            if (!this.folderCache[normalizedParentId]) {
+              this.folderCache[normalizedParentId] = [];
             }
             // 캐시에도 중복 체크
-            if (!this.folderCache[parentId].find(f => f.id === folderId)) {
-              this.folderCache[parentId].push(newFolder);
+            if (!this.folderCache[normalizedParentId].find(f => f.id === folderId)) {
+              this.folderCache[normalizedParentId].push(newFolder);
             }
+            console.log('[DriveMain] addFolderToTree: 폴더 하위에 추가 성공:', folderId, 'parent:', normalizedParentId);
+          } else {
+            console.log('[DriveMain] addFolderToTree: 폴더 하위에 이미 존재:', folderId);
           }
+        } else {
+          console.warn('[DriveMain] addFolderToTree: 부모 노드를 찾을 수 없습니다:', normalizedParentId);
         }
       }
 
@@ -1913,14 +1934,52 @@ export default {
         
         const response = await driveService.createFolder(folderData);
         
-        // 응답에서 생성된 폴더 정보 가져오기
-        const newFolderId = response?.result?.id || response?.result?.folderId;
-        const newFolderName = response?.result?.name || response?.result?.folderName || this.newFolderName;
+        // 응답 구조: { result: '폴더ID', statusCode: 201, statusMessage: '...' }
+        // result가 폴더 ID 문자열로 반환됨
+        const newFolderId = response?.result; // result는 폴더 ID 문자열
+        const newFolderName = this.newFolderName; // 요청 시 보낸 name 사용
         const parentId = this.currentFolderId || null;
         
-        // 트리에 직접 추가
-        if (newFolderId) {
-          this.addFolderToTree(newFolderId, newFolderName, parentId);
+        console.log('[DriveMain] 추출된 폴더 정보:', { newFolderId, newFolderName, parentId });
+        
+        // 트리에 직접 추가 (API 응답의 id와 요청 시 보낸 name 조합)
+        if (newFolderId && newFolderName) {
+          console.log('[DriveMain] 폴더 생성 성공, 트리에 추가 시도:', { newFolderId, newFolderName, parentId });
+          
+          // parentId 정규화 (null이면 'root'로 처리)
+          const normalizedParentId = !parentId || parentId === 'root' ? 'root' : parentId;
+          
+          // 부모 폴더가 트리에 로드되어 있는지 확인하고, 없으면 트리 확장
+          if (normalizedParentId !== 'root') {
+            const parentNode = this.findNodeById(this.folderTree, normalizedParentId);
+            if (!parentNode) {
+              console.log('[DriveMain] 부모 노드를 찾을 수 없음, 트리 확장 시도:', normalizedParentId);
+              // 부모 폴더가 트리에 없으면 트리 확장 시도
+              await this.ensureChildrenLoaded('root');
+              // 부모 경로를 따라가며 로드
+              if (this.folderPath && this.folderPath.length > 0) {
+                for (const pathFolder of this.folderPath) {
+                  await this.ensureChildrenLoaded(pathFolder.id);
+                }
+              }
+              // 현재 폴더도 로드 시도
+              if (this.currentFolderId && this.currentFolderId !== normalizedParentId) {
+                await this.ensureChildrenLoaded(this.currentFolderId);
+              }
+              // 한 번 더 확인
+              const parentNodeAfterLoad = this.findNodeById(this.folderTree, normalizedParentId);
+              if (!parentNodeAfterLoad) {
+                console.warn('[DriveMain] 부모 노드를 여전히 찾을 수 없음:', normalizedParentId);
+              }
+            }
+          }
+          
+          // API 응답의 id와 name 조합해서 트리에 추가
+          this.addFolderToTree(newFolderId, newFolderName, normalizedParentId);
+          // Vue 반응성 보장
+          await this.$nextTick();
+        } else {
+          console.warn('[DriveMain] 폴더 생성 응답에 id 또는 name이 없습니다:', response);
         }
         
         showSnackbar('폴더가 생성되었습니다.', 'success');
@@ -2049,6 +2108,8 @@ export default {
           response = await driveService.deleteFolder(item.id);
           // 트리에서 직접 제거
           this.removeFolderFromTree(item.id);
+          // Vue 반응성 보장
+          await this.$nextTick();
         } else if (item.type === 'document') {
           response = await driveService.deleteDocument(item.id);
         } else {
