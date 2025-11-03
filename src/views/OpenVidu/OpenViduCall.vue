@@ -23,7 +23,7 @@
 
             <v-btn fab width="60" height="60" color="transparent" class="mx-1" @click="toggleRecord" plain
               elevation="0">
-              <img :src="isRecordEnabled ? recordEnd : recordStart" style="width:50px;height:50px;" />
+              <img :src="isRecording ? recordEnd : recordStart" style="width:50px;height:50px;" />
             </v-btn>
 
             <v-btn fab width="60" height="60" color="transparent" class="mx-1" @click="toggleAudio" plain elevation="0">
@@ -906,6 +906,23 @@ body,
   display: flex;
   justify-content: center;
 }
+    
+    /* ---- 버튼 포커스/클릭 시 파란 외곽선 제거 (접근성 필요 시 조절) ---- */
+    /* 컨트롤바 내부 버튼에만 적용 */
+    :deep(.control-bar .v-btn) {
+      box-shadow: none !important;
+    }
+    :deep(.control-bar .v-btn:focus),
+    :deep(.control-bar .v-btn:active),
+    :deep(.control-bar .v-btn:focus-visible) {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+    /* 사파리의 기본 -webkit-focus-ring-color 제거 */
+    :deep(.control-bar button:focus),
+    :deep(.control-bar button:focus-visible) {
+      outline: none !important;
+    }
 
 .control-bar {
   width: 100%;
