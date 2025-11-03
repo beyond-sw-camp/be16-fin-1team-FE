@@ -291,7 +291,7 @@
 
               <!-- Depth 표시 (hover 시) -->
               <text
-                v-if="hoveredStoneId === stone.id && viewMode === 'focus'"
+                v-if="hoveredStoneId === stone.id"
                 :x="calculateDepthIndicatorPosition(stone).x"
                 :y="calculateDepthIndicatorPosition(stone).y"
                 text-anchor="middle"
@@ -333,8 +333,9 @@
                 </g>
               </g>
 
-              <!-- 스톤 생성 텍스트 버튼 -->
+              <!-- 스톤 생성 텍스트 버튼 (hover 시 표시) -->
               <g 
+                v-if="hoveredStoneId === stone.id"
                 class="create-stone-text stone-add-text" 
                 :class="{ 'disabled': isStoneCompleted(stone) }"
                 @click="openCreateStoneModal(stone, $event)"
