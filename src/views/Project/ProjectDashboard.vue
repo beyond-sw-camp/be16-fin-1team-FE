@@ -5,68 +5,18 @@
     </div>
     
     <div v-else class="dashboard-content">
-      <!-- 통계 카드 영역 -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon progress-icon">
-            <div class="progress-circle">
-              <svg viewBox="0 0 36 36" class="circular-chart">
-                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <path 
-                  class="circle" 
-                  :stroke-dasharray="`${projectStats.progress}, 100`"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
-                />
-              </svg>
-              <span class="progress-text">{{ projectStats.progress }}%</span>
-            </div>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ projectStats.progress }}%</div>
-            <div class="stat-label">프로젝트 진행률</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon stone-icon">
-            <img src="@/assets/icons/project/stones_1.svg" alt="스톤" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ projectStats.totalStones }}</div>
-            <div class="stat-label">총 스톤 수</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon task-icon">
-            <img src="@/assets/icons/home/file-document.svg" alt="Task" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ projectStats.totalTasks }}</div>
-            <div class="stat-label">총 태스크 수</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon completed-stone-icon">
-            <img src="@/assets/icons/project/stones_1.svg" alt="완료된 스톤" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ projectStats.completedStones }} / {{ projectStats.totalStones }}</div>
-            <div class="stat-label">완료된 스톤 수</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon completed-task-icon">
-            <img src="@/assets/icons/home/file-document.svg" alt="완료된 Task" />
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">{{ projectStats.completedTasks }} / {{ projectStats.totalTasks }}</div>
-            <div class="stat-label">완료된 태스크 수</div>
-          </div>
-        </div>
-      </div>
+      <!-- 프로젝트 정보 섹션 카드 -->
+      <ProjectInfoSection
+        :progress="projectStats.progress"
+        :stone-total="projectStats.totalStones"
+        :stone-done="projectStats.completedStones"
+        :task-total="projectStats.totalTasks"
+        :task-done="projectStats.completedTasks"
+      >
+        <template #meta>
+          <!-- 필요 시 기간/PM 등 메타 정보 표시 가능 -->
+        </template>
+      </ProjectInfoSection>
 
       <!-- 인원 현황 영역 -->
       <ProjectPeopleOverviewTable 
@@ -82,12 +32,14 @@
 <script>
 import axios from 'axios';
 import ProjectPeopleOverviewTable from '@/components/project/ProjectPeopleOverviewTable.vue';
+import ProjectInfoSection from '@/components/project/ProjectInfoSection.vue';
 import { getProjectPeopleOverview } from '@/services/projectService.js';
 
 export default {
   name: "ProjectDashboard",
   components: {
-    ProjectPeopleOverviewTable
+    ProjectPeopleOverviewTable,
+    ProjectInfoSection
   },
   props: {
     projectId: {
@@ -331,7 +283,7 @@ export default {
   width: 100%;
   height: 100%;
   max-height: 100%;
-  padding: 30px;
+  padding: 8px;
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
@@ -372,8 +324,8 @@ export default {
 }
 
 .dashboard-content {
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   width: 100%;
   flex: 1;
   min-height: 0;
