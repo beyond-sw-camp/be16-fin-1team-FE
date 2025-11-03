@@ -452,6 +452,8 @@
               type="date" 
               class="form-input" 
               v-model="editForm.startDate"
+              :min="minStartDate"
+              :max="maxDate"
             />
           </div>
           
@@ -461,6 +463,8 @@
               type="date" 
               class="form-input" 
               v-model="editForm.endDate"
+              :min="minEndDate"
+              :max="maxDate"
             />
           </div>
           
@@ -474,7 +478,7 @@
             ></textarea>
           </div>
           
-          <div class="form-group">
+          <div class="form-group chat-creation-group">
             <label class="form-label">
               채팅방 생성
               <span v-if="isChatCreationDisabled" class="disabled-text">(이미 채팅방이 생성되어 있습니다)</span>
@@ -900,6 +904,38 @@ export default {
       // 실제 완료 상태만 체크 (마일스톤 100%는 완료 상태가 아님)
       return this.currentStoneData?.stoneStatus === 'COMPLETED';
     },
+    // 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+    todayDateString() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    },
+    // 프로젝트 종료일을 YYYY-MM-DD 형식으로 반환
+    maxDate() {
+      // currentStoneData에 프로젝트 기간 정보가 있는지 확인
+      if (this.currentStoneData?.projectEndTime) {
+        return this.formatDateForInput(this.currentStoneData.projectEndTime);
+      }
+      // stoneData에 프로젝트 정보가 있는지 확인
+      if (this.stoneData?.projectEndTime) {
+        return this.formatDateForInput(this.stoneData.projectEndTime);
+      }
+      // 없으면 빈 문자열 반환 (제한 없음)
+      return '';
+    },
+    // 시작날짜 최소값 (오늘 날짜)
+    minStartDate() {
+      return this.todayDateString;
+    },
+    // 종료날짜 최소값 (시작날짜 또는 오늘 날짜 중 더 늦은 날짜)
+    minEndDate() {
+      if (this.editForm.startDate) {
+        return this.editForm.startDate;
+      }
+      return this.todayDateString;
+    },
     
     // 정렬된 태스크 리스트
     sortedTaskList() {
@@ -1091,10 +1127,17 @@ export default {
       console.log('=== 스톤 수정 모달 열기 ===');
       console.log('현재 stoneData:', this.stoneData);
       
+      // 시작날짜를 가져오거나 오늘 날짜로 기본값 설정
+      let startDate = this.formatDateForInput(this.currentStoneData?.startTime);
+      if (!startDate || (startDate && new Date(startDate) < new Date(this.todayDateString))) {
+        // 시작날짜가 없거나 오늘보다 이전이면 오늘로 설정
+        startDate = this.todayDateString;
+      }
+      
       // 현재 스톤 데이터로 폼 초기화
       this.editForm = {
         stoneName: this.currentStoneData?.stoneName || '',
-        startDate: this.formatDateForInput(this.currentStoneData?.startTime),
+        startDate: startDate,
         endDate: this.formatDateForInput(this.currentStoneData?.endTime),
         createChat: this.currentStoneData?.chatCreation || false,
         stoneDescribe: this.currentStoneData?.stoneDescribe || '' // 스톤 설명 초기화
@@ -3120,6 +3163,22 @@ export default {
   line-height: 14px;
   color: #999999;
   margin-left: 8px;
+}
+
+.edit-stone-modal .chat-creation-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 12px;
+}
+
+.edit-stone-modal .chat-creation-group .form-label {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.edit-stone-modal .chat-creation-group .checkbox-wrapper {
+  flex-shrink: 0;
 }
 
 .edit-stone-modal .modal-footer {
