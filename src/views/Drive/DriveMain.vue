@@ -1748,6 +1748,23 @@ export default {
               id: ancestor.folderId,
               name: ancestor.folderName
             }));
+            
+            // 현재 폴더 정보도 가져와서 folderPath에 추가
+            try {
+              const folderInfo = await driveService.getFolderInfo(folderId);
+              if (folderInfo.result) {
+                // 현재 폴더가 이미 folderPath에 있는지 확인 (같은 ID인지 체크)
+                const currentFolderExists = this.folderPath.some(f => f.id === folderInfo.result.folderId);
+                if (!currentFolderExists) {
+                  this.folderPath.push({
+                    id: folderInfo.result.folderId,
+                    name: folderInfo.result.folderName
+                  });
+                }
+              }
+            } catch (error) {
+              console.error('현재 폴더 정보 조회 실패:', error);
+            }
           }
           // 빈 폴더인 경우 폴더 정보 조회
           else if (folderId && items.length === 0) {
@@ -1779,8 +1796,29 @@ export default {
           
           this.items = this.parseItems(items);
           
-          // 하위 요소가 있는 경우에만 여기서 브레드크럼 업데이트
-          if (items.length > 0) {
+          // items에 ancestors가 없었지만 folderId가 있는 경우, 폴더 정보를 가져와서 folderPath 설정
+          if (folderId && items.length > 0 && (!items[0].ancestors || this.folderPath.length === 0)) {
+            try {
+              const folderInfo = await driveService.getFolderInfo(folderId);
+              if (folderInfo.result && folderInfo.result.ancestors) {
+                const ancestorsArray = folderInfo.result.ancestors;
+                this.folderPath = ancestorsArray.slice().reverse().map(ancestor => ({
+                  id: ancestor.folderId,
+                  name: ancestor.folderName
+                }));
+                // 현재 폴더도 추가
+                this.folderPath.push({
+                  id: folderInfo.result.folderId,
+                  name: folderInfo.result.folderName
+                });
+              }
+            } catch (error) {
+              console.error('폴더 정보 조회 실패:', error);
+            }
+          }
+          
+          // 브레드크럼 업데이트
+          if (folderId || items.length > 0) {
             this.updateBreadcrumbs(folderId, items, rootType || this.currentRootType);
           }
         } else {
