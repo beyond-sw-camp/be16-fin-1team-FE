@@ -27,6 +27,7 @@
               placeholder="사용자 이메일로 검색"
               v-model="userSearchQuery"
               @keyup.enter="searchUsers"
+              @input="handleSearchInput"
             />
             <button class="search-btn" @click="searchUsers">검색</button>
           </div>
@@ -61,19 +62,10 @@
                 </div>
               </div>
               
-              <!-- 페이지네이션 -->
-              <div class="pagination">
-                <button class="page-btn prev-btn">← 이전</button>
-                <button class="page-btn active">1</button>
-                <button class="page-btn">2</button>
-                <button class="page-btn">3</button>
-                <span class="page-ellipsis">...</span>
-                <button class="page-btn">10</button>
-                <button class="page-btn next-btn">다음 →</button>
+              <!-- 페이지네이션 (사용자가 많을 때만 표시) -->
+              <div v-if="availableUsers.length === 0" class="empty-message">
+                <p>사용자가 없습니다.</p>
               </div>
-              
-              <!-- 더보기 버튼 -->
-              <button class="more-btn">더보기</button>
             </div>
           </div>
           
@@ -137,7 +129,8 @@ export default {
     return { workspaceStore };
   },
   mounted() {
-    // 초기 로드 시에는 사용자 목록을 자동으로 로드하지 않음
+    // 초기 로드 시 사용자 목록을 자동으로 로드
+    this.loadAvailableUsers();
   },
   methods: {
     goBack() {
@@ -169,6 +162,14 @@ export default {
       } catch (error) {
         console.error('사용자 목록 로드 실패:', error);
         this.availableUsers = [];
+      }
+    },
+    
+    // 검색어 입력 핸들러
+    handleSearchInput() {
+      // 검색어가 비어있으면 전체 목록 로드
+      if (!this.userSearchQuery.trim()) {
+        this.loadAvailableUsers();
       }
     },
     
@@ -648,6 +649,18 @@ export default {
   align-items: center;
   justify-content: center;
   transform: rotate(180deg);
+}
+
+/* 빈 메시지 */
+.empty-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999999;
+  font-size: 14px;
+}
+
+.empty-message p {
+  margin: 0;
 }
 
 /* 안내 메시지 */

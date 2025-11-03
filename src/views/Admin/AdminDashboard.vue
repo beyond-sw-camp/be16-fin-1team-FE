@@ -126,7 +126,7 @@
             class="team-card user-group-item"
           >
             <div class="left">
-              <img src="/src/assets/icons/orbit_logo.svg" alt="orbit logo" class="team-icon user-group-icon" />
+              <img src="/src/assets/icons/user/user_group_icon.svg" alt="user group icon" class="team-icon user-group-icon" />
               <div class="team-info group-details">
                 <h3 class="team-name group-name" @click="viewUserGroupDetail(group)">{{ group.name }}</h3>
                 <p class="created-date group-date">생성일: {{ group.createdAt }}</p>
@@ -138,17 +138,6 @@
               <button class="action-btn delete-btn" @click="deleteUserGroup(group)">삭제</button>
             </div>
           </div>
-        </div>
-
-        <!-- 페이지네이션 -->
-        <div class="pagination">
-          <button class="page-btn prev-btn">← 이전</button>
-          <button class="page-btn active">1</button>
-          <button class="page-btn">2</button>
-          <button class="page-btn">3</button>
-          <span class="page-ellipsis">...</span>
-          <button class="page-btn">10</button>
-          <button class="page-btn next-btn">다음 →</button>
         </div>
       </div>
 

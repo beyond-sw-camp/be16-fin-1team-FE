@@ -821,6 +821,10 @@ export default {
     workspaceId: {
       type: String,
       default: ''
+    },
+    projectEndTime: {
+      type: String,
+      default: null
     }
   },
   data() {
@@ -920,6 +924,10 @@ export default {
     },
     // 프로젝트 종료일을 YYYY-MM-DD 형식으로 반환
     maxDate() {
+      // props로 전달받은 프로젝트 종료일 확인
+      if (this.projectEndTime) {
+        return this.formatDateForInput(this.projectEndTime);
+      }
       // currentStoneData에 프로젝트 기간 정보가 있는지 확인
       if (this.currentStoneData?.projectEndTime) {
         return this.formatDateForInput(this.currentStoneData.projectEndTime);
@@ -1193,6 +1201,13 @@ export default {
       
       if (new Date(this.editForm.startDate) > new Date(this.editForm.endDate)) {
         showSnackbar('시작일은 종료일보다 이전이어야 합니다.', { color: 'error' });
+        return;
+      }
+      
+      // 프로젝트 종료일 검증
+      const projectEndDate = this.maxDate;
+      if (projectEndDate && new Date(this.editForm.endDate) > new Date(projectEndDate)) {
+        showSnackbar('스톤 종료일은 프로젝트 종료일 이후로 선택할 수 없습니다.', { color: 'error' });
         return;
       }
       

@@ -596,7 +596,7 @@
           
           <!-- 3. 이메일 검색 결과 섹션 -->
           <div class="search-section">
-            <h3 class="section-title">이메일 검색 결과</h3>
+            <h3 class="section-title">워크스페이스 참여자</h3>
             <div class="user-list">
               <div 
                 v-for="user in emailSearchResults" 
@@ -673,6 +673,7 @@
       :stone-data="selectedStoneData"
       :is-loading="isLoadingStoneDetail"
       :workspace-id="currentWorkspaceId"
+      :project-end-time="projectDetail?.endTime"
       @close="closeStoneDetailModal"
       @expand="expandStoneDetailModal"
       @stone-updated="onStoneUpdatedFromModal"
@@ -2882,6 +2883,9 @@ export default {
       
       // 사용자 그룹 목록 로드
       await this.loadUserGroupList();
+      
+      // 워크스페이스 참여자 목록 자동 로드
+      await this.loadAllWorkspaceParticipants();
     },
     
     // 사용자 선택 모달 닫기
@@ -2934,10 +2938,42 @@ export default {
       await this.loadGroupMembersForSelection();
     },
     
+    // 워크스페이스 참여자 목록 전체 로드
+    async loadAllWorkspaceParticipants() {
+      try {
+        const userId = localStorage.getItem('id');
+        const workspaceId = localStorage.getItem('selectedWorkspaceId');
+        
+        // 빈 검색어로 전체 참여자 목록 조회
+        const response = await searchWorkspaceParticipants(workspaceId, '');
+        
+        if (response.statusCode === 200) {
+          const users = response.result?.userInfoList || [];
+          
+          // API 응답을 사용자 목록 형식으로 변환
+          this.emailSearchResults = users.map(user => ({
+            id: user.userId,
+            name: user.userName,
+            email: user.userEmail,
+            group: '워크스페이스 참여자'
+          }));
+          
+          console.log('워크스페이스 참여자 목록:', this.emailSearchResults);
+        } else {
+          console.error('워크스페이스 참여자 목록 조회 실패:', response);
+          this.emailSearchResults = [];
+        }
+      } catch (error) {
+        console.error('워크스페이스 참여자 목록 조회 API 호출 실패:', error);
+        this.emailSearchResults = [];
+      }
+    },
+    
     // 사용자 검색 API 호출
     async searchUsers() {
       if (!this.userSearchKeyword.trim()) {
-        this.emailSearchResults = [];
+        // 검색어가 없으면 전체 목록 다시 로드
+        await this.loadAllWorkspaceParticipants();
         return;
       }
       
