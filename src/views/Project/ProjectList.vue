@@ -451,6 +451,8 @@
                 class="form-input" 
                 v-model="newStone.startTime"
                 placeholder="시작일"
+                :min="minStartDate"
+                :max="maxDate"
               />
               <span class="date-separator">~</span>
               <input 
@@ -458,6 +460,8 @@
                 class="form-input" 
                 v-model="newStone.endTime"
                 placeholder="종료일"
+                :min="minEndDate"
+                :max="maxDate"
               />
             </div>
           </div>
@@ -509,7 +513,7 @@
             ></textarea>
           </div>
           
-          <div class="form-group">
+          <div class="form-group chat-creation-group">
             <label class="form-label">
               채팅방 생성
               <span v-if="isChatCreationDisabled" class="disabled-text">(이미 채팅방이 생성되어 있습니다)</span>
@@ -1022,6 +1026,30 @@ export default {
       }
       
       return false;
+    },
+    // 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+    todayDateString() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    },
+    // 프로젝트 종료일을 YYYY-MM-DD 형식으로 반환
+    maxDate() {
+      if (!this.projectDetail?.endTime) return '';
+      return this.formatDateForInput(this.projectDetail.endTime);
+    },
+    // 시작날짜 최소값 (오늘 날짜)
+    minStartDate() {
+      return this.todayDateString;
+    },
+    // 종료날짜 최소값 (시작날짜 또는 오늘 날짜 중 더 늦은 날짜)
+    minEndDate() {
+      if (this.newStone.startTime) {
+        return this.newStone.startTime;
+      }
+      return this.todayDateString;
     },
     // 현재 포커스된 스톤 ID (스택의 마지막 요소)
     currentFocusedStoneId() {
@@ -1655,6 +1683,7 @@ export default {
             chatCreation: stoneDetail.chatCreation,
             stoneStatus: stoneDetail.stoneStatus,
             stoneDescribe: stoneDetail.stoneDescribe, // 스톤 설명 추가
+            milestone: stoneDetail.milestone || 0, // 마일스톤 진행률 추가
             tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
               id: task.taskId || index + 1,
               name: task.taskName || '태스크',
@@ -1687,6 +1716,7 @@ export default {
           participants: '비어 있음',
           documentLink: '바로가기',
           chatCreation: false,
+          milestone: stone.milestone || 0, // 마일스톤 진행률 추가
           tasks: [],
           isProject: stone.isRoot || false
         };
@@ -1726,6 +1756,7 @@ export default {
             chatCreation: stoneDetail.chatCreation,
             stoneStatus: stoneDetail.stoneStatus,
             stoneDescribe: stoneDetail.stoneDescribe, // 스톤 설명 추가
+            milestone: stoneDetail.milestone || 0, // 마일스톤 진행률 추가
             tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
               id: task.taskId || index + 1,
               name: task.taskName || '태스크',
@@ -2272,6 +2303,9 @@ export default {
       event.stopPropagation(); // 팬 모드 드래그 방지
       this.selectedParentStone = parentStone;
       this.newStone.parentStoneName = parentStone.name;
+      // 시작날짜를 오늘 날짜로 기본값 설정
+      this.newStone.startTime = this.todayDateString;
+      this.newStone.endTime = '';
       this.showCreateStoneModal = true;
       console.log('모달 상태:', this.showCreateStoneModal);
     },
@@ -4936,6 +4970,21 @@ export default {
   line-height: 14px;
   color: #999999;
   margin-left: 8px;
+}
+
+.chat-creation-group {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 12px;
+}
+
+.chat-creation-group .form-label {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.chat-creation-group .checkbox-wrapper {
+  flex-shrink: 0;
 }
 
 .modal-footer {
