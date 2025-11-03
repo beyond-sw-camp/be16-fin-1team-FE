@@ -166,9 +166,9 @@ function buildLayout(rootData) {
   const descendants = t.descendants()
   const maxDepth = descendants.length > 0 ? descendants.reduce((max, d) => Math.max(max, d.depth), 0) : 0
   // depth 1에 추가 여백 반영한 높이 계산
-  let calculatedHeight = maxDepth === 0 ? 60 : 
-    (60 + (maxDepth >= 1 ? nodeVerticalSpacing + firstChildExtraSpacing : 0) + Math.max(0, maxDepth - 1) * nodeVerticalSpacing)
-  const dynamicHeight = Math.max(260, calculatedHeight + 60) // 최소 높이 260, 상하 여백 60 (50→60으로 10px 증가)
+  let calculatedHeight = maxDepth === 0 ? 140 : 
+    (140 + (maxDepth >= 1 ? nodeVerticalSpacing + firstChildExtraSpacing : 0) + Math.max(0, maxDepth - 1) * nodeVerticalSpacing)
+  const dynamicHeight = Math.max(260, calculatedHeight + 120) // 최소 높이 260, 상하 여백 120
 
   // 트리의 실제 너비 계산 (최소/최대 x 좌표)
   const xValues = descendants.map(d => d.x)
@@ -178,7 +178,7 @@ function buildLayout(rootData) {
   
   // scale 값
   const scale = 0.55 // 기존 0.5 → 0.55로 약간 확대하여 중앙 집중감 유지
-  const yOffset = 40
+  const yOffset = 120 // 40→80→100→120으로 80px 증가하여 루트 노드가 더 아래에 위치
 
   // 중앙 정렬: scale 적용 후의 트리 너비를 기준으로 중앙 정렬
   const scaledTreeWidth = treeWidth * scale
@@ -211,7 +211,7 @@ function buildLayout(rootData) {
     const calculatedWidth = Math.max(minWidth, textWidth + padding) + 10 // 폭 10px 추가
     
     // depth별 y 계산: depth 1(첫 번째 하위)에만 추가 여백
-    let yPosition = 60
+    let yPosition = 140 // 60→100→120→140으로 증가하여 루트 노드를 더 아래에 위치
     for (let depth = 1; depth <= d.depth; depth++) {
       if (depth === 1) {
         yPosition += nodeVerticalSpacing + firstChildExtraSpacing // 첫 번째 하위는 추가 여백
@@ -231,7 +231,7 @@ function buildLayout(rootData) {
   // 링크도 동일한 로직으로 계산
   const links = t.links().map(l => {
     const getYPosition = (depth) => {
-      let yPos = 60
+      let yPos = 140 // 60→100→120→140으로 증가하여 루트 노드를 더 아래에 위치
       for (let d = 1; d <= depth; d++) {
         if (d === 1) {
           yPos += nodeVerticalSpacing + firstChildExtraSpacing
