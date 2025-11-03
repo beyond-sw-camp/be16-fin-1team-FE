@@ -81,7 +81,7 @@ export default {
 
 .card-header {
   flex-shrink: 0;
-  border-bottom: 1px solid #E0E0E0;
+  border-bottom: 0;
   padding: 12px 16px;
   display: flex;
   align-items: center;

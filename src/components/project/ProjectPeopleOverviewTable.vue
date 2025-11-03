@@ -1,7 +1,7 @@
 <template>
   <div class="people-overview-section">
-    <div class="people-overview-header">
-      <h3 class="people-overview-title">인원 현황</h3>
+    <div class="pis-header with-inset-hr">
+      <h3 class="pis-title">인원 현황</h3>
     </div>
     
     <div v-if="loading" class="people-overview-loading">
@@ -42,9 +42,19 @@
           <p v-else>데이터가 없습니다.</p>
         </div>
         <table v-else class="people-table">
+          <colgroup>
+            <col style="width:12%">
+            <col style="width:9%">
+            <col style="width:10%">
+            <col style="width:10%">
+            <col style="width:10%">
+            <col style="width:24.5%">
+            <col style="width:24.5%">
+          </colgroup>
           <thead>
             <tr>
-              <th class="user-col">사용자</th>
+              <th class="email-col">회원 이메일</th>
+              <th class="name-col">이름</th>
               <th 
                 class="count-col sortable" 
                 :class="{ 'sort-asc': sortColumn === 'ownedStoneCount' && sortOrder === 'asc', 'sort-desc': sortColumn === 'ownedStoneCount' && sortOrder === 'desc' }"
@@ -65,7 +75,7 @@
                   {{ sortOrder === 'asc' ? '▲' : '▼' }}
                 </span>
               </th>
-              <th class="task-col">담당 태스크</th>
+              <th class="task-col">담당 태스크<span class="th-sub">({{ taskHeaderFractionLabel }})</span></th>
               <th class="stones-col">담당 스톤</th>
               <th class="stones-col">
                 <div class="header-with-filter-inline">
@@ -91,19 +101,17 @@
           </thead>
           <tbody>
             <tr v-for="person in paginatedPeople" :key="person.user.userId">
-              <td class="user-col">
-                <div class="user-cell">
-                  <div class="user-info">
-                    <div class="user-name">{{ person.user.userName || '-' }}</div>
-                    <div class="user-email">{{ person.user.userEmail || '-' }}</div>
-                  </div>
-                </div>
+              <td class="email-col">
+                <div class="user-email">{{ person.user.userEmail || person.user.email || '-' }}</div>
               </td>
-              <td class="count-col">{{ person.ownedStoneCount || 0 }}</td>
-              <td class="count-col">{{ person.participatingStoneCount || 0 }}</td>
+              <td class="name-col">
+                <div class="user-name">{{ person.user.userName || person.user.username || '-' }}</div>
+              </td>
+              <td class="count-col">{{ person.ownedStoneCount || 0 }}개</td>
+              <td class="count-col">{{ person.participatingStoneCount || 0 }}개</td>
               <td class="task-col">
                 <span v-if="person.myTaskTotal !== undefined && person.myTaskTotal !== null">
-                  {{ person.myTaskCompleted || 0 }} / {{ person.myTaskTotal }}
+                  {{ (person.myTaskCompleted || 0) + '개 / ' + (person.myTaskTotal || 0) + '개' }}
                 </span>
                 <span v-else>-</span>
               </td>
@@ -212,6 +220,7 @@
 <script>
 export default {
   name: "ProjectPeopleOverviewTable",
+  components: {},
   props: {
     overview: {
       type: Object,
@@ -323,6 +332,12 @@ export default {
       });
     },
     
+    // 헤더 분수 라벨 (동적 설명)
+    taskHeaderFractionLabel() {
+      // 현재 데이터 구조상 완료/전체 구조를 사용
+      return '완료/전체';
+    },
+    
     // 전체 페이지 수
     totalPages() {
       if (this.filteredAndSortedPeople.length === 0) {
@@ -430,9 +445,9 @@ export default {
 .people-overview-section {
   background: white;
   border-radius: 12px;
-  padding: 24px;
+  padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  margin-top: 30px;
+  margin-top: 16px;
 }
 
 .people-overview-header {
@@ -446,6 +461,45 @@ export default {
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
+}
+
+/* 프로젝트 정보와 동일한 헤더 배치/타이포 */
+
+.pis-header {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pis-title {
+  margin: 0;
+  font-size: var(--card-title-size, 18px);
+  font-weight: var(--card-title-weight, 700);
+  color: #1a1a1a;
+}
+
+/* 인셋 밑줄 유틸 */
+.with-inset-hr {
+  position: relative;
+  padding-bottom: 12px;
+  --hr-inset: 16px;
+  --hr-color: #e9eaee;
+}
+
+@media (min-width: 1280px) {
+  .with-inset-hr { --hr-inset: 20px; }
+}
+
+.with-inset-hr::after {
+  content: "";
+  position: absolute;
+  left: var(--hr-inset);
+  right: var(--hr-inset);
+  bottom: 0;
+  height: 1px;
+  background: var(--hr-color);
+  pointer-events: none;
 }
 
 .people-overview-loading,
@@ -469,6 +523,7 @@ export default {
   align-items: center;
   gap: 12px;
   width: 100%;
+  justify-content: flex-end;
 }
 
 .header-with-filter-inline span {
@@ -489,6 +544,13 @@ export default {
   min-width: 120px;
   max-width: 200px;
   transition: border-color 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px 14px;
+  padding-right: 28px;
 }
 
 .header-filter-select-inline:hover {
@@ -544,6 +606,9 @@ export default {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .people-table thead {
@@ -552,22 +617,42 @@ export default {
 }
 
 .people-table th {
-  padding: 12px 16px;
-  text-align: left;
+  padding: 10px 12px;
+  text-align: center;
   font-weight: 600;
   color: #1a1a1a;
   white-space: nowrap;
-  vertical-align: top;
+  vertical-align: middle;
+  border-right: 1px solid #e9eaee;
+}
+
+.th-sub {
+  margin-left: 4px;
+  font-weight: 500;
+  color: #777;
+  font-size: 12px;
 }
 
 .people-table td {
-  padding: 12px 16px;
+  padding: 10px 12px;
   border-bottom: 1px solid #e0e0e0;
   vertical-align: middle;
+  text-align: center;
+  border-right: 1px solid #e9eaee;
+}
+
+.people-table th:last-child,
+.people-table td:last-child {
+  border-right: none;
 }
 
 .people-table tbody tr:hover {
   background-color: #f9f9f9;
+}
+
+/* 짝수 행 가독성 향상 */
+.people-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
 }
 
 /* 정렬 가능한 컬럼 */
@@ -591,6 +676,15 @@ export default {
   min-width: 200px;
 }
 
+/* 이메일 / 이름 분리 컬럼 */
+.email-col {
+  min-width: 180px;
+}
+
+.name-col {
+  min-width: 140px;
+}
+
 .user-cell {
   display: flex;
   align-items: center;
@@ -609,8 +703,9 @@ export default {
 }
 
 .user-email {
-  font-size: 12px;
-  color: #666;
+  font-size: 14px;
+  color: #1a1a1a;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -638,14 +733,15 @@ export default {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+  justify-content: center;
 }
 
 .stone-tag {
   display: inline-block;
-  padding: 4px 12px;
-  background-color: #e3f2fd;
-  color: #1976d2;
-  border-radius: 12px;
+  padding: 6px 10px;
+  background-color: #eeeeee;
+  color: #555555;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
