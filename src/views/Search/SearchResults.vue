@@ -88,6 +88,22 @@
               </div>
             </template>
 
+            <template v-slot:item.shortcut="{ item }">
+              <div class="d-flex align-center justify-center">
+                <v-btn
+                  v-if="item.parentId || (item.rootType && item.rootId)"
+                  size="small"
+                  variant="outlined"
+                  class="folder-shortcut-btn"
+                  @click.stop="navigateToFolder(item)"
+                >
+                  <v-icon size="16" class="mr-1">mdi-folder-outline</v-icon>
+                  문서함 이동
+                </v-btn>
+                <span v-else class="text-grey">-</span>
+              </div>
+            </template>
+
             <template v-slot:item.owner="{ item }">
               <div class="d-flex align-center">
                 <v-avatar size="24" class="mr-2">
@@ -198,10 +214,11 @@ export default {
     },
     tableHeaders() {
       return [
-        { text: '이름', value: 'name', width: '40%', sortable: true },
-        { text: '생성자', value: 'owner', width: '25%', sortable: false },
-        { text: '수정일', value: 'modified', width: '20%', sortable: true },
-        { text: '크기', value: 'size', width: '15%', sortable: true },
+        { text: '이름', value: 'name', width: '38%', sortable: true },
+        { text: '생성자', value: 'owner', width: '22%', sortable: false },
+        { text: '수정일', value: 'modified', width: '18%', sortable: true },
+        { text: '크기', value: 'size', width: '12%', sortable: true },
+        { text: '바로가기', value: 'shortcut', width: '10%', sortable: false },
       ];
     },
     sortedTableResults() {
@@ -440,9 +457,41 @@ export default {
       } else if (result.docType === 'PROJECT') {
         this.$router.push({ path: '/project', query: { id: result.id } });
       } else if (result.docType === 'FILE') {
-        // 파일은 다운로드 또는 미리보기
-        console.log('파일 상세:', result);
-        // TODO: 파일 처리 로직 추가
+        // 파일은 fileUrl이 있으면 새 창에서 열기
+        if (result.fileUrl) {
+          window.open(result.fileUrl, '_blank');
+        } else {
+          console.warn('파일 URL이 없습니다:', result);
+        }
+      }
+    },
+
+    // 폴더로 이동
+    navigateToFolder(result) {
+      if (!result.rootType || !result.rootId) {
+        console.warn('rootType 또는 rootId가 없습니다:', result);
+        return;
+      }
+
+      // parentId가 null이면 루트 경로의 문서함으로 이동
+      if (!result.parentId) {
+        this.$router.push({
+          name: 'driveRoot',
+          params: {
+            rootType: result.rootType,
+            rootId: result.rootId
+          }
+        });
+      } else {
+        // parentId가 있으면 해당 폴더로 이동
+        this.$router.push({
+          name: 'driveFolder',
+          params: {
+            rootType: result.rootType,
+            rootId: result.rootId,
+            folderId: result.parentId
+          }
+        });
       }
     },
   },
@@ -658,6 +707,29 @@ export default {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 6px;
+}
+
+.result-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folder-shortcut-btn {
+  color: #1976d2 !important;
+  border-color: #1976d2 !important;
+  text-transform: none !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.1px !important;
+  padding: 4px 10px !important;
+  min-width: auto !important;
+  transition: all 0.2s ease;
+}
+
+.folder-shortcut-btn:hover {
+  background-color: #e3f2fd !important;
+  border-color: #1565c0 !important;
 }
 
 .result-title {

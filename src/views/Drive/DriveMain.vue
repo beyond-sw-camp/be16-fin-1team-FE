@@ -457,6 +457,35 @@
       </v-card>
     </v-dialog>
 
+    <!-- Delete Confirmation Dialog -->
+    <v-dialog v-model="deleteDialog" max-width="520" scroll-strategy="block">
+      <v-card class="delete-dialog-card">
+        <v-card-title class="d-flex align-center">
+          <v-icon class="mr-2" color="error">{{ getItemIcon(deleteItem || {}) }}</v-icon>
+          <div>
+            <div class="text-subtitle-1 font-weight-600">삭제 확인</div>
+            <div class="text-caption grey--text text--darken-1 text-truncate" style="max-width: 360px;">
+              {{ deleteItem?.name || '' }}
+            </div>
+          </div>
+        </v-card-title>
+        <v-card-text class="pt-4 pb-2">
+          <v-alert type="warning" border="left" colored-border density="compact" class="mb-3">
+            <div class="text-body-2">
+              삭제하면 돌이킬 수 없습니다. 정말 <strong>"{{ deleteItem?.name }}"</strong>을(를) 삭제하시겠습니까?
+            </div>
+          </v-alert>
+        </v-card-text>
+        <v-card-actions class="px-4 pb-4">
+          <v-spacer></v-spacer>
+          <v-btn text @click="deleteDialog = false" :disabled="isDeleting">취소</v-btn>
+          <v-btn color="error" depressed @click="confirmDelete" :disabled="isDeleting" :loading="isDeleting">
+            <v-icon small left>mdi-delete</v-icon>삭제
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Create Document Dialog -->
     <v-dialog v-model="createDocumentDialog" max-width="520" scroll-strategy="block">
       <v-card class="create-dialog-card">
@@ -573,7 +602,7 @@
           <v-btn text @click="openRenameDialog(infoItem)" :disabled="!infoItem">
             <v-icon small left>mdi-pencil</v-icon>이름 변경
           </v-btn>
-          <v-btn text color="error" @click="deleteItem(infoItem)" :disabled="!infoItem">
+          <v-btn text color="error" @click="openDeleteDialog(infoItem)" :disabled="!infoItem || !canDelete(infoItem)">
             <v-icon small left>mdi-delete</v-icon>삭제
           </v-btn>
           <v-btn color="primary" depressed @click="infoDialog = false">
@@ -761,6 +790,9 @@ export default {
       renameDialog: false,
       renameItem: null,
       renameName: '',
+      deleteDialog: false,
+      deleteItem: null,
+      isDeleting: false,
       uploadDialog: false,
       selectedFiles: [], // { key, file, previewUrl }
       isUploading: false,
@@ -1748,6 +1780,23 @@ export default {
               id: ancestor.folderId,
               name: ancestor.folderName
             }));
+            
+            // 현재 폴더 정보도 가져와서 folderPath에 추가
+            try {
+              const folderInfo = await driveService.getFolderInfo(folderId);
+              if (folderInfo.result) {
+                // 현재 폴더가 이미 folderPath에 있는지 확인 (같은 ID인지 체크)
+                const currentFolderExists = this.folderPath.some(f => f.id === folderInfo.result.folderId);
+                if (!currentFolderExists) {
+                  this.folderPath.push({
+                    id: folderInfo.result.folderId,
+                    name: folderInfo.result.folderName
+                  });
+                }
+              }
+            } catch (error) {
+              console.error('현재 폴더 정보 조회 실패:', error);
+            }
           }
           // 빈 폴더인 경우 폴더 정보 조회
           else if (folderId && items.length === 0) {
@@ -1779,8 +1828,29 @@ export default {
           
           this.items = this.parseItems(items);
           
-          // 하위 요소가 있는 경우에만 여기서 브레드크럼 업데이트
-          if (items.length > 0) {
+          // items에 ancestors가 없었지만 folderId가 있는 경우, 폴더 정보를 가져와서 folderPath 설정
+          if (folderId && items.length > 0 && (!items[0].ancestors || this.folderPath.length === 0)) {
+            try {
+              const folderInfo = await driveService.getFolderInfo(folderId);
+              if (folderInfo.result && folderInfo.result.ancestors) {
+                const ancestorsArray = folderInfo.result.ancestors;
+                this.folderPath = ancestorsArray.slice().reverse().map(ancestor => ({
+                  id: ancestor.folderId,
+                  name: ancestor.folderName
+                }));
+                // 현재 폴더도 추가
+                this.folderPath.push({
+                  id: folderInfo.result.folderId,
+                  name: folderInfo.result.folderName
+                });
+              }
+            } catch (error) {
+              console.error('폴더 정보 조회 실패:', error);
+            }
+          }
+          
+          // 브레드크럼 업데이트
+          if (folderId || items.length > 0) {
             this.updateBreadcrumbs(folderId, items, rootType || this.currentRootType);
           }
         } else {
@@ -2518,9 +2588,12 @@ export default {
       }
     },
 
-    // 삭제
-    async deleteItem(item) {
-      if (!confirm(`"${item.name}"을(를) 삭제하시겠습니까?`)) return;
+    // 삭제 확인 및 실행
+    async confirmDelete() {
+      if (!this.deleteItem) return;
+
+      const item = this.deleteItem;
+      this.isDeleting = true;
 
       try {
         let response;
@@ -2538,6 +2611,10 @@ export default {
         
         showSnackbar(response.statusMessage || '삭제되었습니다.', 'success');
         
+        // 다이얼로그 닫기
+        this.deleteDialog = false;
+        this.deleteItem = null;
+        
         // 상세 정보 모달이 열려있고 같은 아이템이면 모달 닫기
         if (this.infoDialog && this.infoItem && this.infoItem.id === item.id) {
           this.infoDialog = false;
@@ -2553,7 +2630,10 @@ export default {
         }
       } catch (error) {
         console.error('삭제 실패:', error);
-        showSnackbar('삭제에 실패했습니다.', 'error');
+        const errorMessage = error.response?.data?.message || error.response?.data?.statusMessage || error.response?.data?.error || '삭제에 실패했습니다.';
+        showSnackbar(errorMessage, 'error');
+      } finally {
+        this.isDeleting = false;
       }
     },
 
@@ -3167,8 +3247,13 @@ export default {
 
     deleteFromMenu() {
       if (!this.canDelete(this.actionTarget)) return;
-      const target = this.actionTarget;
-      this.deleteItem(target);
+      this.openDeleteDialog(this.actionTarget);
+    },
+
+    // 삭제 다이얼로그 열기
+    openDeleteDialog(item) {
+      this.deleteItem = item;
+      this.deleteDialog = true;
     },
 
     // 리사이저 관련 메서드
