@@ -786,5 +786,65 @@ const deleteTodo = async () => {
   }
 }
 
+/* ===== 항상 화이트모드 고정 (배경은 어둡게 유지) ===== */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.35) !important; /* ✅ 반투명 어두운 배경 유지 */
+}
+
+.modal-box,
+.confirm-box,
+.add-modal,
+.edit-modal {
+  background: #ffffff !important; /* 모달 내부는 흰색 */
+  color: #000000 !important; /* 글자는 검정 */
+}
+
+.input-box {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #ddd !important;
+}
+
+.input-box::placeholder {
+  color: #999 !important;
+}
+
+.label,
+.bookmark-title,
+.bookmark-item,
+.confirm-title,
+.confirm-text {
+  color: #222 !important;
+}
+
+.bookmark-item {
+  background: #fafafa !important;
+}
+
+.bookmark-item:hover {
+  background: #fff3c4 !important;
+}
+
+.modal-footer .cancel {
+  background: #e0e0e0 !important;
+  color: #333 !important;
+}
+
+.modal-footer .confirm {
+  background: #f5c518 !important;
+  color: #000 !important;
+}
+
+.confirm-actions .cancel {
+  background: #e0e0e0 !important;
+  color: #000 !important;
+}
+
+.confirm-actions .danger {
+  background: #ff5858 !important;
+  color: #fff !important;
+}
+
+
 
 </style>
