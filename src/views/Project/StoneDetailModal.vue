@@ -552,7 +552,7 @@
                     <circle cx="12" cy="7" r="4" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <span class="assignee-name" :class="{ 'empty': !taskForm.assigneeName }">
-                    {{ taskForm.assigneeName || '담당자를 선택하세요' }}
+                    {{ taskForm.assigneeName || '스톤 참여자 목록에서 담당자를 선택하세요' }}
                   </span>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
