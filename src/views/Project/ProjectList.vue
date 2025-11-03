@@ -288,29 +288,48 @@
                   {{ stone.dDay }}
                 </text>
               </g>
+
+              <!-- Depth 표시 (hover 시) -->
+              <text
+                v-if="hoveredStoneId === stone.id && viewMode === 'focus'"
+                :x="calculateDepthIndicatorPosition(stone).x"
+                :y="calculateDepthIndicatorPosition(stone).y"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                class="stone-depth-label"
+              >
+                Depth {{ getDepthForStone(stone) }} of {{ getTotalDepthForStone(stone) }}
+              </text>
               
               <!-- 호버 시 상/하 버튼만 표시 -->
               <g v-if="viewMode === 'focus' && hoveredStoneId === stone.id" class="saturn-ring-group">
                 <!-- 위쪽 버튼 (arrow-up) -->
-                <g :transform="buttonTransform(stone, 'up')" class="ring-button" :class="{ disabled: isUpDisabled() }" @click.stop="onRingUpClick(stone, $event)" @mouseenter="onRingEnter(stone, 'up')" @mouseleave="onRingLeave">
-                  <circle r="18" fill="transparent" class="ring-button-hit" />
-                  <circle r="14" :fill="getButtonColor(stone)" />
-                  <image v-if="!isRingHovered(stone, 'up')" :href="arrowUpIcon" :xlink:href="arrowUpIcon" x="-8" y="-8" width="16" height="16" />
-                  <g v-else class="ring-button-label" :transform="buttonLabelTransform('up')">
-                    <rect x="-48" y="-26" width="96" height="24" rx="12" ry="12" fill="#2A2828" opacity="0.95" />
-                    <text x="0" y="-10" text-anchor="middle" fill="#FFFFFF" font-size="10">상위스톤 이동</text>
-                  </g>
+                <g v-if="showUpButton(stone)" :transform="buttonTransform(stone, 'up')" class="ring-button" :class="{ disabled: isUpDisabled() }" @click.stop="onRingUpClick(stone, $event)" @mouseenter="onRingEnter(stone, 'up')" @mouseleave="onRingLeave">
+                  <circle r="20" fill="transparent" class="ring-button-hit" />
+                  <!-- 호버 시 pill, 기본은 원 -->
+                  <template v-if="isRingHovered(stone, 'up')">
+                    <rect x="-55" y="-16" width="110" height="32" rx="16" ry="16" :fill="getButtonColor(stone)" />
+                    <image :href="arrowUpIcon" :xlink:href="arrowUpIcon" x="-48" y="-8" width="16" height="16" />
+                    <text x="-26" y="0" text-anchor="start" dominant-baseline="middle" fill="#FFFFFF" font-size="11" font-weight="600">상위스톤 이동</text>
+                  </template>
+                  <template v-else>
+                    <circle r="14" :fill="getButtonColor(stone)" />
+                    <image :href="arrowUpIcon" :xlink:href="arrowUpIcon" x="-8" y="-8" width="16" height="16" />
+                  </template>
                 </g>
 
                 <!-- 아래쪽 버튼 (arrow-down) -->
-                <g :transform="buttonTransform(stone, 'down')" class="ring-button" :class="{ disabled: isDownDisabled(stone) }" @click.stop="onRingDownClick(stone, $event)" @mouseenter="onRingEnter(stone, 'down')" @mouseleave="onRingLeave">
-                  <circle r="18" fill="transparent" class="ring-button-hit" />
-                  <circle r="14" :fill="getButtonColor(stone)" />
-                  <image v-if="!isRingHovered(stone, 'down')" :href="arrowDownIcon" :xlink:href="arrowDownIcon" x="-8" y="-8" width="16" height="16" />
-                  <g v-else class="ring-button-label" :transform="buttonLabelTransform('down')">
-                    <rect x="-48" y="2" width="96" height="24" rx="12" ry="12" fill="#2A2828" opacity="0.95" />
-                    <text x="0" y="18" text-anchor="middle" fill="#FFFFFF" font-size="10">하위스톤 이동</text>
-                  </g>
+                <g v-if="showDownButton(stone)" :transform="buttonTransform(stone, 'down')" class="ring-button" :class="{ disabled: isDownDisabled(stone) }" @click.stop="onRingDownClick(stone, $event)" @mouseenter="onRingEnter(stone, 'down')" @mouseleave="onRingLeave">
+                  <circle r="20" fill="transparent" class="ring-button-hit" />
+                  <template v-if="isRingHovered(stone, 'down')">
+                    <rect x="-55" y="-16" width="110" height="32" rx="16" ry="16" :fill="getButtonColor(stone)" />
+                    <image :href="arrowDownIcon" :xlink:href="arrowDownIcon" x="-48" y="-8" width="16" height="16" />
+                    <text x="-26" y="0" text-anchor="start" dominant-baseline="middle" fill="#FFFFFF" font-size="11" font-weight="600">하위스톤 이동</text>
+                  </template>
+                  <template v-else>
+                    <circle r="14" :fill="getButtonColor(stone)" />
+                    <image :href="arrowDownIcon" :xlink:href="arrowDownIcon" x="-8" y="-8" width="16" height="16" />
+                  </template>
                 </g>
               </g>
 
@@ -1041,7 +1060,7 @@ export default {
       hoveredRingStoneId: null,
       hoveredRingDir: null,
       // 그래프 초기 중심 Y 오프셋 (디폴트 위치를 약간 아래로)
-      defaultCenterYOffset: 20
+      defaultCenterYOffset: 30
     };
   },
   computed: {
@@ -1255,6 +1274,159 @@ export default {
       // 버튼 중심 기준으로 위/아래에 라벨 배치
       return dir === 'up' ? 'translate(0, 0)' : 'translate(0, 0)';
     },
+    // Depth 인디케이터 위치: 스톤 우상단 (스톤 추가 버튼의 대칭 위치)
+    calculateDepthIndicatorPosition(stone) {
+      const centerX = stone.x + (stone.isRoot ? 90 : 75);
+      const centerY = stone.y + (stone.isRoot ? 90 : 75);
+      const radius = stone.isRoot ? 90 : 75;
+      // 스톤 기준으로 약간 더 오른쪽으로 이동
+      const offsetX = radius * 1.1;
+      const offsetY = radius * 0.85;
+      return {
+        x: centerX + offsetX,
+        y: centerY - offsetY
+      };
+    },
+    // 노드 깊이 (현재 뷰의 루트에서 1부터 시작)
+    getDepthForStone(stone) {
+      // 전체 트리(전체보기 기준)에서 루트까지의 거리(1부터)로 계산
+      if (!stone) return 0;
+      const { byId } = this.buildFullIndex();
+      const node = byId.get(stone.id);
+      if (!node) return 1;
+      let depth = 1;
+      let current = node;
+      while (current && current.parentStoneId) {
+        const parent = byId.get(current.parentStoneId);
+        if (!parent) break;
+        depth += 1;
+        current = parent;
+      }
+      return depth;
+    },
+    // 현재 표시 중인 트리의 총 depth (최대 레벨)
+    getTotalDepth() {
+      if (!this.stoneNodes || this.stoneNodes.length === 0) return 0;
+      const byId = new Map(this.stoneNodes.map(n => [n.id, n]));
+      const memo = new Map();
+      const depthOf = (node) => {
+        if (memo.has(node.id)) return memo.get(node.id);
+        let depth = 1;
+        let current = node;
+        while (current && current.parentId) {
+          const parent = byId.get(current.parentId);
+          if (!parent) break;
+          depth += 1;
+          current = parent;
+        }
+        memo.set(node.id, depth);
+        return depth;
+      };
+      let maxDepth = 1;
+      for (const n of this.stoneNodes) {
+        const d = depthOf(n);
+        if (d > maxDepth) maxDepth = d;
+      }
+      return maxDepth;
+    },
+    // 특정 스톤 기준 서브트리의 총 depth (해당 스톤을 1로 카운트)
+    getSubtreeTotalDepth(stone) {
+      if (!stone) return 0;
+      const childrenMap = new Map();
+      // 자식 인덱스 맵 작성
+      for (const n of this.stoneNodes) {
+        if (!childrenMap.has(n.parentId)) childrenMap.set(n.parentId, []);
+        childrenMap.get(n.parentId).push(n);
+      }
+      const memo = new Map();
+      const height = (node) => {
+        if (memo.has(node.id)) return memo.get(node.id);
+        const children = childrenMap.get(node.id) || [];
+        if (children.length === 0) {
+          memo.set(node.id, 1);
+          return 1;
+        }
+        let maxChild = 0;
+        for (const c of children) {
+          const h = height(c);
+          if (h > maxChild) maxChild = h;
+        }
+        const res = 1 + maxChild;
+        memo.set(node.id, res);
+        return res;
+      };
+      return height(stone);
+    },
+    // 요구사항: 루트/리프/중간에 따라 총 depth 계산 (항상 전체 트리 기준)
+    getTotalDepthForStone(stone) {
+      if (!stone) return 0;
+      const { byId, childrenMap } = this.buildFullIndex();
+      const subtreeHeight = (node) => {
+        const children = childrenMap.get(node.stoneId || node.id) || [];
+        if (children.length === 0) return 1;
+        let maxChild = 0;
+        for (const c of children) {
+          const h = subtreeHeight(c);
+          if (h > maxChild) maxChild = h;
+        }
+        return 1 + maxChild;
+      };
+      const depthFromRoot = (node) => {
+        let depth = 1;
+        let current = node;
+        while (current && current.parentStoneId) {
+          const parent = byId.get(current.parentStoneId);
+          if (!parent) break;
+          depth += 1;
+          current = parent;
+        }
+        return depth;
+      };
+      const node = byId.get(stone.id);
+      if (!node) return 1;
+      const hasChildren = (childrenMap.get(node.stoneId) || []).length > 0;
+      const isLeaf = !hasChildren;
+      const isRoot = !node.parentStoneId;
+      if (isRoot) {
+        // 루트: 가장 깊은 자식 기준 (서브트리 높이)
+        return subtreeHeight(node);
+      }
+      if (isLeaf) {
+        // 리프: 루트까지의 거리
+        return depthFromRoot(node);
+      }
+      // 중간 노드: 위로 루트까지 + 아래로 가장 깊은 하위까지 - 1(자기 중복 제거)
+      return depthFromRoot(node) + subtreeHeight(node) - 1;
+    },
+    // 전체 트리 인덱스 생성 (this.stones 기준)
+    buildFullIndex() {
+      const byId = new Map();
+      const childrenMap = new Map();
+      const walk = (list, parentId = null) => {
+        if (!Array.isArray(list)) return;
+        for (const s of list) {
+          const id = s.stoneId || s.id;
+          byId.set(id, s);
+          s.parentStoneId = s.parentStoneId ?? parentId;
+          if (!childrenMap.has(parentId)) childrenMap.set(parentId, []);
+          childrenMap.get(parentId).push(s);
+          if (s.childStone && s.childStone.length > 0) {
+            walk(s.childStone, id);
+          }
+        }
+      };
+      if (this.stones && this.stones.length > 0) {
+        walk(this.stones, null);
+      } else {
+        // 폴백: stoneNodes 기반 (정보 부족 시)
+        for (const n of this.stoneNodes) {
+          byId.set(n.id, { stoneId: n.id, parentStoneId: n.parentId });
+          if (!childrenMap.has(n.parentId)) childrenMap.set(n.parentId, []);
+          childrenMap.get(n.parentId).push({ stoneId: n.id, parentStoneId: n.parentId });
+        }
+      }
+      return { byId, childrenMap };
+    },
     onRingUpClick(stone, event) {
       // 뒤로가기와 동일 동작 (상위스톤 이동)
       if (this.isUpDisabled()) {
@@ -1274,6 +1446,24 @@ export default {
         return;
       }
       this.focusOnStone(stone, event);
+    },
+    // 표시 조건: 상단 버튼
+    showUpButton(stone) {
+      if (this.viewMode !== 'focus') return false;
+      // 화면이 부모(현재 포커스) + 자식들인 경우, 자식들에는 상위 이동 버튼 숨김
+      if (this.currentFocusedStoneId && stone.parentId === this.currentFocusedStoneId) {
+        return false;
+      }
+      return true;
+    },
+    // 표시 조건: 하단 버튼
+    showDownButton(stone) {
+      if (this.viewMode !== 'focus') return false;
+      // 현재 포커스(부모)에는 하위 이동 버튼 숨김 (이미 같은 화면에 자식들이 존재)
+      if (this.currentFocusedStoneId && stone.id === this.currentFocusedStoneId) {
+        return false;
+      }
+      return true;
     },
     // 상위 이동 불가 여부 (포커스 최상단)
     isUpDisabled() {
@@ -4777,7 +4967,7 @@ export default {
 
 .create-stone-text-content {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 11px;
   fill: #4A4848;
   text-anchor: middle;
@@ -4895,6 +5085,17 @@ export default {
   fill: #FFFFFF;
   pointer-events: none;
   text-anchor: middle;
+}
+
+/* 스톤 depth 라벨 (hover 시) */
+.stone-depth-label {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  fill: #1C0F0F; /* 검은 글씨 */
+  paint-order: normal;
+  stroke: none;
+  stroke-width: 0;
 }
 
 /* 루트 스톤 텍스트 스타일 */
