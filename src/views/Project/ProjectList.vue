@@ -54,24 +54,15 @@
     
     <!-- 마일스톤 탭 -->
     <div v-if="activeTab === 'milestone'">
-      <!-- 뒤로가기 버튼 - 포커스 모드일 때만 표시 -->
-      <button 
-        v-if="viewMode === 'focus' && focusedStoneStack.length > 0" 
-        class="milestone-back-button" 
-        @click="exitFocusMode"
-        title="뒤로가기"
-      >
-        <img src="@/assets/icons/project/collapse-all.svg" alt="뒤로가기" class="back-icon" />
-      </button>
-      
       <!-- 전체스톤 버튼 - 포커스 모드일 때만 표시 -->
       <button 
         v-if="viewMode === 'focus' && focusedStoneStack.length > 0" 
         class="milestone-all-stone-button" 
         @click="goToAllStones"
-        title="전체트리"
+        title="root 스톤으로 이동"
       >
         <img src="@/assets/icons/project/node-tree.svg" alt="전체트리" class="all-stone-icon" />
+        <span class="all-stone-text">ROOT</span>
       </button>
       
       <!-- 핀 버튼 (루트 설정 저장/복원) - 포커스 모드일 때만 표시 -->
@@ -102,6 +93,31 @@
         }"
         ref="milestoneCanvas"
       >
+        <!-- 보기 모드 스위치: 카드 상단 중앙 정렬 -->
+        <div class="view-mode-controls">
+          <div class="segmented-switch" role="tablist" aria-label="보기 모드 선택">
+            <button
+              class="seg-option"
+              :class="{ active: viewMode === 'all' }"
+              role="tab"
+              :aria-selected="viewMode === 'all'"
+              @click="setViewMode('all')"
+              title="전체보기 모드"
+            >
+              전체보기 모드
+            </button>
+            <button
+              class="seg-option"
+              :class="{ active: viewMode === 'focus' }"
+              role="tab"
+              :aria-selected="viewMode === 'focus'"
+              @click="setViewMode('focus')"
+              title="포커스 모드"
+            >
+              포커스 모드
+            </button>
+          </div>
+        </div>
         <div v-if="loading" class="loading-container">
           <p class="loading-text">스톤 목록을 불러오는 중...</p>
         </div>
@@ -274,9 +290,9 @@
               </g>
               
               <!-- 호버 시 상/하 버튼만 표시 -->
-              <g v-if="hoveredStoneId === stone.id" class="saturn-ring-group">
+              <g v-if="viewMode === 'focus' && hoveredStoneId === stone.id" class="saturn-ring-group">
                 <!-- 위쪽 버튼 (arrow-up) -->
-                <g :transform="buttonTransform(stone, 'up')" class="ring-button" @click.stop @mouseenter="onRingEnter(stone, 'up')" @mouseleave="onRingLeave">
+                <g :transform="buttonTransform(stone, 'up')" class="ring-button" :class="{ disabled: isUpDisabled() }" @click.stop="onRingUpClick(stone, $event)" @mouseenter="onRingEnter(stone, 'up')" @mouseleave="onRingLeave">
                   <circle r="18" fill="transparent" class="ring-button-hit" />
                   <circle r="14" :fill="getButtonColor(stone)" />
                   <image v-if="!isRingHovered(stone, 'up')" :href="arrowUpIcon" :xlink:href="arrowUpIcon" x="-8" y="-8" width="16" height="16" />
@@ -287,7 +303,7 @@
                 </g>
 
                 <!-- 아래쪽 버튼 (arrow-down) -->
-                <g :transform="buttonTransform(stone, 'down')" class="ring-button" @click.stop @mouseenter="onRingEnter(stone, 'down')" @mouseleave="onRingLeave">
+                <g :transform="buttonTransform(stone, 'down')" class="ring-button" :class="{ disabled: isDownDisabled(stone) }" @click.stop="onRingDownClick(stone, $event)" @mouseenter="onRingEnter(stone, 'down')" @mouseleave="onRingLeave">
                   <circle r="18" fill="transparent" class="ring-button-hit" />
                   <circle r="14" :fill="getButtonColor(stone)" />
                   <image v-if="!isRingHovered(stone, 'down')" :href="arrowDownIcon" :xlink:href="arrowDownIcon" x="-8" y="-8" width="16" height="16" />
@@ -322,29 +338,7 @@
                 </text>
               </g>
               
-              <!-- 이 스톤부터 보기 버튼 - 포커스 모드일 때만 표시 -->
-              <g 
-                v-if="viewMode === 'focus' && !isCurrentFocusedStone(stone) && hoveredStoneId === stone.id"
-                class="focus-stone-text" 
-                @click="focusOnStone(stone, $event)"
-              >
-                <!-- 클릭 영역을 넓히기 위한 투명한 원 (스톤 추가 버튼과 겹치지 않도록 작게) -->
-                <circle
-                  :cx="calculateFocusPosition(stone).x"
-                  :cy="calculateFocusPosition(stone).y"
-                  r="35"
-                  fill="transparent"
-                  class="focus-stone-click-area"
-                />
-                <text
-                  :x="calculateFocusPosition(stone).x"
-                  :y="calculateFocusPosition(stone).y"
-                  class="focus-stone-text-content"
-                  @click="focusOnStone(stone, $event)"
-                >
-                  → 루트 이동
-                </text>
-              </g>
+              
             </g>
           </g>
           
@@ -407,21 +401,10 @@
       </button>
     </div>
     
-    <!-- 보기 모드 스위치 (전체보기 / 포커스) -->
-    <div class="view-mode-controls">
-      <button 
-        class="view-switch-btn" 
-        :class="{ focus: viewMode === 'focus' }"
-        @click="toggleViewMode"
-        :title="viewMode === 'focus' ? '포커스 모드' : '전체보기 모드'"
-      >
-        <span class="switch-label">{{ viewMode === 'focus' ? '포커스' : '전체보기' }}</span>
-        <span class="switch-knob"></span>
-      </button>
-    </div>
     
-    <!-- 모드 전환 버튼 -->
-    <div class="mode-controls">
+    
+    <!-- 모드 전환 버튼 (마일스톤 탭에서만 표시) -->
+    <div v-if="activeTab === 'milestone'" class="mode-controls">
       <button 
         class="mode-btn" 
         :class="{ active: interactionMode === 'click' }"
@@ -926,6 +909,7 @@ import ProjectDashboard from '@/views/Project/ProjectDashboard.vue';
 import arrowUpIcon from '@/views/Project/arrow-up.svg';
 import arrowDownIcon from '@/views/Project/arrow-down.svg';
 import { searchWorkspaceParticipants, getStoneDetail } from '@/services/stoneService.js';
+import { showSnackbar } from '@/services/snackbar.js';
 import pinIcon from '@/assets/icons/project/pin.svg';
 import pinOutlineIcon from '@/assets/icons/project/pin-outline.svg';
 
@@ -1055,7 +1039,9 @@ export default {
       ,
       // 링 버튼 hover 상태
       hoveredRingStoneId: null,
-      hoveredRingDir: null
+      hoveredRingDir: null,
+      // 그래프 초기 중심 Y 오프셋 (디폴트 위치를 약간 아래로)
+      defaultCenterYOffset: 20
     };
   },
   computed: {
@@ -1226,6 +1212,12 @@ export default {
     }
   },
   methods: {
+    setViewMode(mode) {
+      if (mode !== 'all' && mode !== 'focus') return;
+      if (this.viewMode === mode) return;
+      this.viewMode = mode;
+      localStorage.setItem('projectViewMode', this.viewMode);
+    },
     // 토성 띠 반지름 계산 (스톤 외곽에서 여백을 둔 링)
     getRingRadius(stone) {
       const base = stone.isRoot ? 90 : 75;
@@ -1262,6 +1254,49 @@ export default {
     buttonLabelTransform(dir) {
       // 버튼 중심 기준으로 위/아래에 라벨 배치
       return dir === 'up' ? 'translate(0, 0)' : 'translate(0, 0)';
+    },
+    onRingUpClick(stone, event) {
+      // 뒤로가기와 동일 동작 (상위스톤 이동)
+      if (this.isUpDisabled()) {
+        if (this.viewMode === 'focus') {
+          showSnackbar('루트 스톤입니다.', { color: 'warning' });
+        }
+        return;
+      }
+      this.exitFocusMode();
+    },
+    onRingDownClick(stone, event) {
+      // 하위스톤 이동: 해당 스톤으로 포커스 이동
+      if (this.isDownDisabled(stone)) {
+        if (this.viewMode === 'focus') {
+          showSnackbar('마지막 스톤입니다.', { color: 'warning' });
+        }
+        return;
+      }
+      this.focusOnStone(stone, event);
+    },
+    // 상위 이동 불가 여부 (포커스 최상단)
+    isUpDisabled() {
+      if (this.viewMode !== 'focus') return true;
+      return this.focusedStoneStack.length === 0;
+    },
+    // 하위스톤 존재 여부 판단 (원본 트리 기준)
+    isDownDisabled(stone) {
+      if (this.viewMode !== 'focus') return true;
+      const target = this.findStoneById(this.stones, stone.id);
+      if (!target) return true;
+      return !(target.childStone && target.childStone.length > 0);
+    },
+    findStoneById(list, id) {
+      if (!Array.isArray(list)) return null;
+      for (const s of list) {
+        if (s.stoneId === id || s.id === id) return s;
+        if (s.childStone && s.childStone.length > 0) {
+          const found = this.findStoneById(s.childStone, id);
+          if (found) return found;
+        }
+      }
+      return null;
     },
     // 보기 모드 토글
     toggleViewMode() {
@@ -1659,7 +1694,7 @@ export default {
           
           // 그래프를 SVG 중앙에 위치시키기 위한 translate 계산
           this.translate.x = svgCenterX - graphCenterX;
-          this.translate.y = svgCenterY - graphCenterY;
+          this.translate.y = svgCenterY - graphCenterY + (this.defaultCenterYOffset || 0);
           
           console.log('그래프 중심점 계산:', {
             bbox: { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height },
@@ -4103,68 +4138,59 @@ export default {
 
 /* 보기 모드 스위치 (전체보기/포커스) */
 .view-mode-controls {
-  position: fixed;
-  bottom: 180px; /* 클릭/손 버튼 위 */
-  left: 300px;
-  z-index: 999;
+  position: absolute; /* 카드 내부 기준 */
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
 }
 
-.view-switch-btn {
-  position: relative;
-  width: 108px;
-  height: 44px;
-  border: 1px solid #E0E0E0;
-  border-radius: 999px;
+.segmented-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px; /* 세그먼트 간 여백으로 분리 */
+  padding: 4px;
   background: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 0 12px;
+  border: 1px solid #D1D5DB; /* 미세한 테두리 */
+  border-radius: 999px; /* pill 형태 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.seg-option {
+  min-width: 112px;
+  height: 32px; /* 더 낮은 높이 */
+  padding: 0 16px;
+  border: none;
+  background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.view-switch-btn:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-}
-
-.view-switch-btn:active {
-  transform: translateY(0px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.view-switch-btn.focus {
-  background: #2A2828;
-  border-color: #2A2828;
-}
-
-.switch-label {
+  border-radius: 999px; /* 각 세그먼트도 pill */
   font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #6B7280; /* gray-500 */
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.seg-option:hover {
+  background: #F9FAFB; /* 아주 옅은 hover */
+  color: #374151; /* gray-700 */
+}
+
+.seg-option.active {
+  background: #3A3838; /* stone dark 보다 한 톤 밝게 */
+  color: #F5F5F5; /* 밝은 텍스트 */
   font-weight: 700;
-  font-size: 12px;
-  color: #1C0F0F;
-  z-index: 1;
+  box-shadow: inset 0 0 0 1.5px #3A3838; /* 동일 톤 */
 }
 
-.view-switch-btn.focus .switch-label {
-  color: #F5F5F5;
-}
-
-.switch-knob {
-  position: absolute;
-  left: 6px;
-  top: 6px;
-  width: 32px;
-  height: 32px;
-  background: #F4CE53;
-  border-radius: 16px;
-  transition: transform 0.2s ease;
-}
-
-.view-switch-btn.focus .switch-knob {
-  transform: translateX(64px);
+/* 기본 파란 포커스 링 제거 */
+.seg-option:focus,
+.seg-option:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .mode-btn {
@@ -4377,9 +4403,9 @@ export default {
   position: fixed;
   top: 250px;
   left: 296px;
-  width: 44px;
+  min-width: 44px;
   height: 44px;
-  padding: 0;
+  padding: 0 10px;
   border: 1px solid #E0E0E0;
   border-radius: 8px;
   background: #FFFFFF;
@@ -4387,6 +4413,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   z-index: 999;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
@@ -4407,6 +4434,13 @@ export default {
   width: 20px;
   height: 20px;
   filter: brightness(0);
+}
+
+.all-stone-text {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: #1C0F0F;
 }
 
 /* 마일스톤 핀 버튼 */
@@ -4506,6 +4540,11 @@ export default {
 
 .ring-button {
   pointer-events: all; /* 버튼은 클릭 가능 */
+}
+
+.ring-button.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .saturn-ring-hit {
