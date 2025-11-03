@@ -75,7 +75,7 @@
         <!-- OpenVidu -->
         <v-col cols="12" md="4">
           <v-card>
-            <v-card-title>OpenViudu</v-card-title>
+            <v-card-title>OpenVidu</v-card-title>
             <v-card-text>
               화상회의 관련
             </v-card-text>

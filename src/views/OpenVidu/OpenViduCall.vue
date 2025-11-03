@@ -90,6 +90,14 @@ export default {
   components: { VideoStream },
   data() {
     return {
+      // pending streams received before we finish connecting
+      _pendingStreams: [],
+      // bound handler references so we can remove them on cleanup
+      _onStartSpeaking: null,
+      _onStopSpeaking: null,
+      _onStreamCreated: null,
+      _onStreamDestroyed: null,
+      _onConnectionDestroyed: null,
       OV: null,
       session: undefined,
       publisher: undefined,
@@ -135,9 +143,24 @@ export default {
       fullScreenIconOut: fullScreeenOut, // 전체화면 종료 아이콘
 
       shutdownIcon: shutDownLine, // 종료 아이콘
+      // 새로고침/강제 리로드 관련
+      _beforeUnloadBound: null,
+      _refreshStorageKey: 'ov_refresh_count',
+      _refreshLimit: 3,
     }
   },
   async created() {
+    // 새로고침 횟수 체크: 너무 많이 새로고침 했으면 메인으로 돌려보냄
+    try {
+      const cnt = parseInt(sessionStorage.getItem(this._refreshStorageKey) || '0', 10) || 0;
+      if (cnt >= this._refreshLimit) {
+        alert('새로고침이 너무 많이 감지되어 메인 화면으로 이동합니다. 다시 접속해 주세요.');
+        this.$router.push('/main');
+        return;
+      }
+    } catch (e) {
+      console.debug('refresh count parse error', e);
+    }
     const roomId = this.$route.params.roomId;
     if (!roomId) {
       alert("유효하지 않은 접근입니다. 채팅방 ID를 확인해 주세요.");
@@ -150,13 +173,25 @@ export default {
     await this.joinSession();
     // OV 객체가 생성된 후 장치 목록을 가져옵니다.
     if (this.OV) await this.getDevices();
+
+    // join 성공 후 beforeunload 바인딩을 안전하게 유지하기 위해 바운드 핸들러 준비
+    // (joinSession에서도 바인딩하지만, 컴포넌트 레벨에서 한 번 관리)
+    if (!this._beforeUnloadBound) {
+      this._beforeUnloadBound = this.beforeUnloadHandler.bind(this);
+      window.addEventListener('beforeunload', this._beforeUnloadBound);
+    }
   },
   beforeUnmount() {
     document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
     document.removeEventListener('webkitfullscreenchange', this.handleFullscreenChange);
     document.removeEventListener('mozfullscreenchange', this.handleFullscreenChange);
     document.removeEventListener('MSFullscreenChange', this.handleFullscreenChange);
-    this.leaveSession();
+    // 안전 정리
+    try { this.safeCleanup(); } catch (e) { console.debug('safeCleanup error', e); }
+    if (this._beforeUnloadBound) {
+      window.removeEventListener('beforeunload', this._beforeUnloadBound);
+      this._beforeUnloadBound = null;
+    }
   },
 
   mounted() {
@@ -271,8 +306,9 @@ export default {
           return;
         }
 
-        // OpenVidu 인스턴스 초기화
-        this.OV = new OpenVidu('http://localhost:4443');
+  // OpenVidu 인스턴스 초기화 (URL from env if available)
+  const openViduUrl = import.meta.env.VITE_OPENVIDU_URL || 'http://localhost:4443';
+  this.OV = new OpenVidu(openViduUrl);
         // 말하기 이벤트 민감도 설정 (필요 시 조정)
         try {
           this.OV.setAdvancedConfiguration({
@@ -288,29 +324,45 @@ export default {
         this.session = this.OV.initSession();
 
         // === 이벤트 등록 ===
-        // 음성 감지 - 시작
-        this.session.on('publisherStartSpeaking', (event) => {
+        // 음성 감지 - 시작/종료 (핸들러 참조를 보관하여 나중에 off 할 수 있게 함)
+        this._onStartSpeaking = (event) => {
           const cid = event?.connection?.connectionId;
           if (!cid) return;
-          this.$set ? this.$set(this.speakingMap, cid, true) : (this.speakingMap[cid] = true);
-        });
-        // 음성 감지 - 종료
-        this.session.on('publisherStopSpeaking', (event) => {
+          // Vue3 친화적 반응성 갱신
+          this.speakingMap = { ...this.speakingMap, [cid]: true };
+        };
+        this._onStopSpeaking = (event) => {
           const cid = event?.connection?.connectionId;
           if (!cid) return;
-          this.$set ? this.$set(this.speakingMap, cid, false) : (this.speakingMap[cid] = false);
-        });
+          // 제거하여 상태를 깨끗하게 유지
+          const { [cid]: _, ...rest } = this.speakingMap || {};
+          this.speakingMap = rest;
+        };
+        this.session.on('publisherStartSpeaking', this._onStartSpeaking);
+        this.session.on('publisherStopSpeaking', this._onStopSpeaking);
 
-        this.session.on('streamCreated', ({ stream }) => {
-          // 내 자신의 스트림은 무시
-          if (
-            this.session?.connection &&
-            stream.connection.connectionId === this.session.connection.connectionId
-          ) return;
+        // 스트림 생성: 세션 연결 전에 발생할 수 있으므로 버퍼링 및 안전 체크를 한다
+        this._onStreamCreated = ({ stream }) => {
+          // 안전: 아직 세션 연결(자기 connection 정보)이 없다면 버퍼에 보관
+          if (!this.session?.connection) {
+            this._pendingStreams.push(stream);
+            return;
+          }
+
+          const streamConnId = stream?.connection?.connectionId;
+          // 자기 자신의 스트림은 구독하지 않음
+          if (streamConnId && this.session?.connection?.connectionId === streamConnId) return;
+
+          // 추가 안전: connection.data에 담긴 clientData가 내 이름과 같다면 중복 구독을 방지
+          try {
+            const raw = stream?.connection?.data;
+            const client = this._parseRawClientData(raw);
+            if (client && client === this.myUserName) return;
+          } catch (e) { /* ignore */ }
 
           // 중복 구독 방지
           const alreadySubscribed = this.subscribers.some(
-            (s) => s.stream.connection.connectionId === stream.connection.connectionId
+            (s) => s.stream.connection.connectionId === streamConnId
           );
           if (alreadySubscribed) return;
 
@@ -321,9 +373,10 @@ export default {
           this.$nextTick(() => {
             this.updateOutputVolume(this.outputVolume);
           });
-        });
+        };
+        this.session.on('streamCreated', this._onStreamCreated);
 
-        this.session.on('streamDestroyed', ({ stream }) => {
+        this._onStreamDestroyed = ({ stream }) => {
           if (this.mainStreamManager === stream.streamManager)
             this.mainStreamManager = this.publisher;
 
@@ -331,15 +384,17 @@ export default {
           // 연결 종료 시 말하기 상태 정리
           const cid = stream?.connection?.connectionId;
           if (cid && this.speakingMap[cid] !== undefined) {
-            delete this.speakingMap[cid];
+            const { [cid]: _, ...rest } = this.speakingMap || {};
+            this.speakingMap = rest;
           }
           // ✅ 포커스 대상이 나간 경우, 포커스 해제하여 그리드로 복귀
           if (this.focusedStreamManager === stream.streamManager) {
             this.focusedStreamManager = null;
           }
-        });
+        };
+        this.session.on('streamDestroyed', this._onStreamDestroyed);
 
-        this.session.on('connectionDestroyed', ({ connection }) => {
+        this._onConnectionDestroyed = ({ connection }) => {
           const streamManager = this.subscribers.find(
             (sub) => sub.stream.connection.connectionId === connection.connectionId
           );
@@ -352,13 +407,15 @@ export default {
           // 연결 파괴 시 말하기 상태 정리
           const cid = connection?.connectionId;
           if (cid && this.speakingMap[cid] !== undefined) {
-            delete this.speakingMap[cid];
+            const { [cid]: _, ...rest } = this.speakingMap || {};
+            this.speakingMap = rest;
           }
           // ✅ 포커스 대상이 나간 경우 처리 (보조 안전장치)
           if (streamManager && this.focusedStreamManager === streamManager) {
             this.focusedStreamManager = null;
           }
-        });
+        };
+        this.session.on('connectionDestroyed', this._onConnectionDestroyed);
 
         // === 세션 연결 ===
         const token = await this.getToken(); // 서버에서 토큰 발급받는 함수
@@ -375,14 +432,20 @@ export default {
           mirror: false,
         });
 
-        await this.session.publish(this.publisher);
-        this.mainStreamManager = this.publisher;
+  await this.session.publish(this.publisher);
+  this.mainStreamManager = this.publisher;
+  // 세션 연결/게시 완료 후에 버퍼에 남아있던 streamCreated 이벤트들을 처리
+  this._processPendingStreams && this._processPendingStreams();
         // 초기에는 그리드 모드 유지 (focusedStreamManager = null)
 
         // === 새로고침 / 탭 닫기 시 안전하게 세션 정리 ===
-        window.addEventListener('beforeunload', () => {
-          if (this.session) this.session.disconnect();
-        });
+        if (!this._beforeUnloadBound) {
+          this._beforeUnloadBound = this.beforeUnloadHandler.bind(this);
+          window.addEventListener('beforeunload', this._beforeUnloadBound);
+        }
+
+        // 성공적으로 접속했으므로 새로고침 카운터 초기화
+        try { sessionStorage.setItem(this._refreshStorageKey, '0'); } catch (e) { /* ignore */ }
 
         console.log('✅ Session joined successfully.');
       } catch (error) {
@@ -412,8 +475,9 @@ export default {
       try {
         // OpenVidu 서버의 녹화 시작 API 엔드포인트 호출
         // (주의: OpenVidu 서버/백엔드에 이 API를 구현해야 합니다.)
+        const apiBase = import.meta.env.VITE_API_BASE_URL || '';
         const response = await axios.post(
-          `${process.env.VUE_APP_API_BASE_URL}/openvidu/recordings/start`,
+          `${apiBase}/openvidu/recordings/start`,
           { sessionId: this.mySessionId },
           // 백엔드가 OpenVidu 서버와 통신할 수 있도록 필요한 헤더(예: 인증)를 추가할 수 있습니다.
           // 여기서는 백엔드가 OpenVidu API를 대신 호출한다고 가정합니다.
@@ -441,8 +505,9 @@ export default {
 
       try {
         // OpenVidu 서버의 녹화 중지 API 엔드포인트 호출
+        const apiBase = import.meta.env.VITE_API_BASE_URL || '';
         const response = await axios.post(
-          `${process.env.VUE_APP_API_BASE_URL}/openvidu/recordings/stop/${this.recordingId}`
+          `${apiBase}/openvidu/recordings/stop/${this.recordingId}`
         );
 
         if (response.status === 200 || response.status === 202) {
@@ -486,13 +551,70 @@ export default {
         this.myUserName = localStorage.getItem('email') || '';
       }
     },
+    // beforeunload 핸들러: 새로고침 카운트 증가 및 안전한 연결 해제
+    beforeUnloadHandler(event) {
+      try {
+        const k = this._refreshStorageKey;
+        const prev = parseInt(sessionStorage.getItem(k) || '0', 10) || 0;
+        sessionStorage.setItem(k, String(prev + 1));
+      } catch (e) {
+        console.debug('beforeUnload storage error', e);
+      }
+
+      try {
+        if (this.session) {
+          try { if (this.publisher) this.session.unpublish(this.publisher); } catch (e) { }
+          try { this.session.disconnect(); } catch (e) { }
+        }
+      } catch (e) {
+        console.debug('beforeUnload disconnect error', e);
+      }
+      return undefined;
+    },
+
+    // 안전 정리: 세션/퍼블리셔/구독자 정리 및 상태 리셋
+    safeCleanup() {
+      try {
+        if (this.session) {
+          try { if (this.publisher) this.session.unpublish(this.publisher); } catch (e) { }
+          try {
+            this.subscribers.forEach(sub => {
+              try { this.session.unsubscribe(sub); } catch (e) { }
+            });
+          } catch (e) { }
+          // 이벤트 핸들러 제거
+          try { if (this._onStartSpeaking) this.session.off('publisherStartSpeaking', this._onStartSpeaking); } catch (e) {}
+          try { if (this._onStopSpeaking) this.session.off('publisherStopSpeaking', this._onStopSpeaking); } catch (e) {}
+          try { if (this._onStreamCreated) this.session.off('streamCreated', this._onStreamCreated); } catch (e) {}
+          try { if (this._onStreamDestroyed) this.session.off('streamDestroyed', this._onStreamDestroyed); } catch (e) {}
+          try { if (this._onConnectionDestroyed) this.session.off('connectionDestroyed', this._onConnectionDestroyed); } catch (e) {}
+          try { this.session.disconnect(); } catch (e) { }
+        }
+      } catch (e) {
+        console.debug('safeCleanup error', e);
+      } finally {
+        this.session = undefined;
+        this.publisher = undefined;
+        this.subscribers = [];
+        this.mainStreamManager = undefined;
+        this.focusedStreamManager = null;
+        this.speakingMap = {};
+        this._pendingStreams = [];
+        this.OV = null;
+      }
+    },
+
     leaveSession() {
-      if (this.session) this.session.disconnect();
-      this.session = undefined;
-      this.subscribers = [];
-      this.publisher = undefined;
-      this.mainStreamManager = undefined;
-      this.OV = null;
+      try {
+        this.safeCleanup();
+      } catch (e) {
+        console.debug('leaveSession safeCleanup error', e);
+      }
+      try { sessionStorage.setItem(this._refreshStorageKey, '0'); } catch (e) { }
+      if (this._beforeUnloadBound) {
+        window.removeEventListener('beforeunload', this._beforeUnloadBound);
+        this._beforeUnloadBound = null;
+      }
       this.$router.push(`/main`);
     },
     deleteSubscriber(streamManager) {
@@ -514,7 +636,10 @@ export default {
         // 마이크를 끌 때 즉시 내 말하기 상태를 OFF로
         if (!this.isAudioEnabled) {
           const myCid = this.session?.connection?.connectionId;
-          if (myCid) this.speakingMap[myCid] = false;
+          if (myCid) {
+            const { [myCid]: _, ...rest } = this.speakingMap || {};
+            this.speakingMap = rest;
+          }
         }
       }
     },
@@ -528,18 +653,58 @@ export default {
     },
 
     clientData(streamManager) {
-      const data = streamManager?.stream?.connection?.data;
-      if (!data) return 'Unknown';
+      const raw = streamManager?.stream?.connection?.data;
+      if (!raw) return 'Unknown';
+      return this._parseRawClientData(raw) || 'Unknown';
+    },
+
+    // raw connection.data 파싱(다양한 포맷 지원)
+    _parseRawClientData(raw) {
+      if (!raw) return null;
       try {
-        const parsed = JSON.parse(data);
-        if (parsed.clientData) return parsed.clientData;
-        if (parsed.name) return parsed.name;
-        if (parsed.userName) return parsed.userName;
-        return String(parsed);
+        // JSON 문자열일 경우
+        const parsed = JSON.parse(raw);
+        if (parsed) {
+          if (typeof parsed === 'string') return parsed;
+          if (parsed.clientData) return String(parsed.clientData);
+          if (parsed.name) return String(parsed.name);
+          if (parsed.userName) return String(parsed.userName);
+          // 객체였지만 위 키가 없으면 무시
+          return null;
+        }
       } catch (e) {
-        // plain string
-        return String(data);
+        // not json
       }
+
+      // key=value 형식 (예: clientData=홍길동)
+      const s = String(raw);
+      const kv = s.match(/clientData=([^;,&]*)/);
+      if (kv && kv[1]) return decodeURIComponent(kv[1]);
+
+      // 그냥 일반 문자열
+      return s;
+    },
+
+    // pending streams 처리
+    _processPendingStreams() {
+      if (!this._pendingStreams || this._pendingStreams.length === 0) return;
+      const pending = this._pendingStreams.splice(0, this._pendingStreams.length);
+      pending.forEach((stream) => {
+        try {
+          const streamConnId = stream?.connection?.connectionId;
+          if (streamConnId && this.session?.connection?.connectionId === streamConnId) return;
+          const client = this._parseRawClientData(stream?.connection?.data);
+          if (client && client === this.myUserName) return;
+          const alreadySubscribed = this.subscribers.some(
+            (s) => s.stream.connection.connectionId === streamConnId
+          );
+          if (alreadySubscribed) return;
+          const subscriber = this.session.subscribe(stream);
+          this.subscribers.push(subscriber);
+        } catch (e) { console.debug('processPendingStreams error', e); }
+      });
+      // 반영
+      this.$nextTick(() => this.updateOutputVolume(this.outputVolume));
     },
 
     displayName(streamManager, isPublisher = false) {
@@ -733,7 +898,7 @@ export default {
         // 'volume'은 0에서 100 사이의 값으로 설정
         if (sub.videos && sub.videos.length > 0) {
           // StreamManager의 set
-          sub.videos[0].video.volume = volume / 100;
+          try { sub.videos[0].video.volume = volume / 100; } catch (e) { /* ignore */ }
         }
       });
 
@@ -741,8 +906,15 @@ export default {
       if (this.mainStreamManager !== this.publisher &&
         this.mainStreamManager?.videos &&
         this.mainStreamManager.videos.length > 0) {
-        this.mainStreamManager.videos[0].video.volume = volume / 100;
+        try { this.mainStreamManager.videos[0].video.volume = volume / 100; } catch (e) { /* ignore */ }
       }
+
+      // DOM fallback: VideoStream 컴포넌트가 직접 생성한 <video> 요소에 적용
+      try {
+        document.querySelectorAll('.video-stream > video').forEach(v => {
+          try { v.volume = volume / 100; } catch (e) { }
+        });
+      } catch (e) { /* ignore */ }
     },
   },
 };
@@ -906,23 +1078,25 @@ body,
   display: flex;
   justify-content: center;
 }
-    
-    /* ---- 버튼 포커스/클릭 시 파란 외곽선 제거 (접근성 필요 시 조절) ---- */
-    /* 컨트롤바 내부 버튼에만 적용 */
-    :deep(.control-bar .v-btn) {
-      box-shadow: none !important;
-    }
-    :deep(.control-bar .v-btn:focus),
-    :deep(.control-bar .v-btn:active),
-    :deep(.control-bar .v-btn:focus-visible) {
-      outline: none !important;
-      box-shadow: none !important;
-    }
-    /* 사파리의 기본 -webkit-focus-ring-color 제거 */
-    :deep(.control-bar button:focus),
-    :deep(.control-bar button:focus-visible) {
-      outline: none !important;
-    }
+
+/* ---- 버튼 포커스/클릭 시 파란 외곽선 제거 (접근성 필요 시 조절) ---- */
+/* 컨트롤바 내부 버튼에만 적용 */
+:deep(.control-bar .v-btn) {
+  box-shadow: none !important;
+}
+
+:deep(.control-bar .v-btn:focus),
+:deep(.control-bar .v-btn:active),
+:deep(.control-bar .v-btn:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 사파리의 기본 -webkit-focus-ring-color 제거 */
+:deep(.control-bar button:focus),
+:deep(.control-bar button:focus-visible) {
+  outline: none !important;
+}
 
 .control-bar {
   width: 100%;
