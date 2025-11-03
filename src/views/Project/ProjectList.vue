@@ -335,6 +335,7 @@
 
               <!-- 스톤 생성 텍스트 버튼 -->
               <g 
+                v-if="hoveredStoneId === stone.id"
                 class="create-stone-text stone-add-text" 
                 :class="{ 'disabled': isStoneCompleted(stone) }"
                 @click="openCreateStoneModal(stone, $event)"
@@ -1280,7 +1281,7 @@ export default {
       const centerY = stone.y + (stone.isRoot ? 90 : 75);
       const radius = stone.isRoot ? 90 : 75;
       // 스톤과 조금 더 가깝게 붙이고, 텍스트를 약간 오른쪽으로 이동
-      const offsetX = radius * 0.95 + 12;
+      const offsetX = radius * 0.95 + 22;
       const offsetY = radius * 0.85;
       return {
         x: centerX + offsetX,
@@ -1857,49 +1858,34 @@ export default {
       }
     },
     
-    // 실제 그래프의 bounding box 중심 계산
+    // 실제 그래프의 중심 계산 (DOM BBox 대신 데이터로 계산하여 hover 오버레이 영향 제거)
     calculateGraphCenter() {
       this.$nextTick(() => {
-        const svgElement = this.$refs.milestoneCanvas?.querySelector('.milestone-svg');
         const canvasElement = this.$refs.milestoneCanvas;
-        if (!svgElement || !canvasElement) return;
-        
-        const gElement = svgElement.querySelector('g');
-        if (!gElement) return;
-        
-        try {
-          // 실제 보이는 컨테이너의 크기 가져오기
-          const canvasRect = canvasElement.getBoundingClientRect();
-          
-          // D3를 사용하여 bounding box 계산
-          const bbox = d3.select(gElement).node().getBBox();
-          
-          // 그래프의 실제 중심점 계산
-          const graphCenterX = bbox.x + bbox.width / 2;
-          const graphCenterY = bbox.y + bbox.height / 2;
-          
-          // 실제 보이는 화면의 중심점 (컨테이너 기준)
-          const svgCenterX = canvasRect.width / 2;
-          const svgCenterY = canvasRect.height / 2;
-          
-          // 그래프를 SVG 중앙에 위치시키기 위한 translate 계산
-          this.translate.x = svgCenterX - graphCenterX;
-          this.translate.y = svgCenterY - graphCenterY + (this.defaultCenterYOffset || 0);
-          
-          console.log('그래프 중심점 계산:', {
-            bbox: { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height },
-            canvasRect: { width: canvasRect.width, height: canvasRect.height },
-            graphCenter: { x: graphCenterX, y: graphCenterY },
-            svgCenter: { x: svgCenterX, y: svgCenterY },
-            translate: { x: this.translate.x, y: this.translate.y }
-          });
-        } catch (error) {
-          console.warn('Bounding box 계산 실패, 기본 중심점 사용:', error);
-          // fallback: 컨테이너 중심점 사용
-          const canvasRect = canvasElement.getBoundingClientRect();
-          this.translate.x = canvasRect.width / 2;
-          this.translate.y = canvasRect.height / 2;
+        if (!canvasElement) return;
+        const canvasRect = canvasElement.getBoundingClientRect();
+
+        // stoneNodes 기반으로 bounds 계산 (오버레이의 DOM 변화에 영향 받지 않음)
+        if (!this.stoneNodes || this.stoneNodes.length === 0) return;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const s of this.stoneNodes) {
+          const w = s.isRoot ? 180 : 150;
+          const h = s.isRoot ? 180 : 150;
+          const left = s.x;
+          const top = s.y;
+          const right = left + w;
+          const bottom = top + h;
+          if (left < minX) minX = left;
+          if (top < minY) minY = top;
+          if (right > maxX) maxX = right;
+          if (bottom > maxY) maxY = bottom;
         }
+        const graphCenterX = (minX + maxX) / 2;
+        const graphCenterY = (minY + maxY) / 2;
+        const svgCenterX = canvasRect.width / 2;
+        const svgCenterY = canvasRect.height / 2;
+        this.translate.x = svgCenterX - graphCenterX;
+        this.translate.y = svgCenterY - graphCenterY + (this.defaultCenterYOffset || 0);
       });
     },
     // 스톤 관련 메서드들
