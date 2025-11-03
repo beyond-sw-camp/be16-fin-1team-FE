@@ -6,7 +6,7 @@
       </div>
       <div class="right">
         <button class="create-btn" @click="showModal = true">＋ 일정 등록</button>
-        <!-- ✅ 월/주/일 전환 버튼 -->
+        <!-- 월/주/일 전환 버튼 -->
         <div class="view-toggle">
           <button
             v-for="type in viewOptions"
@@ -21,26 +21,29 @@
     </div>
 
     <div class="calendar-container">
-      <!-- ✅ 사이드바 -->
+      <!-- 사이드바 -->
       <div class="sidebar">
         <h4>공유 중인 유저</h4>
-        <div v-for="user in subscribers" :key="user.targetUserId" class="user-item">
-          <label>
-            <input type="checkbox" v-model="user.visible" /> {{ user.targetUserId }}
-          </label>
-        </div>
-
+          <div v-for="user in subscribers" :key="user.targetUserId" class="user-item">
+            <label class="user-label">
+              <input type="checkbox" v-model="user.visible" class="user-checkbox" />
+              <!-- 색상 동그라미 -->
+              <span
+                class="user-dot"
+                :style="{ backgroundColor: user.color }"
+              ></span>
+              <!-- 유저 이름 -->
+              <span class="user-name">
+                {{ user.targetUserName || user.targetUserId }}
+              </span>
+            </label>
+          </div>
         <hr />
 
-        <!-- ✅ 유저 구독 추가 -->
+        <!-- 유저 구독 추가 -->
         <div class="subscribe-section">
-          <h4>새 구독 추가</h4>
-          <input
-            v-model="newUserId"
-            placeholder="유저 ID 입력"
-            class="subscribe-input"
-          />
-          <button @click="addSubscription" class="subscribe-btn">추가</button>
+          <h3>새 구독 추가</h3>
+          <v-btn color="yellow-darken-1" @click="openModal">＋ 새 구독 추가</v-btn>
         </div>
       </div>
 
@@ -49,9 +52,16 @@
           <div v-show="isCalendarVisible" ref="calendarEl" id="shared-calendar"></div>
         </transition>
       </div>
+
+      <!-- 유저 검색 모달 -->
+      <SearchUserModal
+        v-model:visible="isUserModalOpen"
+        :workspaceId="workspaceId"
+        @subscribed="fetchSharedData"
+      />
     </div>
     
-    <!-- ✅ 일정 등록 모달 -->
+    <!-- 일정 등록 모달 -->
     <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
       <div class="modal">
         <h3>일정 등록</h3>
@@ -94,6 +104,7 @@
 import { ref, onMounted, watch } from "vue";
 import { getMySchedules, getSubscriptions } from "@/api/sharedCalendarApi.js";
 import axios from "axios";
+import SearchUserModal from "@/components/modal/SearchUserModal.vue"; 
 
 const workspaceId = localStorage.getItem("selectedWorkspaceId");
 const calendarEl = ref(null);
@@ -105,6 +116,9 @@ const subscribers = ref([]); // 구독자 리스트 저장용
 const newUserId = ref("");
 const showModal = ref(false);
 
+const isUserModalOpen = ref(false);
+
+const openModal = () => (isUserModalOpen.value = true);
 
 const form = ref({
   calendarName: "",
@@ -171,11 +185,12 @@ const fetchSharedData = async () => {
     // 구독자별 일정
     subscribers.value = subs.map((s, i) => ({
       targetUserId: s.targetUserId,
+      targetUserName: s.targetUserName,
       visible: true,
       color: ["#FFB6B9", "#FFD580", "#8DE7B8", "#C3A1E0"][i % 4],
       events: (s.sharedCalendars || []).map((ev) => ({
         id: ev.calendarId,
-        title: `[${s.targetUserId}] ${ev.calendarName}`,
+        title: `[${s.targetUserName}] ${ev.calendarName}`,
         start: ev.startedAt,
         end: ev.endedAt,
         color: ["#FFB6B9", "#FFD580", "#8DE7B8", "#C3A1E0"][i % 4],
@@ -481,6 +496,50 @@ onMounted(async () => {
 .calendar-fade-leave-to {
   opacity: 0;
   transform: translateY(-15px);
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 4px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.user-item:hover {
+  background-color: #f8f8f8;
+}
+
+.user-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.user-checkbox {
+  accent-color: #ffcd4d; /* 체크박스 색상 */
+  cursor: pointer;
+}
+
+.user-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.user-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* hover 시 색상 점 살짝 커짐 */
+.user-item:hover .user-dot {
+  transform: scale(1.2);
 }
 
 </style>
