@@ -71,12 +71,22 @@
             <template v-else>
               <v-card class="document-folder" v-for="folder in documentFolders" :key="folder.id" elevation="0">
                 <div class="folder-header" :style="{ backgroundColor: folder.color }">
-                  <span class="folder-name">
-                    <img src="/src/assets/icons/home/folder-open.svg" alt="폴더" class="folder-icon" />
-                    {{ folder.name }}
-                  </span>
+                  <div class="folder-header-left">
+                    <button class="dropdown-btn" @click="toggleFolder(folder.id)">
+                      <img 
+                        src="/src/assets/icons/header/chevron-right.svg" 
+                        alt="토글" 
+                        class="dropdown-icon"
+                        :class="{ rotated: folder.isExpanded }"
+                      />
+                    </button>
+                    <span class="folder-name">
+                      <img src="/src/assets/icons/home/folder-open.svg" alt="폴더" class="folder-icon" />
+                      {{ folder.name }}
+                    </span>
+                  </div>
                 </div>
-                <v-card-text class="folder-content">
+                <v-card-text v-show="folder.isExpanded" class="folder-content">
                   <div class="document-item" v-for="doc in folder.documents" :key="doc.id" @click="goToStoneDrive(doc)">
                     <img src="/src/assets/icons/home/file-document.svg" alt="문서" class="doc-icon" />
                     <span class="doc-name">{{ doc.name }}</span>
@@ -585,6 +595,7 @@ export default {
           id: index + 1,
           name: projectName,
           color: color,
+          isExpanded: true, // 기본적으로 펼쳐진 상태
           documents: stones.map(stone => ({
             id: stone.stoneId,
             name: stone.stoneName,
@@ -881,6 +892,14 @@ export default {
         });
       } else {
         console.error('프로젝트 또는 stoneId를 찾을 수 없음:', { project, task });
+      }
+    },
+    
+    // 문서함 폴더 접기/펼치기 토글
+    toggleFolder(folderId) {
+      const folder = this.documentFolders.find(f => f.id === folderId);
+      if (folder) {
+        folder.isExpanded = !folder.isExpanded;
       }
     }
   }
@@ -1662,6 +1681,45 @@ export default {
 .folder-header {
   padding: 12px 16px;
   border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: center;
+}
+
+.folder-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.dropdown-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-btn:hover {
+  transform: scale(1.1);
+}
+
+.dropdown-btn:focus,
+.dropdown-btn:focus-visible {
+  outline: none;
+}
+
+.dropdown-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-icon.rotated {
+  transform: rotate(90deg);
 }
 
 .folder-name {
@@ -1686,6 +1744,26 @@ export default {
   background: #F8FAFC;
   padding: 12px 16px !important;
   border-radius: 0 0 8px 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.folder-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.folder-content::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.folder-content::-webkit-scrollbar-thumb {
+  background: #D0D0D0;
+  border-radius: 3px;
+}
+
+.folder-content::-webkit-scrollbar-thumb:hover {
+  background: #B0B0B0;
 }
 
 .document-item {
