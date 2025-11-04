@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="openvidu-container">
+  <v-container fluid :class="['openvidu-container', { embedded: embedded }]">
 
     <!-- 포커스(단독) 뷰 또는 1인 접속 시 단독 뷰 -->
     <v-row v-if="focusedStreamManager || isAlone" class="main-video-row no-gutters">
@@ -28,13 +28,8 @@
       <div class="control-bar">
         <div class="controls-wrapper">
 
-          <!-- (왼쪽 그룹) 토글 버튼들 -->
+          <!-- (중앙 그룹) 토글 버튼들 -->
           <div class="left-controls d-flex justify-center align-center">
-
-            <v-btn fab width="60" height="60" color="transparent" class="mx-1" @click="toggleRecord" plain
-              elevation="0">
-              <img :src="isRecording ? recordEnd : recordStart" style="width:50px;height:50px;" />
-            </v-btn>
 
             <v-btn fab width="60" height="60" color="transparent" class="mx-1" @click="toggleAudio" plain elevation="0">
               <img :src="isAudioEnabled ? audioIconOn : audioIconOff" style="width:50px;height:50px;" />
@@ -54,17 +49,16 @@
               <img :src="shutdownIcon" style="width:50px;height:50px;" />
             </v-btn>
           </div>
-
-          <!-- (오른쪽 그룹) 전체화면 버튼 -->
-          <div class="right-controls d-flex justify-end align-center">
-            <v-btn fab width="60" height="60" color="transparent" class="mx-1" @click="toggleFullScreen" plain
-              elevation="0">
-              <img :src="isFullScreenMode ? fullScreenIconOut : fullScreenIconIn" style="width:24px;height:24px;"
-                :style="{ filter: isFullScreenMode ? 'invert(100%)' : 'invert(0%)' }" />
-            </v-btn>
-          </div>
         </div>
       </div>
+    </div>
+
+    <!-- 전체화면 버튼 (오른쪽 하단) -->
+    <div class="fullscreen-button-overlay">
+      <v-btn fab width="48" height="48" color="transparent" class="fullscreen-btn" @click="toggleFullScreen" plain
+        elevation="0">
+        <img :src="isFullScreenMode ? fullScreenIconOut : fullScreenIconIn" style="width:36px;height:36px;" />
+      </v-btn>
     </div>
 
     <!-- 그리드(체스판) 레이아웃 -->
@@ -98,6 +92,16 @@ import fullScreeenOut from '@/assets/icons/OpenVidu/fullscreen-exit-line.svg';
 
 export default {
   components: { VideoStream },
+  props: {
+    roomId: {
+      type: [String, Number],
+      default: null
+    },
+    embedded: {
+      type: Boolean,
+      default: false
+    }
+  },
   data() {
     return {
       // pending streams received before we finish connecting
@@ -178,16 +182,21 @@ export default {
       const cnt = parseInt(sessionStorage.getItem(this._refreshStorageKey) || '0', 10) || 0;
       if (cnt >= this._refreshLimit) {
         alert('새로고침이 너무 많이 감지되어 메인 화면으로 이동합니다. 다시 접속해 주세요.');
-        this.$router.push('/main');
+        if (!this.embedded) {
+          this.$router.push('/main');
+        }
         return;
       }
     } catch (e) {
       console.debug('refresh count parse error', e);
     }
-    const roomId = this.$route.params.roomId;
+    // props로 받은 roomId 또는 route params의 roomId 사용
+    const roomId = this.roomId || this.$route.params.roomId;
     if (!roomId) {
       alert("유효하지 않은 접근입니다. 채팅방 ID를 확인해 주세요.");
-      this.$router.push('/');
+      if (!this.embedded) {
+        this.$router.push('/');
+      }
       return;
     }
     this.mySessionId = roomId;
@@ -743,11 +752,16 @@ export default {
         }
       } catch (e) { console.debug('leaveSession remove beforeunload error', e); }
 
-      // Navigate back to main — guard routing to avoid uncaught exceptions
-      try {
-        this.$router.push(`/`);
-      } catch (e) {
-        console.debug('router push error on leaveSession', e);
+      // embedded 모드일 때는 부모 컴포넌트에 이벤트 전달, 아니면 라우팅
+      if (this.embedded) {
+        this.$emit('leave');
+      } else {
+        // Navigate back to main — guard routing to avoid uncaught exceptions
+        try {
+          this.$router.push(`/`);
+        } catch (e) {
+          console.debug('router push error on leaveSession', e);
+        }
       }
     },
     deleteSubscriber(streamManager) {
@@ -1324,6 +1338,7 @@ body,
   height: 100%;
   object-fit: cover;
   background: black;
+  border-radius: 8px;
 }
 
 .v-row {
@@ -1351,6 +1366,65 @@ body,
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+
+/* embedded 모드: 부모 컨테이너에 맞춤 */
+.openvidu-container.embedded {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  background-color: transparent;
+  padding: 0;
+  margin: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.openvidu-container.embedded .control-bar-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+}
+
+.openvidu-container.embedded .grid-container {
+  width: 100%;
+  padding: 12px 16px 96px;
+  flex: 1 1 auto;
+}
+
+.openvidu-container.embedded .main-video-row {
+  width: 100%;
+  height: 100%;
+}
+
+.openvidu-container.embedded .fullscreen-button-overlay {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+}
+
+.openvidu-container.embedded #main-video-container {
+  border-radius: 12px;
+}
+
+.openvidu-container.embedded #main-video-container :deep(video) {
+  border-radius: 12px;
+}
+
+.openvidu-container.embedded .video-item {
+  border-radius: 8px;
+}
+
+.openvidu-container.embedded .video-item :deep(video) {
+  border-radius: 8px;
 }
 
 /* 2. 메인 비디오 영역 및 화면 공유 스타일 */
@@ -1472,6 +1546,9 @@ body,
 .camera-overlay.speaking {
   box-shadow: 0 0 0 4px rgba(137,255,97,0.95), 0 0 20px rgba(137,255,97,0.5);
 }
+.camera-overlay :deep(video) {
+  border-radius: 8px;
+}
 
 /* 6. 컨트롤바 스타일 */
 .control-bar-overlay {
@@ -1521,21 +1598,41 @@ body,
 
 .controls-wrapper {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   width: 100%;
 }
 
 .left-controls {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.right-controls {
-  position: static;
-  margin-left: auto;
+/* 전체화면 버튼 - 오른쪽 하단 */
+.fullscreen-button-overlay {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.fullscreen-btn {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.fullscreen-btn:hover {
+  background-color: transparent !important;
+  opacity: 0.7;
+}
+
+.fullscreen-btn:focus,
+.fullscreen-btn:focus-visible,
+.fullscreen-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* === Zoom 스타일 그리드 컨테이너 === */
@@ -1544,10 +1641,12 @@ body,
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 12px;
   width: 100%;
+  height: 100%;
   padding: 12px 16px 96px;
   /* 하단 컨트롤 바와 겹치지 않게 여백 */
   box-sizing: border-box;
-  align-content: start;
+  justify-content: center;
+  align-content: center;
 }
 
 /* ------------------------------------------------ */
@@ -1650,7 +1749,16 @@ body:fullscreen,
   z-index: 1;
 }
 
-/* 6. 전체화면 닉네임 스타일 */
+/* 6. 전체화면 버튼 스타일 */
+:fullscreen .fullscreen-button-overlay,
+.openvidu-container:fullscreen .fullscreen-button-overlay {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10010;
+}
+
+/* 7. 전체화면 닉네임 스타일 */
 :fullscreen .nickname,
 .openvidu-container:fullscreen .nickname {
   position: absolute;

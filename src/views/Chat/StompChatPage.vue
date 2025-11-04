@@ -9,6 +9,9 @@
                                 <v-icon icon="mdi-chevron-left"></v-icon>
                             </v-btn>
                             <div class="banner-title">{{ computedTitle }}</div>
+                            <v-btn class="banner-btn video-call" variant="text" size="small" @click="startVideoCall" icon>
+                                <img src="@/assets/icons/OpenVidu/video-call-svgrepo-com.svg" alt="video call" class="menu-icon" />
+                            </v-btn>
                             <template v-if="(isUserPanelOpen || isDocsPanelOpen)">
                                 <v-btn class="banner-btn menu" variant="text" size="small" icon @click="closeUserPanel">
                                     <img src="@/assets/icons/user/close.svg" alt="close" class="menu-icon" />
@@ -623,6 +626,14 @@ import axios from 'axios';
                 this.isUserPanelOpen = false;
                 this.isDocsPanelOpen = false;
             },
+            startVideoCall() {
+                if (!this.roomId) {
+                    alert('채팅방 정보를 찾을 수 없습니다.');
+                    return;
+                }
+                // 부모 컴포넌트에 화상통화 시작 이벤트 전달
+                this.$emit('start-video-call');
+            },
             async fetchParticipants(){
                 try {
                     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -742,12 +753,13 @@ import axios from 'axios';
   background-color: #F5F5F5;
 }
 .chat-card{ --v-card-border-radius: 15px; border-radius: 15px !important; overflow: hidden; margin: 24px 0; border: 1px solid #E5E5E5; --chat-accent: #FFE364; --banner-height: 56px; }
-.chat-banner{ height: var(--banner-height); background: var(--chat-accent); display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; position: sticky; top: 0; z-index: 2; }
+.chat-banner{ height: var(--banner-height); background: var(--chat-accent); display: grid; grid-template-columns: 40px 1fr 40px 40px; align-items: center; position: sticky; top: 0; z-index: 2; }
 .search-banner{ grid-template-columns: 40px 1fr 40px; }
 .chat-banner.with-user-panel, .chat-banner.with-side-panel{ margin-right: 280px; transition: margin-right 200ms ease; }
 .banner-title{ color: #1C0F0F; font-weight: 700; font-size: 18px; line-height: 22px; text-align: center; }
 .banner-btn{ min-width: 32px; height: 32px; padding: 0; }
 .banner-btn.back{ justify-self: start; }
+.banner-btn.video-call{ justify-self: end; }
 .banner-btn.menu{ justify-self: end; }
 .menu-icon{ width: 24px; height: 24px; display: block; }
 

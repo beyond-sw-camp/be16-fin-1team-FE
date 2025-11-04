@@ -1,11 +1,39 @@
 <template>
     <div class="main-fill">
         <div class="chat-layout">
-            <div class="room-list-panel">
+            <!-- 채팅방 목록: 화상통화+채팅 모드일 때 숨김 -->
+            <div v-if="!(isVideoCallActive && isChatSideOpen)" class="room-list-panel">
                 <ChatRoomList embedded @select-room="handleSelectRoom" @preview-summary="handlePreviewSummary" :summaries-by-room-id="summariesByRoomId" :selected-room-id="selectedRoomId" />
             </div>
             <div class="chat-panel">
-                  <StompChatPage v-if="selectedRoomId" :key="selectedRoomId" embedded :room-id="selectedRoomId" :room-title="selectedRoomTitle" :participant-count="selectedRoomParticipantCount" />
+                  <!-- 화상통화 모드 -->
+                  <div v-if="isVideoCallActive && selectedRoomId" :class="['video-chat-split', { 'with-chat': isChatSideOpen }]">
+                    <!-- 화상통화 카드 -->
+                    <v-container fluid :class="isChatSideOpen ? 'video-side' : ''">
+                      <v-row justify="center">
+                        <v-col cols="12" md="16" lg="16" xl="12">
+                          <v-card class="video-call-card">
+                            <div class="video-call-banner">
+                              <span class="video-call-banner-title">{{ selectedRoomTitle }} - 화상통화</span>
+                              <v-btn class="banner-btn-chat" variant="text" size="small" @click="toggleChatSide" icon>
+                                <img src="@/assets/icons/sidebar/chat.svg" alt="채팅 토글" class="chat-icon" />
+                              </v-btn>
+                            </div>
+                            <div class="video-call-body">
+                              <OpenViduCall :room-id="selectedRoomId" embedded @leave="handleLeaveVideoCall" />
+                            </div>
+                          </v-card>
+                        </v-col>
+                      </v-row>
+                    </v-container>
+                    <!-- 채팅 사이드 패널 -->
+                    <div v-if="isChatSideOpen" class="chat-side-panel">
+                      <StompChatPage :key="selectedRoomId" embedded :room-id="selectedRoomId" :room-title="selectedRoomTitle" :participant-count="selectedRoomParticipantCount" @start-video-call="handleStartVideoCall" />
+                    </div>
+                  </div>
+                  <!-- 채팅 모드 -->
+                  <StompChatPage v-else-if="selectedRoomId" :key="selectedRoomId" embedded :room-id="selectedRoomId" :room-title="selectedRoomTitle" :participant-count="selectedRoomParticipantCount" @start-video-call="handleStartVideoCall" />
+                  <!-- 빈 상태 -->
                   <div v-else class="empty-state">
                     <div class="empty-icon" aria-hidden="true"></div>
                     <div class="empty-text">채팅방을 선택하세요.</div>
@@ -34,12 +62,13 @@
 <script>
 import ChatRoomList from './ChatRoomList.vue';
 import StompChatPage from './StompChatPage.vue';
+import OpenViduCall from '../OpenVidu/OpenViduCall.vue';
 import stompManager from '@/services/stompService.js';
 import axios from 'axios';
 import { decreaseChatUnreadCount } from '@/services/notificationState.js';
 
 export default {
-    components: { ChatRoomList, StompChatPage },
+    components: { ChatRoomList, StompChatPage, OpenViduCall },
     data() {
         return {
             selectedRoomId: null,
@@ -54,6 +83,8 @@ export default {
             summaryDialogLoading: false,
             summaryDialogText: '',
             summaryDialogVersion: 0,
+            isVideoCallActive: false,
+            isChatSideOpen: false,
         };
     },
     async created() {
@@ -107,6 +138,8 @@ export default {
             this.selectedRoomId = room.roomId;
             this.selectedRoomTitle = room.roomName || '';
             this.selectedRoomParticipantCount = room.participantCount || 0;
+            this.isVideoCallActive = false; // 채팅방 선택 시 화상통화 모드 해제
+            this.isChatSideOpen = false; // 채팅 사이드 패널 닫기
             // Clear unread badge for the selected room in summary map
             const prev = this.summariesByRoomId[room.roomId] || {};
             // Decrease global chat unread count by this room's unread (use max of source-of-truth and incoming room data)
@@ -120,6 +153,17 @@ export default {
                 ...this.summariesByRoomId,
                 [room.roomId]: { ...prev, unreadCount: 0 }
             };
+        },
+        handleStartVideoCall() {
+            this.isVideoCallActive = true;
+            this.isChatSideOpen = false;
+        },
+        handleLeaveVideoCall() {
+            this.isVideoCallActive = false;
+            this.isChatSideOpen = false;
+        },
+        toggleChatSide() {
+            this.isChatSideOpen = !this.isChatSideOpen;
         },
         async resubscribeSummary() {
             if (!this.summaryTopic) return;
@@ -209,6 +253,97 @@ export default {
 .chat-panel {
   flex: 1 1 80%;
   overflow: auto;
+}
+.video-chat-split {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 0;
+}
+.video-chat-split.with-chat {
+  gap: 0;
+}
+.video-side {
+  flex: 0 0 65%;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.video-side .v-row {
+  margin: 0 !important;
+  height: 100%;
+}
+.video-side .v-col {
+  padding: 24px 0 24px 24px !important;
+  height: 100%;
+}
+.chat-side-panel {
+  flex: 0 0 35%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.chat-side-panel .main-fill {
+  position: relative;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #F5F5F5;
+}
+.video-call-card {
+  --v-card-border-radius: 15px;
+  border-radius: 15px !important;
+  overflow: hidden;
+  margin: 24px 0;
+  border: 1px solid #E5E5E5;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 64px - 80px);
+  height: 100%;
+}
+.video-chat-split.with-chat .video-call-card {
+  margin: 24px 0 24px 0;
+  height: calc(100vh - 64px - 80px);
+}
+.video-call-banner {
+  height: 56px;
+  background: #FFE364;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  padding: 0 25px;
+  flex-shrink: 0;
+}
+.video-call-banner-title {
+  color: #1C0F0F;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 22px;
+}
+.banner-btn-chat {
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+}
+.banner-btn-chat:focus,
+.banner-btn-chat:focus-visible,
+.banner-btn-chat:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.chat-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+.video-call-body {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
 }
 .empty-state {
   height: 100%;
