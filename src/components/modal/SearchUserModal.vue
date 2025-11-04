@@ -8,7 +8,7 @@
         <input
           v-model="keyword"
           @keyup.enter="searchUsers"
-          placeholder="이름으로 검색"
+          placeholder="email을 입력하세요."
         />
         <button @click="searchUsers" class="search-btn">검색</button>
       </div>
@@ -58,11 +58,18 @@ const users = ref([]);
 const selectedUserIds = ref([]);
 
 const searchUsers = async () => {
-  if (!keyword.value.trim()) return alert("이름을 입력하세요.");
+  if (!keyword.value.trim()) {
+    alert("이름을 입력하세요.");
+    return;
+  }
+
   try {
     const { data } = await axios.post(
-      `/user-service/user/search`,
-      { searchKeyword: keyword.value },
+      `/workspace-service/workspace/participants/search`,
+      {
+        workspaceId: props.workspaceId,
+        searchKeyword: keyword.value,
+      },
       {
         headers: {
           "X-User-Id": localStorage.getItem("id"),
@@ -70,15 +77,15 @@ const searchUsers = async () => {
       }
     );
 
-    // result.userInfoList를 추출해서 users 배열로 매핑
-    users.value = data.result.userInfoList.map(u => ({
+    // 응답 구조에 맞게 result.userInfoList 파싱
+    users.value = (data.result?.userInfoList || []).map((u) => ({
       id: u.userId,
       name: u.userName,
       email: u.userEmail,
     }));
   } catch (err) {
-    console.error("❌ 유저 검색 실패:", err);
-    alert("검색 실패");
+    console.error("❌ 워크스페이스 내 사용자 검색 실패:", err);
+    alert("워크스페이스 내에서 사용자를 찾을 수 없습니다.");
   }
 };
 
