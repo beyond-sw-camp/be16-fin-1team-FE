@@ -1468,14 +1468,21 @@ export default {
             removedFromParentId = parentNode?.id || 'root';
             console.log('[DriveMain] [moveFolderInTree] 기존 위치에서 제거됨:', {
               fromParentId: removedFromParentId,
-              fromParentName: parentNode?.name
+              fromParentName: parentNode?.name,
+              parentNodeId: parentNode?.id,
+              parentNodeRootType: parentNode?.rootType
             });
             // 캐시에서도 제거
-            if (parentNode && this.folderCache[parentNode.id]) {
-              const cacheIndex = this.folderCache[parentNode.id].findIndex(f => f.id === folderId);
+            // 루트 노드인 경우 rootType:rootId 형식의 캐시 키 사용
+            let cacheKey = removedFromParentId;
+            if (parentNode && parentNode.isRoot && parentNode.rootType && parentNode.rootId) {
+              cacheKey = `${parentNode.rootType}:${parentNode.rootId}`;
+            }
+            if (cacheKey && this.folderCache[cacheKey]) {
+              const cacheIndex = this.folderCache[cacheKey].findIndex(f => f.id === folderId);
               if (cacheIndex !== -1) {
-                this.folderCache[parentNode.id].splice(cacheIndex, 1);
-                console.log('[DriveMain] [moveFolderInTree] 캐시에서도 제거됨:', parentNode.id);
+                this.folderCache[cacheKey].splice(cacheIndex, 1);
+                console.log('[DriveMain] [moveFolderInTree] 캐시에서도 제거됨:', cacheKey);
               }
             }
             return true;
@@ -1487,29 +1494,45 @@ export default {
         return false;
       };
 
-      // 루트 하위에서 제거 시도
-      const rootNode = this.findNodeById(this.folderTree, 'root');
-      if (rootNode && rootNode.children) {
-        const rootIndex = rootNode.children.findIndex(f => f.id === folderId);
-        if (rootIndex !== -1) {
-          rootNode.children.splice(rootIndex, 1);
-          removed = true;
-          removedFromParentId = 'root';
-          console.log('[DriveMain] [moveFolderInTree] 루트 하위에서 제거됨');
-          // 캐시에서도 제거
-          if (this.folderCache['root']) {
-            const cacheIndex = this.folderCache['root'].findIndex(f => f.id === folderId);
-            if (cacheIndex !== -1) {
-              this.folderCache['root'].splice(cacheIndex, 1);
-              console.log('[DriveMain] [moveFolderInTree] 루트 캐시에서도 제거됨');
+      // 전체 트리에서 제거 시도 (프로젝트 문서함의 경우 루트 노드가 'root'가 아닐 수 있음)
+      // folderTree는 배열이므로 모든 루트 노드를 확인
+      for (const rootNode of this.folderTree) {
+        if (rootNode.id === folderId) {
+          // 루트 노드 자체는 이동할 수 없음 (이 경우는 발생하지 않아야 함)
+          console.warn('[DriveMain] [moveFolderInTree] 루트 노드 자체는 이동할 수 없습니다:', folderId);
+          continue;
+        }
+        if (rootNode.children) {
+          // 루트 노드의 직접 자식에서 찾기
+          const rootIndex = rootNode.children.findIndex(f => f.id === folderId);
+          if (rootIndex !== -1) {
+            rootNode.children.splice(rootIndex, 1);
+            removed = true;
+            removedFromParentId = rootNode.id || 'root';
+            console.log('[DriveMain] [moveFolderInTree] 루트 하위에서 제거됨:', {
+              rootNodeId: rootNode.id,
+              rootNodeName: rootNode.name,
+              rootType: rootNode.rootType
+            });
+            // 캐시에서도 제거
+            let cacheKey = rootNode.id || 'root';
+            if (rootNode.isRoot && rootNode.rootType && rootNode.rootId) {
+              cacheKey = `${rootNode.rootType}:${rootNode.rootId}`;
             }
+            if (this.folderCache[cacheKey]) {
+              const cacheIndex = this.folderCache[cacheKey].findIndex(f => f.id === folderId);
+              if (cacheIndex !== -1) {
+                this.folderCache[cacheKey].splice(cacheIndex, 1);
+                console.log('[DriveMain] [moveFolderInTree] 캐시에서도 제거됨:', cacheKey);
+              }
+            }
+            break;
+          }
+          // 재귀적으로 하위 폴더에서 찾기
+          if (removeFromNode(rootNode.children, rootNode)) {
+            break;
           }
         }
-      }
-
-      // 다른 위치에서도 제거 시도
-      if (!removed && rootNode) {
-        removeFromNode(rootNode.children || [], rootNode);
       }
       
       if (!removed) {
@@ -2396,6 +2419,16 @@ export default {
     async onTreeItemClick(item) {
       if (!item) return;
       
+      console.log('[DriveMain] [onTreeItemClick] 클릭된 아이템:', {
+        id: item.id,
+        name: item.name,
+        rootType: item.rootType,
+        rootId: item.rootId,
+        isRoot: item.isRoot,
+        projectId: this.projectId,
+        stoneId: this.stoneId
+      });
+      
       // 트리뷰는 항상 워크스페이스로 고정되어 있음
       const workspaceId = localStorage.getItem('selectedWorkspaceId');
       if (!workspaceId) {
@@ -2501,30 +2534,41 @@ export default {
       // projectId가 있으면 라우팅 대신 내부 상태만 업데이트
       if (this.projectId) {
         // 트리뷰의 폴더를 클릭했을 때 - item에 rootType과 rootId가 있으면 해당 루트로 이동
-        if (item.rootType && item.rootId) {
-          // STONE이나 PROJECT 루트의 하위 폴더면 해당 문서함으로 이동
-          if (item.rootType === 'STONE' || item.rootType === 'PROJECT') {
+        // rootType이 없으면 currentRootType을 사용 (현재 열려있는 문서함)
+        const folderRootType = item.rootType || this.currentRootType;
+        const folderRootId = item.rootId || this.currentRootId;
+        
+        console.log('[DriveMain] [onTreeItemClick] 폴더 이동 결정:', {
+          itemRootType: item.rootType,
+          itemRootId: item.rootId,
+          currentRootType: this.currentRootType,
+          currentRootId: this.currentRootId,
+          folderRootType,
+          folderRootId
+        });
+        
+        if (folderRootType && folderRootId) {
+          // 프로젝트 루트의 하위 폴더면 프로젝트 문서함 안에서 이동
+          if (folderRootType === 'PROJECT' && folderRootId === this.projectId) {
+            this.loadFolderContents(item.id, 'PROJECT', this.projectId);
+          } 
+          // STONE 루트의 하위 폴더면 프로젝트 문서함 안에서 스톤 폴더로 이동 (내부 상태만 업데이트)
+          else if (folderRootType === 'STONE') {
+            this.loadFolderContents(item.id, 'STONE', folderRootId);
+          } 
+          // 다른 프로젝트나 워크스페이스 폴더면 해당 문서함으로 이동 (라우팅)
+          else {
             this.$router.push({
               name: 'driveFolder',
               params: {
-                rootType: item.rootType,
-                rootId: item.rootId,
-                folderId: item.id
-              }
-            });
-          } else {
-            // 워크스페이스 폴더면 워크스페이스로 이동
-            this.$router.push({
-              name: 'driveFolder',
-              params: {
-                rootType: 'WORKSPACE',
-                rootId: workspaceId,
+                rootType: folderRootType,
+                rootId: folderRootId,
                 folderId: item.id
               }
             });
           }
         } else {
-          // rootType이 없으면 현재 프로젝트로 이동
+          // rootType이 없으면 현재 프로젝트의 폴더로 가정하고 프로젝트 문서함 안에서 이동
           this.loadFolderContents(item.id, 'PROJECT', this.projectId);
         }
         return;
@@ -2856,7 +2900,14 @@ export default {
       
       // folder: 계층 구조로 폴더 탐색
       if (item.type === 'folder') {
-        console.log('Navigating to folder:', item.id);
+        console.log('[DriveMain] [handleItemClick] 폴더 클릭:', {
+          id: item.id,
+          name: item.name,
+          rootType: item.rootType,
+          rootId: item.rootId,
+          projectId: this.projectId,
+          stoneId: this.stoneId
+        });
         
         // stoneId가 있으면 라우팅 대신 내부 상태만 업데이트
         if (this.stoneId) {
@@ -2866,7 +2917,46 @@ export default {
         
         // projectId가 있으면 라우팅 대신 내부 상태만 업데이트
         if (this.projectId) {
-          this.loadFolderContents(item.id, 'PROJECT', this.projectId);
+          // item에 rootType과 rootId가 있으면 해당 루트로 이동
+          // rootType이 없으면 currentRootType을 사용 (현재 열려있는 문서함)
+          const folderRootType = item.rootType || this.currentRootType;
+          const folderRootId = item.rootId || this.currentRootId;
+          
+          console.log('[DriveMain] [handleItemClick] 폴더 이동 결정:', {
+            itemRootType: item.rootType,
+            itemRootId: item.rootId,
+            currentRootType: this.currentRootType,
+            currentRootId: this.currentRootId,
+            folderRootType,
+            folderRootId,
+            projectId: this.projectId
+          });
+          
+          if (folderRootType && folderRootId) {
+            // 프로젝트 루트의 하위 폴더면 프로젝트 문서함 안에서 이동
+            if (folderRootType === 'PROJECT' && folderRootId === this.projectId) {
+              this.loadFolderContents(item.id, 'PROJECT', this.projectId);
+            } 
+            // STONE 루트의 하위 폴더면 프로젝트 문서함 안에서 스톤 폴더로 이동 (내부 상태만 업데이트)
+            else if (folderRootType === 'STONE') {
+              this.loadFolderContents(item.id, 'STONE', folderRootId);
+            } 
+            // 워크스페이스 폴더면 워크스페이스로 이동 (라우팅)
+            else {
+              const workspaceId = localStorage.getItem('selectedWorkspaceId');
+              this.$router.push({
+                name: 'driveFolder',
+                params: {
+                  rootType: 'WORKSPACE',
+                  rootId: workspaceId,
+                  folderId: item.id
+                }
+              });
+            }
+          } else {
+            // rootType이 없으면 현재 프로젝트의 폴더로 가정하고 프로젝트 문서함 안에서 이동
+            this.loadFolderContents(item.id, 'PROJECT', this.projectId);
+          }
           return;
         }
         
