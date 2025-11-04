@@ -293,21 +293,34 @@ export default {
         return;
       }
 
-      // 최소 2글자 이상 입력 시 자동완성
-      if (this.searchKeyword.trim().length < 2) {
-        this.suggestions = [];
-        this.showSuggestions = false;
-        return;
-      }
-
-      // 디바운싱 (300ms)
+      // 디바운싱 (50ms로 단축하여 즉시 반응)
       this.suggestTimer = setTimeout(async () => {
         try {
-          console.log('Calling suggest API with keyword:', this.searchKeyword.trim());
-          const response = await searchService.suggest(this.searchKeyword.trim());
+          const keyword = this.searchKeyword.trim();
+          console.log('Calling suggest API with keyword:', keyword);
+          
+          const response = await searchService.suggest(keyword);
           console.log('Suggest API response:', response);
           
+          // 응답이 올 때까지 입력값이 변경되었는지 확인
+          if (keyword !== this.searchKeyword.trim()) {
+            console.log('입력값이 변경되어 응답 무시');
+            return;
+          }
+          
           if (response.result && Array.isArray(response.result)) {
+            // FILE 타입 항목에 대한 필드 확인 및 로그
+            response.result.forEach((item, index) => {
+              if (item.docType === 'FILE') {
+                console.log(`[자동완성] FILE 항목 #${index}:`, {
+                  id: item.id,
+                  searchTitle: item.searchTitle,
+                  fileUrl: item.fileUrl,
+                  docType: item.docType
+                });
+              }
+            });
+            
             this.suggestions = response.result;
             this.showSuggestions = this.suggestions.length > 0;
             console.log('Suggestions:', this.suggestions, 'showSuggestions:', this.showSuggestions);
@@ -319,8 +332,16 @@ export default {
         } catch (error) {
           console.error('자동완성 실패:', error);
           console.error('Error details:', error.response);
+          // 에러 발생 시에도 입력값이 변경되었는지 확인
+          if (error.config && error.config.params) {
+            const requestedKeyword = error.config.params.keyword;
+            if (requestedKeyword !== this.searchKeyword.trim()) {
+              console.log('입력값이 변경되어 에러 응답 무시');
+              return;
+            }
+          }
         }
-      }, 300);
+      }, 50);
     },
 
     // 자동완성 항목 선택
@@ -334,6 +355,18 @@ export default {
           this.showSuggestions = false;
           const routeData = this.$router.resolve(`/viewer/${suggestion.id}`);
           window.open(routeData.href, '_blank');
+          return;
+        }
+        
+        // FILE 타입인 경우 fileUrl로 열기
+        if (suggestion.docType === 'FILE') {
+          this.showSuggestions = false;
+          if (suggestion.fileUrl) {
+            window.open(suggestion.fileUrl, '_blank');
+          } else {
+            console.warn('파일 URL이 없습니다:', suggestion);
+            showSnackbar('파일을 열 수 없습니다.', 'error');
+          }
           return;
         }
         
