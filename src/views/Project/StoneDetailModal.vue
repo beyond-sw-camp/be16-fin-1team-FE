@@ -124,7 +124,7 @@
             <span>진행도</span>
           </div>
           <div class="info-value-with-status">
-            <span class="progress-percent">{{ currentStoneData?.milestone || 0 }}%</span>
+            <span class="progress-percent">{{ formatMilestone(currentStoneData?.milestone) }}%</span>
             <div class="stone-status" :class="getStoneStatusClass(currentStoneData?.stoneStatus)">
               {{ getStoneStatusText(currentStoneData?.stoneStatus) }}
             </div>
@@ -452,6 +452,8 @@
               type="date" 
               class="form-input" 
               v-model="editForm.startDate"
+              :min="minStartDate"
+              :max="maxDate"
             />
           </div>
           
@@ -461,6 +463,8 @@
               type="date" 
               class="form-input" 
               v-model="editForm.endDate"
+              :min="minEndDate"
+              :max="maxDate"
             />
           </div>
           
@@ -474,7 +478,7 @@
             ></textarea>
           </div>
           
-          <div class="form-group">
+          <div class="form-group chat-creation-group">
             <label class="form-label">
               채팅방 생성
               <span v-if="isChatCreationDisabled" class="disabled-text">(이미 채팅방이 생성되어 있습니다)</span>
@@ -552,7 +556,7 @@
                     <circle cx="12" cy="7" r="4" stroke="#F4CE53" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <span class="assignee-name" :class="{ 'empty': !taskForm.assigneeName }">
-                    {{ taskForm.assigneeName || '담당자를 선택하세요' }}
+                    {{ taskForm.assigneeName || '스톤 참여자 목록에서 담당자를 선택하세요' }}
                   </span>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -817,6 +821,10 @@ export default {
     workspaceId: {
       type: String,
       default: ''
+    },
+    projectEndTime: {
+      type: String,
+      default: null
     }
   },
   data() {
@@ -886,7 +894,13 @@ export default {
   computed: {
     // 현재 사용할 스톤 데이터 (stoneData가 있으면 사용, 없으면 stoneId로 로드)
     currentStoneData() {
-      return this.stoneData || this.loadedStoneData;
+      const data = this.stoneData || this.loadedStoneData;
+      if (data) {
+        console.log('[currentStoneData] 스톤 데이터:', data);
+        console.log('[currentStoneData] milestone 값:', data.milestone);
+        console.log('[currentStoneData] milestone 타입:', typeof data.milestone);
+      }
+      return data;
     },
     
     // 채팅방 생성 체크박스 비활성화 여부
@@ -899,6 +913,42 @@ export default {
     isStoneCompleted() {
       // 실제 완료 상태만 체크 (마일스톤 100%는 완료 상태가 아님)
       return this.currentStoneData?.stoneStatus === 'COMPLETED';
+    },
+    // 오늘 날짜를 YYYY-MM-DD 형식으로 반환
+    todayDateString() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    },
+    // 프로젝트 종료일을 YYYY-MM-DD 형식으로 반환
+    maxDate() {
+      // props로 전달받은 프로젝트 종료일 확인
+      if (this.projectEndTime) {
+        return this.formatDateForInput(this.projectEndTime);
+      }
+      // currentStoneData에 프로젝트 기간 정보가 있는지 확인
+      if (this.currentStoneData?.projectEndTime) {
+        return this.formatDateForInput(this.currentStoneData.projectEndTime);
+      }
+      // stoneData에 프로젝트 정보가 있는지 확인
+      if (this.stoneData?.projectEndTime) {
+        return this.formatDateForInput(this.stoneData.projectEndTime);
+      }
+      // 없으면 빈 문자열 반환 (제한 없음)
+      return '';
+    },
+    // 시작날짜 최소값 (오늘 날짜)
+    minStartDate() {
+      return this.todayDateString;
+    },
+    // 종료날짜 최소값 (시작날짜 또는 오늘 날짜 중 더 늦은 날짜)
+    minEndDate() {
+      if (this.editForm.startDate) {
+        return this.editForm.startDate;
+      }
+      return this.todayDateString;
     },
     
     // 정렬된 태스크 리스트
@@ -967,6 +1017,9 @@ export default {
         // Postman 결과 구조와 동일하게 result로 래핑되어 있음
         const json = await response.json();
         this.loadedStoneData = json.result;
+        
+        console.log('로드된 스톤 데이터:', this.loadedStoneData);
+        console.log('마일스톤 값:', this.loadedStoneData?.milestone);
 
         // taskList도 세팅
         if (json.result?.taskResDtoList?.length) {
@@ -978,6 +1031,8 @@ export default {
             endTime: t.endTime,
             assigneeName: t.taskManagerName,
           }));
+        } else {
+          this.taskList = [];
         }
         
       } catch (error) {
@@ -1091,10 +1146,17 @@ export default {
       console.log('=== 스톤 수정 모달 열기 ===');
       console.log('현재 stoneData:', this.stoneData);
       
+      // 시작날짜를 가져오거나 오늘 날짜로 기본값 설정
+      let startDate = this.formatDateForInput(this.currentStoneData?.startTime);
+      if (!startDate || (startDate && new Date(startDate) < new Date(this.todayDateString))) {
+        // 시작날짜가 없거나 오늘보다 이전이면 오늘로 설정
+        startDate = this.todayDateString;
+      }
+      
       // 현재 스톤 데이터로 폼 초기화
       this.editForm = {
         stoneName: this.currentStoneData?.stoneName || '',
-        startDate: this.formatDateForInput(this.currentStoneData?.startTime),
+        startDate: startDate,
         endDate: this.formatDateForInput(this.currentStoneData?.endTime),
         createChat: this.currentStoneData?.chatCreation || false,
         stoneDescribe: this.currentStoneData?.stoneDescribe || '' // 스톤 설명 초기화
@@ -1139,6 +1201,13 @@ export default {
       
       if (new Date(this.editForm.startDate) > new Date(this.editForm.endDate)) {
         showSnackbar('시작일은 종료일보다 이전이어야 합니다.', { color: 'error' });
+        return;
+      }
+      
+      // 프로젝트 종료일 검증
+      const projectEndDate = this.maxDate;
+      if (projectEndDate && new Date(this.editForm.endDate) > new Date(projectEndDate)) {
+        showSnackbar('스톤 종료일은 프로젝트 종료일 이후로 선택할 수 없습니다.', { color: 'error' });
         return;
       }
       
@@ -1851,6 +1920,31 @@ export default {
       return `${formatDate(startDate)} - ${formatDate(endDate)}`
     },
     
+    formatMilestone(milestone) {
+      console.log('[formatMilestone] 입력값:', milestone, '타입:', typeof milestone);
+      
+      // milestone 값이 없거나 null/undefined인 경우 0 반환
+      if (milestone === null || milestone === undefined || milestone === '') {
+        console.log('[formatMilestone] milestone이 null/undefined/빈 문자열이므로 0 반환');
+        return 0;
+      }
+      
+      // 숫자로 변환
+      const value = Number(milestone);
+      console.log('[formatMilestone] 숫자 변환 후:', value);
+      
+      // NaN이면 0 반환
+      if (isNaN(value)) {
+        console.log('[formatMilestone] NaN이므로 0 반환');
+        return 0;
+      }
+      
+      // 소수점이 있으면 반올림하여 정수로 표시
+      const rounded = Math.round(value);
+      console.log('[formatMilestone] 최종 반환값:', rounded);
+      return rounded;
+    },
+    
     // 담당자 목록 로드 (실제 API 호출)
     async loadAvailableManagers() {
       try {
@@ -1996,6 +2090,12 @@ export default {
     // 스톤 데이터가 변경될 때 태스크 목록 다시 로드
     stoneData: {
       handler(newStoneData) {
+        console.log('[stoneData watch] 스톤 데이터 변경됨:', newStoneData);
+        if (newStoneData) {
+          console.log('[stoneData watch] milestone 값:', newStoneData.milestone);
+          console.log('[stoneData watch] milestone 타입:', typeof newStoneData.milestone);
+          console.log('[stoneData watch] 전체 데이터:', JSON.stringify(newStoneData, null, 2));
+        }
         if (newStoneData && (newStoneData.stoneId || newStoneData.id)) {
           this.loadTaskList();
         }
@@ -2007,6 +2107,12 @@ export default {
     // 로드된 스톤 데이터가 변경될 때 태스크 목록 다시 로드
     loadedStoneData: {
       handler(newStoneData) {
+        console.log('[loadedStoneData watch] 로드된 스톤 데이터 변경됨:', newStoneData);
+        if (newStoneData) {
+          console.log('[loadedStoneData watch] milestone 값:', newStoneData.milestone);
+          console.log('[loadedStoneData watch] milestone 타입:', typeof newStoneData.milestone);
+          console.log('[loadedStoneData watch] 전체 데이터:', JSON.stringify(newStoneData, null, 2));
+        }
         if (newStoneData && (newStoneData.stoneId || newStoneData.id)) {
           this.loadTaskList();
         }
@@ -3120,6 +3226,22 @@ export default {
   line-height: 14px;
   color: #999999;
   margin-left: 8px;
+}
+
+.edit-stone-modal .chat-creation-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 12px;
+}
+
+.edit-stone-modal .chat-creation-group .form-label {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.edit-stone-modal .chat-creation-group .checkbox-wrapper {
+  flex-shrink: 0;
 }
 
 .edit-stone-modal .modal-footer {

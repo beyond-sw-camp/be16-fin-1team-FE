@@ -152,8 +152,14 @@ export default {
       return this.workspaceStore.getCurrentWorkspace;
     },
     projects() {
-      // API에서 받아온 프로젝트 목록을 반환
-      return this.projectList.map(project => ({
+      // API에서 받아온 프로젝트 목록을 시작일 기준으로 정렬하여 반환
+      const sortedProjects = [...this.projectList].sort((a, b) => {
+        const dateA = new Date(a.startedAt || a.startTime || 0);
+        const dateB = new Date(b.startedAt || b.startTime || 0);
+        return dateA - dateB; // 시작일이 빠른 순서로 정렬
+      });
+      
+      return sortedProjects.map(project => ({
         id: project.projectId,
         name: project.projectName,
         color: '#FDF5EB'
@@ -192,6 +198,9 @@ export default {
 
     // 프로젝트 목록 로드
     await this.loadProjectList();
+    
+    // 워크스페이스 로드 후 스토리지 사용량 로드 (로그인 직후 반영을 위해)
+    await this.loadWorkspaceStorage();
     
     // 프로젝트 생성 이벤트 리스너 추가
     window.addEventListener('projectCreated', this.onProjectCreated);
@@ -296,6 +305,9 @@ export default {
       
       this.workspaceStore.setCurrentWorkspace(workspace);
       this.showWorkspaceDropdown = false;
+      
+      // 워크스페이스 변경 시 스토리지 사용량 새로고침
+      this.loadWorkspaceStorage();
       
       // 다른 워크스페이스로 변경될 때만 라우팅
       if (isDifferentWorkspace) {

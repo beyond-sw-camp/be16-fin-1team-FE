@@ -1,7 +1,6 @@
 <template>
   <div class="home-container">
-    <!-- 메인 컨텐츠 영역 -->
-    <div class="main-content">
+    <div class="main-content page-padding">
       <!-- 상단 헤더 -->
       <div class="content-header">
         <div class="date-section">
@@ -9,169 +8,289 @@
         </div>
       </div>
 
-      <!-- 컨텐츠 그리드 -->
-      <div class="dashboard-layout">
-        <!-- 1행 -->
-        <!-- 진행중인 프로젝트 -->
-        <section class="project-section">
-          <div class="section-header">
-            <h2 class="section-title">진행중인 프로젝트</h2>
-            <button class="add-button" @click="openProjectCreateModal">+ 프로젝트 추가</button>
-          </div>
-          <div class="gantt-chart">
-            <div class="gantt-header">
-              <div class="month-labels">
-                <span v-for="(label, index) in projectTimelineLabels" :key="index">{{ label.label }}</span>
-              </div>
-            </div>
-            <div v-if="showTodayLine" class="today-line" :style="{ left: todayLinePosition }"></div>
-            <div class="gantt-bars">
-              <div v-if="loading" class="loading-message">
-                프로젝트 로딩 중...
-              </div>
-              <div v-else-if="myProjects.length === 0" class="no-projects-message">
-                <div class="no-projects-text">진행중인 프로젝트가 없습니다.</div>
-                <div class="no-projects-subtext">새롭게 시작해보세요!</div>
-              </div>
-              <div v-else>
-                <div class="gantt-bar-wrapper" v-for="project in myProjects" :key="project.id">
-                  <div class="gantt-bar" :style="project.style" @click="goToProject(project)">
-                    <div class="progress-fill" :style="{ width: project.progress + '%' }"></div>
-                    <div class="bar-content">
-                      <div class="project-name">{{ project.name }}</div>
-                      <div class="project-progress">{{ project.progress }}%</div>
-                    </div>
-                  </div>
-                  <div class="project-period" :style="{ left: project.style.left }">{{ formatProjectPeriod(project.startTime, project.endTime) }}</div>
+      <!-- 대시보드 그리드 -->
+      <div class="dashboard">
+        <!-- 왼쪽 영역 -->
+        <div class="dashboard-left min-h-0">
+          <!-- 진행중인 프로젝트 카드 -->
+          <Card class="project-card">
+            <template #header>
+              <div class="card-header-content">
+                <h3 class="card-title">진행중인 프로젝트</h3>
+                <div class="card-actions">
+                  <button class="add-button" @click="openProjectCreateModal">+ 프로젝트 추가</button>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 스톤 채팅방 목록 -->
-        <aside class="chat-section">
-          <ChatRoomList 
-            embedded 
-            @select-room="handleChatRoomSelect"
-            @preview-summary="handlePreviewSummary"
-            :summaries-by-room-id="summariesByRoomId"
-            :selected-room-id="null"
-          />
-        </aside>
-
-        <!-- 2행 -->
-        <!-- 나의 스톤 문서함 -->
-        <section class="docs-section">
-          <h2 class="section-title">나의 스톤 문서함</h2>
-          <div class="document-list">
-            <div v-if="documentFolders.length === 0" class="no-stones-message">
-              <div class="no-stones-text">나의 스톤이 없습니다.</div>
-            </div>
-            <template v-else>
-              <v-card class="document-folder" v-for="folder in documentFolders" :key="folder.id" elevation="0">
-                <div class="folder-header" :style="{ backgroundColor: folder.color }">
-                  <div class="folder-header-left">
-                    <button class="dropdown-btn" @click="toggleFolder(folder.id)">
-                      <img 
-                        src="/src/assets/icons/header/chevron-right.svg" 
-                        alt="토글" 
-                        class="dropdown-icon"
-                        :class="{ rotated: folder.isExpanded }"
-                      />
-                    </button>
-                    <span class="folder-name">
-                      <img src="/src/assets/icons/home/folder-open.svg" alt="폴더" class="folder-icon" />
-                      {{ folder.name }}
-                    </span>
-                  </div>
-                </div>
-                <v-card-text v-show="folder.isExpanded" class="folder-content">
-                  <div class="document-item" v-for="doc in folder.documents" :key="doc.id" @click="goToStoneDrive(doc)">
-                    <img src="/src/assets/icons/home/file-document.svg" alt="문서" class="doc-icon" />
-                    <span class="doc-name">{{ doc.name }}</span>
-                  </div>
-                </v-card-text>
-              </v-card>
             </template>
-          </div>
-        </section>
-
-        <!-- 나의 Task -->
-        <section class="task-section">
-          <div class="section-header">
-            <h2 class="section-title">나의 Task</h2>
-          </div>
-          
-          <div class="task-timeline-wrapper">
-            <div v-if="loading" class="loading-message">
-              로딩 중...
-            </div>
-            <div v-else-if="pendingTasks.length === 0" class="no-tasks-message">
-              할당된 Task가 없습니다.
-            </div>
-            <div v-else class="task-timeline-chart">
-              <!-- 타임라인 헤더 -->
-              <div class="task-timeline-header">
-                <div class="task-timeline-labels">
-                  <span v-for="(label, index) in taskTimelineLabels" :key="index" class="task-label">
-                    {{ label.label }}
-                  </span>
+            <div class="gantt-chart">
+              <div class="gantt-header">
+                <div class="month-labels">
+                  <span v-for="(label, index) in projectTimelineLabels" :key="index">{{ label.label }}</span>
                 </div>
               </div>
-              <div v-if="showTaskTodayLine" class="task-today-line" :style="{ left: taskTodayLinePosition }"></div>
-              
-              <!-- Task 바들 -->
-              <div class="task-timeline-bars">
-                <div class="task-bar-wrapper" v-for="task in pendingTasks" :key="task.id">
-                  <div class="task-bar" :style="calculateTaskBarStyle(task)" @click="goToTask(task)">
-                    <div class="task-bar-content">
-                      <div class="task-bar-name">{{ task.name }}</div>
-                      <div class="task-bar-deadline">{{ task.deadline }}</div>
+              <div v-if="showTodayLine" class="today-line" :style="{ left: todayLinePosition }"></div>
+              <div class="gantt-bars">
+                <div v-if="loading" class="loading-message">
+                  프로젝트 로딩 중...
+                </div>
+                <div v-else-if="myProjects.length === 0" class="no-projects-message">
+                  <div class="no-projects-text">진행중인 프로젝트가 없습니다.</div>
+                  <div class="no-projects-subtext">새롭게 시작해보세요!</div>
+                </div>
+                <div v-else>
+                  <div class="gantt-bar-wrapper" v-for="project in myProjects" :key="project.id">
+                    <div class="gantt-bar" :style="project.style" @click="goToProject(project)">
+                      <div class="progress-fill" :style="{ width: project.progress + '%' }"></div>
+                      <div class="bar-content">
+                        <div class="project-name">{{ project.name }}</div>
+                        <div class="project-progress">{{ project.progress }}%</div>
+                      </div>
+                    </div>
+                    <div class="project-period" :style="{ left: project.style.left }">{{ formatProjectPeriod(project.startTime, project.endTime) }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <!-- 하단 왼쪽 영역: 채팅 + Task -->
+          <div class="dashboard-bottom min-h-0">
+            <!-- 스톤 채팅방 목록 카드 -->
+            <Card class="chat-card h-full self-stretch">
+              <template #header>
+                <div class="card-header-content">
+                  <h3 class="card-title">스톤 채팅방 목록</h3>
+                  <div class="card-actions hidden"></div>
+                </div>
+              </template>
+              <ul class="chat-list" v-if="chatRooms.length > 0">
+                <li
+                  v-for="room in sortedChatRooms"
+                  :key="room.roomId"
+                  class="chat-item"
+                  @click="handleChatRoomSelect(room)"
+                  @mouseenter="hoveredRoomId = room.roomId"
+                  @mouseleave="hoveredRoomId = null"
+                >
+                  <div class="chat-avatar">
+                    <img v-if="room.userProfileImageUrlList && room.userProfileImageUrlList[0]"
+                         :src="room.userProfileImageUrlList[0]"
+                         @error="onAvatarError"
+                         alt="user"
+                         class="avatar-img" />
+                    <img v-else :src="userDefault" alt="user" class="avatar-img" />
+                  </div>
+                  <div class="chat-info">
+                    <div class="chat-title">
+                      <span class="chat-name">{{ room.roomName }}</span>
+                      <span class="chat-count">({{ room.participantCount }})</span>
+                    </div>
+                    <div class="chat-subtitle">
+                      {{ (room.messageType === 'FILE' && !room.lastMessage) ? '파일이 전송되었습니다.' : (room.lastMessage || '메시지가 없습니다.') }}
                     </div>
                   </div>
-                  <div class="task-bar-period" :style="{ left: calculateTaskBarStyle(task).left }">
-                    {{ formatTaskPeriod(task.startTime, task.endTime) }}
+                  <div class="chat-meta">
+                    <div class="chat-time">{{ formatChatTime(room.lastSendTime) }}</div>
+                    <div
+                      v-if="(room.unreadCount ?? 0) > 0"
+                      :class="['chat-badge', { 'chat-badge-preview': hoveredRoomId === room.roomId }]"
+                      @click.stop="hoveredRoomId === room.roomId && handlePreviewSummary(room)"
+                    >
+                      {{ hoveredRoomId === room.roomId ? '요약 미리보기' : (room.unreadCount ?? 0) }}
+                    </div>
+                  </div>
+                </li>
+              </ul>
+              <div v-else class="empty-message">채팅방이 없습니다.</div>
+            </Card>
+
+            <!-- 나의 Task 카드 -->
+            <Card class="task-card h-full self-stretch">
+              <template #header>
+                <div class="card-header-content">
+                  <h3 class="card-title">나의 Task</h3>
+                </div>
+              </template>
+              <div class="task-timeline-wrapper">
+                <div v-if="loading" class="loading-message">
+                  로딩 중...
+                </div>
+                <div v-else-if="pendingTasks.length === 0" class="no-tasks-message">
+                  할당된 Task가 없습니다.
+                </div>
+                <div v-else class="task-timeline-chart">
+                  <!-- 타임라인 헤더 -->
+                  <div class="task-timeline-header">
+                    <div class="task-timeline-labels">
+                      <span v-for="(label, index) in taskTimelineLabels" :key="index" class="task-label">
+                        {{ label.label }}
+                      </span>
+                    </div>
+                  </div>
+                  <div v-if="showTaskTodayLine" class="task-today-line" :style="{ left: taskTodayLinePosition }"></div>
+                  
+                  <!-- Task 바들 -->
+                  <div class="task-timeline-bars">
+                    <div class="task-bar-wrapper" v-for="task in pendingTasks" :key="task.id">
+                      <div class="task-bar" :style="calculateTaskBarStyle(task)" @click="goToTask(task)">
+                        <div class="task-bar-content">
+                          <div class="task-bar-name">{{ task.name }}</div>
+                          <div class="task-bar-deadline">{{ task.deadline }}</div>
+                        </div>
+                      </div>
+                      <div class="task-bar-period" :style="{ left: calculateTaskBarStyle(task).left }">
+                        {{ formatTaskPeriod(task.startTime, task.endTime) }}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </Card>
           </div>
-        </section>
+        </div>
+
+        <!-- 우측 영역: 나의 스톤 문서함 카드 -->
+        <Card class="docs-card min-h-0" h-full>
+          <template #header>
+            <div class="card-header-content">
+              <h3 class="card-title">나의 스톤 문서함</h3>
+              <div class="card-actions">
+                <button class="icon-button" @click="collapseAllDocs" aria-label="모두 접기" title="모두 접기">
+                  <span class="icon-text">▼</span>
+                </button>
+                <button class="icon-button" @click="expandAllDocs" aria-label="모두 펼치기" title="모두 펼치기">
+                  <span class="icon-text">▲</span>
+                </button>
+              </div>
+            </div>
+          </template>
+          <div 
+            class="docs-tree"
+            @dragenter.prevent="onDragEnter"
+            @dragover.prevent="onDragOver"
+            @dragleave="onDragLeave"
+            @drop.prevent="onDrop"
+          >
+            <ul class="docs-list" v-if="docTreeData.length > 0">
+              <template v-for="node in docTreeData" :key="node.id">
+                <!-- 폴더/파일 항목 -->
+                <li
+                  class="docs-item"
+                  :class="{ 
+                    'docs-item-folder': node.type === 'folder',
+                    'docs-item-highlight': dropTargetId === node.id,
+                    'docs-item-selected': selectedNodeId === node.id
+                  }"
+                  :style="{ paddingLeft: `${10 + node.depth * 16}px` }"
+                  :data-node-id="node.id"
+                  :data-id="node.type === 'folder' ? node.folderId : node.stoneId"
+                  tabindex="0"
+                  @click="handleDocItemClick(node)"
+                  @focus="selectedNodeId = node.id"
+                  @blur="selectedNodeId = null"
+                >
+                  <button
+                    class="docs-toggle"
+                    v-if="node.type === 'folder'"
+                    :aria-expanded="node.expanded"
+                    @click.stop="toggleDocNode(node)"
+                    aria-label="toggle"
+                  >
+                    <img
+                      src="/src/assets/icons/header/chevron-right.svg"
+                      alt="토글"
+                      class="toggle-icon"
+                      :class="{ rotated: node.expanded }"
+                    />
+                  </button>
+                  <span v-else class="docs-toggle-placeholder"></span>
+                  <img
+                    :src="node.type === 'folder' ? '/src/assets/icons/home/folder-open.svg' : '/src/assets/icons/home/file-document.svg'"
+                    alt="아이콘"
+                    class="docs-icon"
+                  />
+                  <span class="docs-name">{{ node.name }}</span>
+                  <span v-if="node.type === 'folder' && node.childCount" class="docs-chip">
+                    {{ node.childCount }}
+                  </span>
+                  <span v-if="node.updatedAt" class="docs-meta">
+                    {{ formatDate(node.updatedAt) }}
+                  </span>
+                </li>
+                <!-- 자식 항목들 (transition으로 접힘/펼침) -->
+                <transition name="collapse" v-if="node.type === 'folder'">
+                  <ul v-if="node.expanded && node.children && node.children.length > 0" class="docs-children" key="children">
+                    <li
+                      v-for="child in node.children"
+                      :key="child.id"
+                      class="docs-item"
+                      :class="{ 
+                        'docs-item-highlight': dropTargetId === child.id,
+                        'docs-item-selected': selectedNodeId === child.id
+                      }"
+                      :style="{ paddingLeft: `${10 + child.depth * 16}px` }"
+                      :data-node-id="child.id"
+                      :data-id="child.stoneId"
+                      tabindex="0"
+                      @click="handleDocItemClick(child)"
+                      @focus="selectedNodeId = child.id"
+                      @blur="selectedNodeId = null"
+                    >
+                      <span class="docs-toggle-placeholder"></span>
+                      <img
+                        src="/src/assets/icons/home/file-document.svg"
+                        alt="아이콘"
+                        class="docs-icon"
+                      />
+                      <span class="docs-name">{{ child.name }}</span>
+                      <span v-if="child.updatedAt" class="docs-meta">
+                        {{ formatDate(child.updatedAt) }}
+                      </span>
+                    </li>
+                  </ul>
+                </transition>
+              </template>
+            </ul>
+            <div v-else class="empty-message">나의 스톤이 없습니다.</div>
+          </div>
+        </Card>
       </div>
     </div>
-  </div>
   
-  <!-- 요약 미리보기 다이얼로그 -->
-  <v-dialog v-model="isSummaryDialogOpen" max-width="520px">
-    <v-card class="summary-card">
-      <v-card-title class="text-h6 summary-title">요약 미리보기</v-card-title>
-      <v-card-text class="summary-body">
-        <div v-if="summaryDialogLoading" class="d-flex align-center justify-center" style="min-height:120px">
-          <v-progress-circular indeterminate :size="42" :width="4" color="#FFE364" />
-        </div>
-        <div v-else v-html="formatMultiline(summaryDialogText)" style="white-space: normal; line-height: 1.5;"></div>
-      </v-card-text>
-      <v-card-actions class="justify-end summary-actions">
-        <v-btn class="summary-btn" variant="flat" @click="isSummaryDialogOpen = false">닫기</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+    <!-- 요약 미리보기 다이얼로그 -->
+    <v-dialog v-model="isSummaryDialogOpen" max-width="520px">
+      <v-card class="summary-card">
+        <v-card-title class="text-h6 summary-title">요약 미리보기</v-card-title>
+        <v-card-text class="summary-body">
+          <div v-if="summaryDialogLoading" class="d-flex align-center justify-center" style="min-height:120px">
+            <v-progress-circular indeterminate :size="42" :width="4" color="#FFE364" />
+          </div>
+          <div v-else v-html="formatMultiline(summaryDialogText)" style="white-space: normal; line-height: 1.5;"></div>
+        </v-card-text>
+        <v-card-actions class="justify-end summary-actions">
+          <v-btn class="summary-btn" variant="flat" @click="isSummaryDialogOpen = false">닫기</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </div>
 </template>
 
 <script>
 import { workspaceWatcher } from '@/mixins/workspaceWatcher';
 import { getMyTasks, getMyProjects, getMyStones } from '@/api/task.js';
 import { useWorkspaceStore } from '@/stores/workspace.js';
-import ChatRoomList from '@/views/Chat/ChatRoomList.vue';
+import Card from '@/components/Card.vue';
 import stompManager from '@/services/stompService.js';
 import axios from 'axios';
+import userDefault from '@/assets/icons/chat/user_defualt.svg';
+
+// Vue 3에서는 $set이 없으므로 제거됨
 
 export default {
   name: "Home",
   mixins: [workspaceWatcher],
   components: {
-    ChatRoomList
+    Card
   },
   
   data() {
@@ -184,12 +303,18 @@ export default {
       myTasks: [], // API에서 가져온 실제 데이터
       myStones: [], // API에서 가져온 실제 스톤 데이터
       documentFolders: [], // 프로젝트별로 그룹화된 스톤 데이터
+      chatRooms: [], // 채팅방 목록
       loading: false,
       summariesByRoomId: {},
       summaryUnsub: null,
       isSummaryDialogOpen: false,
       summaryDialogLoading: false,
-      summaryDialogText: ''
+      summaryDialogText: '',
+      hoveredRoomId: null,
+      userDefault,
+      docTreeState: {}, // 문서 트리 상태 (expanded 여부)
+      dropTargetId: null, // DnD 드롭 타겟 ID
+      selectedNodeId: null // 키보드 포커스된 노드 ID
     };
   },
   
@@ -201,7 +326,8 @@ export default {
     await Promise.all([
       this.loadMyTasks(),
       this.loadMyProjects(),
-      this.loadMyStones()
+      this.loadMyStones(),
+      this.loadChatRooms()
     ]);
     
     // 프로젝트 생성 후 목록 새로고침
@@ -393,6 +519,78 @@ export default {
       const range = this.getTaskDateRange();
       
       return today >= range.start && today <= range.end;
+    },
+    
+    // 정렬된 채팅방 목록 (최근 메시지 시간 순)
+    sortedChatRooms() {
+      return this.chatRooms.map(room => {
+        const summary = this.summariesByRoomId[room.roomId] || {};
+        return {
+          ...room,
+          lastMessage: summary.lastMessage ?? room.lastMessage,
+          lastSendTime: summary.lastSendTime ?? room.lastSendTime,
+          unreadCount: summary.unreadCount ?? room.unreadCount,
+          messageType: summary.messageType ?? room.messageType,
+        };
+      }).sort((a, b) => {
+        const parse = (t) => {
+          if (!t) return 0;
+          const d = new Date(t);
+          if (!isNaN(d)) return d.getTime();
+          const normalized = String(t).replace(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\.(\d{3})\d+$/, '$1.$2');
+          const d2 = new Date(normalized);
+          return isNaN(d2) ? 0 : d2.getTime();
+        };
+        return parse(b.lastSendTime) - parse(a.lastSendTime);
+      });
+    },
+    
+    // 플랫 문서 트리 (들여쓰기 계산) - 호환성 유지
+    flatDocTree() {
+      return this.docTreeData.flatMap(node => {
+        const items = [node];
+        if (node.type === 'folder' && node.expanded && node.children) {
+          items.push(...node.children);
+        }
+        return items;
+      });
+    },
+    
+    // 문서 트리 데이터 (계층 구조)
+    docTreeData() {
+      const result = this.documentFolders.map((folder, folderIndex) => {
+        const folderId = `folder-${folder.id}`;
+        // undefined일 때 기본값 true, 명시적으로 false일 때만 false
+        const isExpanded = this.docTreeState[folderId] === undefined ? true : this.docTreeState[folderId] !== false;
+        
+        const children = folder.documents.map((doc, docIndex) => ({
+          id: doc.id,
+          name: doc.name,
+          type: 'file',
+          depth: 1,
+          stoneId: doc.stoneId,
+          updatedAt: doc.updatedAt || null
+        }));
+        
+        return {
+          id: folderId,
+          name: folder.name,
+          type: 'folder',
+          depth: 0,
+          expanded: isExpanded,
+          folderId: folder.id,
+          childCount: children.length,
+          children: children,
+          updatedAt: folder.updatedAt || null
+        };
+      });
+      
+      console.log('[docTreeData] computed 재계산:', {
+        docTreeState: { ...this.docTreeState },
+        result: result.map(n => ({ id: n.id, name: n.name, expanded: n.expanded }))
+      });
+      
+      return result;
     }
   },
   
@@ -901,6 +1099,243 @@ export default {
       if (folder) {
         folder.isExpanded = !folder.isExpanded;
       }
+    },
+    
+    // 문서 트리 노드 토글
+    toggleDocNode(node) {
+      console.log('[toggleDocNode] 호출됨:', {
+        node,
+        nodeId: node.id,
+        nodeType: node.type,
+        nodeFolderId: node.folderId,
+        nodeExpanded: node.expanded
+      });
+      
+      if (node.type === 'folder') {
+        const key = `folder-${node.folderId}`;
+        // 현재 node.expanded 값을 기준으로 토글 (computed에서 계산된 실제 값 사용)
+        const currentExpanded = node.expanded;
+        const newState = !currentExpanded;
+        
+        console.log('[toggleDocNode] 상태 변경:', {
+          key,
+          currentExpanded,
+          newState,
+          docTreeStateBefore: { ...this.docTreeState },
+          docTreeStateKey: this.docTreeState[key]
+        });
+        
+        // Vue 3에서는 직접 할당으로 반응성 작동
+        // 반응성을 보장하기 위해 스프레드 연산자 사용
+        this.docTreeState = {
+          ...this.docTreeState,
+          [key]: newState
+        };
+        
+        console.log('[toggleDocNode] 상태 변경 후:', {
+          key,
+          updatedState: this.docTreeState[key],
+          fullState: { ...this.docTreeState }
+        });
+        
+        // docTreeData 재확인
+        this.$nextTick(() => {
+          const updatedNode = this.docTreeData.find(n => n.id === node.id);
+          console.log('[toggleDocNode] nextTick 후 docTreeData:', {
+            nodeId: node.id,
+            updatedExpanded: updatedNode?.expanded,
+            updatedChildren: updatedNode?.children?.length,
+            fullDocTreeData: this.docTreeData.map(n => ({ 
+              id: n.id, 
+              name: n.name, 
+              expanded: n.expanded,
+              childrenCount: n.children?.length || 0
+            }))
+          });
+        });
+      } else {
+        console.log('[toggleDocNode] 폴더가 아님:', node);
+      }
+    },
+    
+    // 문서 항목 클릭 처리
+    handleDocItemClick(node) {
+      if (node.type === 'folder') {
+        this.toggleDocNode(node);
+      } else {
+        this.goToStoneDrive(node);
+      }
+    },
+    
+    // 날짜 포맷팅
+    formatDate(dateString) {
+      if (!dateString) return '';
+      try {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffTime = now - date;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) return '오늘';
+        if (diffDays === 1) return '어제';
+        if (diffDays < 7) return `${diffDays}일 전`;
+        
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        return `${month}/${day}`;
+      } catch (e) {
+        return '';
+      }
+    },
+    
+    // 문서함 모두 접기
+    collapseAllDocs() {
+      const newState = { ...this.docTreeState };
+      this.documentFolders.forEach(folder => {
+        const key = `folder-${folder.id}`;
+        newState[key] = false;
+      });
+      this.docTreeState = newState;
+      console.log('[collapseAllDocs] 모든 폴더 접기 완료:', { ...this.docTreeState });
+    },
+    
+    // 문서함 모두 펼치기
+    expandAllDocs() {
+      const newState = { ...this.docTreeState };
+      this.documentFolders.forEach(folder => {
+        const key = `folder-${folder.id}`;
+        newState[key] = true;
+      });
+      this.docTreeState = newState;
+      console.log('[expandAllDocs] 모든 폴더 펼치기 완료:', { ...this.docTreeState });
+    },
+    
+    // 채팅방 목록 로드
+    async loadChatRooms() {
+      try {
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const workspaceId = localStorage.getItem('selectedWorkspaceId') || 'ws_1';
+        const response = await axios.get(`${baseURL}/chat-service/chat/room/list/${workspaceId}`);
+        this.chatRooms = response.data.result || [];
+      } catch (error) {
+        console.error('채팅방 목록 로드 실패:', error);
+        this.chatRooms = [];
+      }
+    },
+    
+    // 채팅방 목록 새로고침
+    async refreshChatRooms() {
+      await this.loadChatRooms();
+    },
+    
+    // 채팅 시간 포맷팅
+    formatChatTime(timestamp) {
+      if (!timestamp) return '';
+      let date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        const normalized = String(timestamp).replace(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\.(\d{3})\d+$/, '$1.$2');
+        date = new Date(normalized);
+      }
+      if (isNaN(date.getTime())) return '';
+
+      const now = new Date();
+      const isToday = date.getFullYear() === now.getFullYear()
+        && date.getMonth() === now.getMonth()
+        && date.getDate() === now.getDate();
+
+      if (isToday) {
+        const hh = String(date.getHours()).padStart(2, '0');
+        const mm = String(date.getMinutes()).padStart(2, '0');
+        return `${hh}:${mm}`;
+      }
+
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      return `${month}월 ${day}일`;
+    },
+    
+    // 아바타 에러 핸들링
+    onAvatarError(e) {
+      e.target.src = this.userDefault;
+    },
+    
+    // DnD: 드래그 이벤트에서 폴더 ID 추출
+    getFolderIdFromEvent(e) {
+      const li = e.target.closest('li.docs-item') || e.target.closest('li[data-node-id]');
+      return li?.dataset?.nodeId ?? null;
+    },
+    
+    // DnD: 드래그 엔터
+    onDragEnter(e) {
+      this.dropTargetId = this.getFolderIdFromEvent(e);
+    },
+    
+    // DnD: 드래그 오버
+    onDragOver(e) {
+      const folderId = this.getFolderIdFromEvent(e);
+      // 폴더 타입만 드롭 타겟으로 설정
+      if (folderId) {
+        const node = this.docTreeData.find(n => n.id === folderId || n.children?.find(c => c.id === folderId));
+        if (node && (node.type === 'folder' || (node.children && node.children.find(c => c.id === folderId)))) {
+          this.dropTargetId = node.type === 'folder' ? node.id : folderId;
+        }
+      }
+    },
+    
+    // DnD: 드래그 리브
+    onDragLeave() {
+      this.dropTargetId = null;
+    },
+    
+    // DnD: 드롭 처리
+    async onDrop(e) {
+      const li = e.target.closest('li.doc-row') || e.target.closest('li.docs-item');
+      if (!li) return;
+      
+      li.classList.remove('drop-hot');
+      const nodeId = li.dataset?.nodeId || li.dataset?.id;
+      
+      // 폴더만 드롭 타겟
+      let folderId = null;
+      if (nodeId) {
+        const node = this.docTreeData.find(n => n.id === nodeId || n.folderId?.toString() === nodeId);
+        if (node && node.type === 'folder') {
+          folderId = node.folderId;
+        }
+      }
+      
+      if (!folderId) {
+        folderId = this.currentOpenedFolderId();
+      }
+      
+      this.dropTargetId = null;
+      
+      const files = [...(e.dataTransfer?.files || [])];
+      if (!files.length || !folderId) return;
+      
+      await this.uploadFilesToFolder(folderId, files);
+      await this.refreshFolder(folderId);
+    },
+    
+    // 현재 열린 폴더 ID (기본값)
+    currentOpenedFolderId() {
+      const firstFolder = this.docTreeData.find(node => node.type === 'folder' && node.expanded);
+      return firstFolder?.folderId || this.docTreeData[0]?.folderId || null;
+    },
+    
+    // 파일 업로드 (TODO: 실제 API 연결)
+    async uploadFilesToFolder(folderId, files) {
+      console.log('[DnD] 파일 업로드:', { folderId, files });
+      // TODO: API 호출
+      // const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+      // await axios.post(`${baseURL}/drive/upload`, { folderId, files });
+    },
+    
+    // 폴더 새로고침 (TODO: 실제 API 연결)
+    async refreshFolder(folderId) {
+      console.log('[DnD] 폴더 새로고침:', folderId);
+      // TODO: 해당 폴더만 재조회
+      // await this.loadMyStones();
     }
   }
 };
@@ -921,18 +1356,29 @@ export default {
   width: 100%;
 }
 
-.content-header {
-  margin-bottom: 10px;
-  padding: 0 20px;
+/* 페이지 외곽 여백 */
+.page-padding {
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
-.main-title {
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  font-size: 28px;
-  line-height: 33px;
-  color: #1C0F0F;
-  margin: 0 0 8px 0;
+@media (min-width: 768px) {
+  .page-padding {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page-padding {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+.content-header {
+  margin-bottom: 10px;
+  padding: 0;
 }
 
 .today-date {
@@ -944,56 +1390,136 @@ export default {
   margin: 0;
 }
 
-.dashboard-layout {
+/* 대시보드 그리드 */
+.dashboard {
   display: grid;
-  grid-template-columns: 1.4fr 1.4fr 1.2fr; /* 왼쪽 2칸(균등) + 오른쪽 좁게 */
-  grid-template-rows: auto auto; /* 2행 구조 */
-  gap: 20px;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
   width: 100%;
-  padding: 0 20px 10px 20px;
+  padding: 0 0 20px 0;
   height: calc(100% - 50px);
   box-sizing: border-box;
+  min-height: 0;
 }
 
-/* 프로젝트 섹션 */
-.project-section {
-  grid-column: 1 / 3; /* 왼쪽 2칸 차지 */
-  grid-row: 1 / 2;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  padding: 20px;
+@media (min-width: 1280px) {
+  .dashboard {
+    gap: 32px;
+  }
+}
+
+.dashboard-left {
   display: flex;
   flex-direction: column;
+  gap: 24px;
+}
+
+@media (min-width: 1280px) {
+  .dashboard-left {
+    gap: 32px;
+  }
+}
+
+.dashboard-bottom {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 2fr;
+  gap: 24px;
+  align-items: start;
+  align-content: start;
+}
+
+@media (min-width: 1280px) {
+  .dashboard-bottom {
+    gap: 32px;
+  }
+}
+
+.min-h-0 {
   min-height: 0;
-  overflow: visible;
-  transition: box-shadow 0.3s ease;
 }
 
-.project-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+.self-stretch {
+  align-self: stretch;
+  height: 100%;
 }
 
-.section-header {
+/* 카드 헤더 공통 스타일 */
+.card-header-content {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  justify-content: space-between;
+  width: 100%;
 }
 
-.section-title {
+.card-header-content .hidden {
+  display: none;
+}
+
+/* 카드 루트 마진 제거 */
+.card,
+.card-wrapper {
+  margin-top: 0 !important;
+}
+
+/* 카드 헤더 높이 통일 */
+.card > .card-header,
+.card-wrapper > .card-header {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* 그리드 아이템 상단 정렬 */
+.grid.items-start > *,
+.dashboard-bottom > * {
+  align-self: start;
+}
+
+/* 카드 제목 스타일 (CSS 변수는 Card.vue에서 전역 선언) */
+.card-title {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
-  font-size: 18px;
+  font-weight: var(--card-title-weight, 700);
+  font-size: var(--card-title-size, 18px);
   line-height: 28px;
   color: #1C0F0F;
   margin: 0;
-  padding: 8px 0;
-  min-height: 44px;
 }
 
-.task-section .section-header {
-  margin-bottom: 20px;
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.icon-button:hover {
+  transform: scale(1.1);
+}
+
+.icon-button:focus,
+.icon-button:focus-visible {
+  outline: none;
+}
+
+.icon-button .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-text {
+  font-size: 14px;
+  line-height: 1;
+  color: #666666;
 }
 
 .add-button {
@@ -1023,6 +1549,12 @@ export default {
   box-shadow: none !important;
 }
 
+/* 프로젝트 카드 */
+.project-card {
+  min-height: 0;
+}
+
+
 /* 간트 차트 */
 .gantt-chart {
   flex: 1;
@@ -1030,7 +1562,7 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .gantt-header {
@@ -1111,7 +1643,28 @@ export default {
   position: relative;
   flex: 1;
   min-height: 230px;
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
   z-index: 1;
+}
+
+.gantt-bars::-webkit-scrollbar {
+  width: 6px;
+}
+
+.gantt-bars::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.gantt-bars::-webkit-scrollbar-thumb {
+  background: #D0D0D0;
+  border-radius: 3px;
+}
+
+.gantt-bars::-webkit-scrollbar-thumb:hover {
+  background: #B0B0B0;
 }
 
 .gantt-bar-wrapper {
@@ -1192,73 +1745,382 @@ export default {
   color: #000000;
 }
 
-/* 마일스톤 섹션 완전 제거 */
-
-/* 채팅 섹션 */
-.chat-section {
-  grid-column: 3 / 4;
-  grid-row: 1 / 3; /* 세로 전체 확장 */
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  padding: 0;
+/* 채팅 카드 */
+.chat-card {
+  min-height: 0;
   height: 100%;
-  box-sizing: border-box;
+}
+
+.dashboard-bottom > * {
+  align-self: stretch;
+  height: 100%;
+}
+
+.chat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #E0E0E0;
+}
+
+.chat-item:last-child {
+  border-bottom: none;
+}
+
+.chat-item:hover {
+  background: #F0F7FF;
+}
+
+.chat-avatar {
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.chat-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-title {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.chat-name {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  color: #212121;
+}
+
+.chat-count {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  color: #9E9E9E;
+}
+
+.chat-subtitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  color: #555;
+  line-height: 1.3;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: box-shadow 0.3s ease;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.chat-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-}
-
-/* 나의 스톤 문서함 섹션 */
-.docs-section {
-  grid-column: 1 / 2;
-  grid-row: 2 / 3;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  padding: 20px;
+.chat-meta {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  position: relative;
+}
+
+.chat-time {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  color: #757575;
+  white-space: nowrap;
+}
+
+.chat-badge {
+  display: inline-flex;
+  min-width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #EF5350;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.chat-badge-preview {
+  height: 24px;
+  min-width: 88px;
+  padding: 0 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #FFE364;
+  color: #2A2828;
+}
+
+/* 문서 카드 */
+.docs-card {
   min-height: 0;
-  overflow-y: hidden;
-  transition: box-shadow 0.3s ease;
 }
 
-.docs-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-}
 
-/* 나의 Task 섹션 */
-.task-section {
-  grid-column: 2 / 3;
-  grid-row: 2 / 3;
+.docs-card > .card-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.docs-tree {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+  padding-left: 14px;
+}
+
+/* 가이드 레일 */
+.docs-tree::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed #e9e9ec;
+  z-index: 0;
+}
+
+.docs-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.docs-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, outline 0.2s ease;
+  border-radius: 6px;
+  margin: 2px 0;
+}
+
+.docs-item:hover {
+  background: #f7f7f8;
+}
+
+.docs-item-folder {
+  margin-top: 6px;
+}
+
+.docs-item:focus-within {
+  outline: 2px solid #e7eafc;
+  background: #f7f8ff;
+}
+
+.docs-item-highlight,
+.docs-item.drop-hot {
+  background: #fff7e6 !important;
+  outline: 1px dashed #ffd591;
+}
+
+.docs-item-selected .docs-name {
+  font-weight: 600;
+}
+
+.docs-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.docs-toggle-placeholder {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.toggle-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+}
+
+.toggle-icon.rotated {
+  transform: rotate(90deg);
+}
+
+.docs-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.docs-name {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: #2A2828;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+}
+
+.docs-chip {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #f1f3f5;
+  color: #2A2828;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.docs-meta {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 11px;
+  color: #9aa1a9;
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+
+/* 자식 목록 래퍼 */
+.docs-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+/* 접힘 애니메이션 */
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: max-height 0.2s ease, opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.collapse-enter-from {
+  max-height: 0;
+  opacity: 0;
+}
+
+.collapse-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+.collapse-enter-to,
+.collapse-leave-from {
+  max-height: 500px;
+  opacity: 1;
+}
+
+/* Task 카드 */
+.task-card {
+  min-height: 0;
+}
+
+/* 공통 메시지 스타일 */
+.empty-message {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14px;
+  color: #666666;
+  text-align: center;
   padding: 20px;
+}
+
+.loading-message,
+.no-tasks-message {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14px;
+  color: #666666;
+  text-align: center;
+  padding: 20px;
+}
+
+.no-projects-message {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  overflow: visible;
-  transition: box-shadow 0.3s ease;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
 }
 
-.task-section:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+.no-projects-text {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 17px;
+  color: #666666;
+}
+
+.no-projects-subtext {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 14px;
+  color: #999999;
 }
 
 /* Task 타임라인 스타일 */
 .task-timeline-wrapper {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto; /* 내용이 넘칠 때만 스크롤바 표시 */
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+.task-timeline-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.task-timeline-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.task-timeline-wrapper::-webkit-scrollbar-thumb {
+  background: #D0D0D0;
+  border-radius: 3px;
+}
+
+.task-timeline-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #B0B0B0;
 }
 
 .task-timeline-chart {
@@ -1656,199 +2518,6 @@ export default {
   color: #999999;
 }
 
-
-
-.document-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.document-folder {
-  border-radius: 10px !important;
-  overflow: hidden;
-  border: 1px solid #E0E0E0 !important;
-  position: relative;
-  z-index: 10;
-}
-
-.document-folder .v-card-text {
-  padding: 0 !important;
-}
-
-.folder-header {
-  padding: 12px 16px;
-  border-radius: 8px 8px 0 0;
-  display: flex;
-  align-items: center;
-}
-
-.folder-header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.dropdown-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s ease;
-}
-
-.dropdown-btn:hover {
-  transform: scale(1.1);
-}
-
-.dropdown-btn:focus,
-.dropdown-btn:focus-visible {
-  outline: none;
-}
-
-.dropdown-icon {
-  width: 16px;
-  height: 16px;
-  transition: transform 0.2s ease;
-}
-
-.dropdown-icon.rotated {
-  transform: rotate(90deg);
-}
-
-.folder-name {
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 600;
-  font-size: 14px;
-  line-height: 17px;
-  color: #1C0F0F;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.folder-icon {
-  width: 20px;
-  height: 20px;
-  fill: #FFE364;
-  filter: invert(85%) sepia(45%) saturate(1173%) hue-rotate(350deg) brightness(103%) contrast(101%);
-}
-
-.folder-content {
-  background: #F8FAFC;
-  padding: 12px 16px !important;
-  border-radius: 0 0 8px 8px;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.folder-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.folder-content::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.folder-content::-webkit-scrollbar-thumb {
-  background: #D0D0D0;
-  border-radius: 3px;
-}
-
-.folder-content::-webkit-scrollbar-thumb:hover {
-  background: #B0B0B0;
-}
-
-.document-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  padding-left: 28px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 6px;
-  margin-bottom: 4px;
-}
-
-.document-item:last-child {
-  margin-bottom: 0;
-}
-
-.document-item:hover {
-  background: rgba(255, 227, 100, 0.2);
-  transform: translateX(2px);
-}
-
-.doc-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  filter: invert(60%) sepia(0%) saturate(0%) brightness(90%) contrast(90%);
-}
-
-.doc-name {
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 500;
-  font-size: 13px;
-  line-height: 16px;
-  color: #2A2828;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ChatRoomList 컴포넌트 임베드 스타일 조정 */
-.chat-section :deep(.chatlist-wrapper) {
-  padding: 0;
-  min-height: 100%;
-  height: 100%;
-  display: flex;
-}
-
-.chat-section :deep(.chatlist-card) {
-  border: none;
-  border-radius: 0;
-  width: 100%;
-  height: 100%;
-  min-height: 100%;
-  box-shadow: none;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-section :deep(.chatlist-banner) {
-  border-radius: 12px 12px 0 0;
-  flex-shrink: 0;
-}
-
-.chat-section :deep(.chatlist-body) {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.chat-section :deep(.v-container) {
-  padding: 0;
-  height: 100%;
-}
-
-.chat-section :deep(.v-row) {
-  margin: 0;
-  height: 100%;
-}
-
-.chat-section :deep(.v-col) {
-  padding: 0;
-  height: 100%;
-}
-
 /* Summary dialog styling */
 .summary-card { 
   --v-card-border-radius: 15px; 
@@ -1879,96 +2548,35 @@ export default {
 
 /* 반응형 레이아웃 */
 @media (max-width: 1400px) {
-  .dashboard-layout {
+  .dashboard {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto auto auto;
-    height: auto;
   }
   
-  .project-section {
-    grid-column: 1 / -1;
-    grid-row: 1 / 2;
-  }
-  
-  .chat-section {
-    grid-column: 2 / 3;
-    grid-row: 2 / 5;
-  }
-  
-  .docs-section {
-    grid-column: 1 / 2;
-    grid-row: 2 / 3;
-  }
-  
-  .task-section {
-    grid-column: 1 / 2;
-    grid-row: 3 / 4;
-  }
-  
-  .project-section,
-  .docs-section,
-  .task-section {
-    min-height: 300px;
-  }
-  
-  .chat-section {
-    min-height: 600px;
+  .dashboard-bottom {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
   }
 }
 
 @media (max-width: 1000px) {
-  .dashboard-layout {
+  .dashboard {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto auto;
-    height: auto;
   }
   
-  .project-section {
-    grid-column: 1 / 2;
-    grid-row: 1 / 2;
-  }
-  
-  .chat-section {
-    grid-column: 1 / 2;
-    grid-row: 2 / 3;
-  }
-  
-  .docs-section {
-    grid-column: 1 / 2;
-    grid-row: 3 / 4;
-  }
-  
-  .task-section {
-    grid-column: 1 / 2;
-    grid-row: 4 / 5;
-  }
-  
-  .project-section,
-  .docs-section,
-  .task-section,
-  .chat-section {
-    min-height: 250px;
+  .dashboard-bottom {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
   }
 }
 
 @media (max-width: 768px) {
-  .main-content {
-    margin-left: 0;
-    width: 100%;
-    padding: 10px;
-  }
-  
-  .dashboard-layout {
+  .dashboard {
     gap: 15px;
-    padding: 0 10px 10px 10px;
+    padding: 0 10px 20px 10px;
   }
   
-  .project-section,
-  .docs-section,
-  .task-section,
-  .chat-section {
-    min-height: 200px;
-    padding: 15px;
+  .dashboard-bottom {
+    gap: 15px;
   }
 }
 </style>
