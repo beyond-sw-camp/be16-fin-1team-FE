@@ -9,6 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fullcalendar/core": "6.1.9",
+    "@fullcalendar/daygrid": "6.1.9",
+    "@fullcalendar/interaction": "6.1.9",
+    "@fullcalendar/timegrid": "6.1.9",
+    "@fullcalendar/vue3": "6.1.9",
     "@mdi/font": "^7.4.47",
     "@stomp/stompjs": "^7.2.1",
     "@tiptap/core": "2.26.3",
@@ -36,6 +41,7 @@
     "axios": "^1.12.2",
     "core-js": "^3.8.3",
     "d3": "^7.9.0",
+    "fullcalendar": "6.1.9",
     "docx": "^9.5.1",
     "file-saver": "^2.0.5",
     "html-docx-js": "^0.3.1",

@@ -39,9 +39,10 @@
             <div class="member-name">
               <div class="user-avatar">
                 <img 
-                  src="/src/assets/icons/user/user_default_icon.svg" 
+                  :src="member.userInfo.profileImageUrl || userDefaultIcon" 
                   :alt="member.userInfo.userName"
                   class="avatar-img"
+                  @error="handleAvatarError($event)"
                 />
               </div>
               <span class="name-text">{{ member.userInfo.userName }}</span>
@@ -69,6 +70,7 @@
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import userDefaultIcon from '@/assets/icons/user/user_default_icon.svg';
 
 export default {
   name: 'PermissionGroupDetail',
@@ -84,7 +86,8 @@ export default {
         userList: []
       },
       members: [],
-      loading: false
+      loading: false,
+      userDefaultIcon
     }
   },
   methods: {
@@ -169,6 +172,11 @@ export default {
     
     goBack() {
       this.$router.go(-1);
+    },
+    
+    // 아바타 이미지 로드 실패 시 기본 아이콘으로 대체
+    handleAvatarError(event) {
+      event.target.src = this.userDefaultIcon;
     }
   },
   mounted() {

@@ -12,15 +12,26 @@
     <!-- 검색바 -->
     <div class="search-container">
       <div class="search-input">
-        <input 
-          type="text" 
-          v-model="searchKeyword"
-          @input="onSearchInput"
-          @keyup.enter="performSearch"
-          @focus="onSearchFocus"
-          placeholder="검색" 
-          class="search-field" 
-        />
+        <div class="search-input-wrapper">
+          <input 
+            type="text" 
+            v-model="searchKeyword"
+            @input="onSearchInput"
+            @keydown.tab.prevent="onTabKey"
+            @keydown.enter="onEnterKey"
+            @focus="onSearchFocus"
+            @blur="onSearchBlur"
+            placeholder="검색" 
+            class="search-field" 
+          />
+          <!-- Tab 키 힌트와 미리보기 -->
+          <div 
+            v-if="showSuggestions && suggestions.length > 0 && searchKeyword.trim() && !isTyping && getPreviewSuffix()"
+            class="search-preview"
+          >
+            [tab] {{ getPreviewText() }}
+          </div>
+        </div>
         <img 
           src="@/assets/icons/header/magnify.svg" 
           alt="검색" 
@@ -32,12 +43,15 @@
         <div v-if="showSuggestions && suggestions.length > 0" class="suggestions-dropdown">
           <div 
             v-for="(suggestion, index) in suggestions" 
-            :key="index"
+            :key="suggestion.id || index"
             class="suggestion-item"
             @mousedown.prevent="selectSuggestion(suggestion)"
           >
-            <v-icon small class="mr-2">mdi-magnify</v-icon>
-            <span>{{ suggestion }}</span>
+            <v-icon small class="mr-2" :color="getDocTypeIconColor(suggestion.docType)">
+              {{ getDocTypeIcon(suggestion.docType) }}
+            </v-icon>
+            <span class="suggestion-type-label mr-2">{{ getDocTypeLabel(suggestion.docType) }}</span>
+            <span class="suggestion-title">{{ suggestion.searchTitle }}</span>
           </div>
         </div>
       </div>
@@ -61,7 +75,7 @@
         <template v-else>
           <div v-if="notifList.length === 0" class="notif-empty">알림이 없습니다</div>
           <div v-else class="notif-list">
-            <div v-for="(n, idx) in notifList" :key="n.id" class="notif-item" :class="{ unread: (n.readStatus||'').toUpperCase()==='UNREAD' }">
+            <div v-for="(n, idx) in notifList" :key="n.id" class="notif-item" :class="{ unread: (n.readStatus||'').toUpperCase()==='UNREAD' }" @click="onNotificationClick(n)">
               <button class="notif-dismiss" title="닫기" @click.stop="onDismissNotif(n.id, idx)">
                 <img src="@/assets/icons/user/close.svg" alt="닫기" />
               </button>
@@ -109,75 +123,6 @@
       </v-list>
     </v-menu>
 
-    <!-- 검색 결과 모달 -->
-    <v-dialog v-model="searchDialog" max-width="900" scrollable>
-      <v-card>
-        <v-card-title class="search-result-header">
-          <v-icon class="mr-2">mdi-magnify</v-icon>
-          검색 결과: "{{ currentSearchKeyword }}"
-          <v-spacer></v-spacer>
-          <v-btn icon @click="searchDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
-        <v-divider></v-divider>
-        
-        <v-card-text class="search-results-container">
-          <!-- 로딩 -->
-          <div v-if="searchLoading" class="text-center py-8">
-            <v-progress-circular indeterminate color="primary"></v-progress-circular>
-            <div class="mt-3">검색 중...</div>
-          </div>
-
-          <!-- 검색 결과 -->
-          <div v-else-if="searchResults.length > 0">
-            <div 
-              v-for="result in searchResults" 
-              :key="result.id"
-              class="search-result-item"
-              @click="openResult(result)"
-            >
-              <div class="result-header">
-                <v-chip small :color="getTypeColor(result.docType)" text-color="white" class="mr-2">
-                  {{ getTypeName(result.docType) }}
-                </v-chip>
-                <div class="result-title" v-html="result.searchTitle"></div>
-              </div>
-              
-              <div v-if="result.searchContent" class="result-content" v-html="result.searchContent"></div>
-              
-              <div class="result-meta">
-                <div class="result-creator">
-                  <v-avatar size="20" class="mr-1">
-                    <img v-if="result.profileImageUrl" :src="result.profileImageUrl" />
-                    <v-icon v-else small>mdi-account-circle</v-icon>
-                  </v-avatar>
-                  {{ result.creatorName }}
-                </div>
-                <div class="result-date">
-                  {{ formatDate(result.dateTime) }}
-                </div>
-                <div v-if="result.participants && result.participants.length > 0" class="result-participants">
-                  <v-avatar-group size="20" max="3">
-                    <v-avatar v-for="participant in result.participants" :key="participant.id" size="20">
-                      <img v-if="participant.profileImage" :src="participant.profileImage" />
-                      <v-icon v-else small>mdi-account</v-icon>
-                    </v-avatar>
-                  </v-avatar-group>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 결과 없음 -->
-          <div v-else class="text-center py-8 grey--text">
-            <v-icon size="64" color="grey lighten-1">mdi-magnify</v-icon>
-            <div class="mt-4 text-h6">검색 결과가 없습니다</div>
-            <div class="text-body-2">다른 검색어를 시도해보세요</div>
-          </div>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
   </v-app-bar>
 </template>
 
@@ -191,13 +136,12 @@ export default {
   data() {
     return {
       searchKeyword: '',
-      currentSearchKeyword: '',
       suggestions: [],
       showSuggestions: false,
-      searchDialog: false,
-      searchResults: [],
-      searchLoading: false,
       suggestTimer: null,
+      typingTimer: null, // 입력 중 상태 해제 타이머
+      isSearchFieldFocused: false,
+      isTyping: false, // 입력 중 상태
       userMenu: false,
       notifMenu: false,
       notifLoading: false,
@@ -210,6 +154,12 @@ export default {
     notifBadgeText() {
       const n = Number(this.notifCount) || 0;
       return n <= 9 ? String(n) : '9+';
+    },
+    previewLeft() {
+      // 입력 필드의 기본 left 위치 (17px) + 입력된 텍스트 너비
+      const baseLeft = 17;
+      const textWidth = this.getTextWidth(this.searchKeyword);
+      return baseLeft + textWidth;
     }
   },
 
@@ -325,22 +275,197 @@ export default {
           content: n.content || '',
           readStatus: (n.readStatus || 'UNREAD'),
           createdAt,
+          notificationType: n.notificationType,
+          workspaceId: n.workspaceId,
+          projectId: n.projectId,
+          stoneId: n.stoneId,
+          taskId: n.taskId,
         };
         this.notifList = [item, ...(this.notifList || [])];
         this.notifCount = this.notifList.length;
       } catch(_) {}
     },
+    // 알림 클릭 시 프로젝트 페이지로 이동
+    onNotificationClick(notification) {
+      if (notification.projectId) {
+        this.$router.push(`/project?id=${notification.projectId}`);
+      }
+    },
     // 검색창 포커스
     onSearchFocus() {
       console.log('Search input focused');
+      this.isSearchFieldFocused = true;
       if (this.suggestions.length > 0) {
         this.showSuggestions = true;
       }
     },
 
+    // 검색창 포커스 해제
+    onSearchBlur() {
+      // 약간의 지연을 두어 드롭다운 클릭 이벤트가 먼저 처리되도록
+      setTimeout(() => {
+        this.isSearchFieldFocused = false;
+      }, 200);
+    },
+
+    // Tab 키 처리 - 첫 번째 자동완성으로 채우기
+    onTabKey() {
+      if (this.suggestions.length > 0 && this.suggestions[0]) {
+        const firstSuggestion = this.suggestions[0];
+        if (typeof firstSuggestion === 'object' && firstSuggestion.searchTitle) {
+          this.searchKeyword = firstSuggestion.searchTitle;
+          this.showSuggestions = false;
+        } else if (typeof firstSuggestion === 'string') {
+          this.searchKeyword = firstSuggestion;
+          this.showSuggestions = false;
+        }
+      }
+    },
+
+    // Enter 키 처리
+    onEnterKey() {
+      // Enter 키는 항상 검색만 수행
+      this.showSuggestions = false;
+      this.performSearch();
+    },
+
+
+    // 미리보기 접미사 가져오기
+    getPreviewSuffix() {
+      if (this.suggestions.length > 0 && this.suggestions[0]) {
+        const firstSuggestion = this.suggestions[0];
+        if (typeof firstSuggestion === 'object' && firstSuggestion.searchTitle) {
+          const current = this.searchKeyword.trim();
+          const suggestion = firstSuggestion.searchTitle;
+          
+          if (!current) return '';
+          
+          // 입력한 부분 이후의 텍스트 반환
+          // 예: "3ㅈ" 입력 시 "3장 경사하강법"이 오면 "장 경사하강법" 반환
+          const matchedPart = this.findMatchedPart(current, suggestion);
+          if (matchedPart) {
+            return suggestion.substring(matchedPart.length);
+          }
+        }
+      }
+      return '';
+    },
+
+    // 입력 텍스트와 제안 텍스트의 매칭된 부분 찾기
+    findMatchedPart(input, suggestion) {
+      if (!input || !suggestion) return '';
+      
+      const inputLower = input.toLowerCase();
+      const suggestionLower = suggestion.toLowerCase();
+      
+      // 정확히 시작하는 경우
+      if (suggestionLower.startsWith(inputLower)) {
+        return suggestion.substring(0, input.length);
+      }
+      
+      // 공통 부분 찾기 (숫자, 영문자, 한글)
+      let matchedLength = 0;
+      let inputIndex = 0;
+      let suggestionIndex = 0;
+      
+      while (inputIndex < input.length && suggestionIndex < suggestion.length) {
+        const inputChar = input[inputIndex];
+        const suggestionChar = suggestion[suggestionIndex];
+        
+        // 숫자나 영문자가 정확히 일치
+        if (/[0-9a-zA-Z]/.test(inputChar) && inputChar.toLowerCase() === suggestionChar.toLowerCase()) {
+          matchedLength++;
+          inputIndex++;
+          suggestionIndex++;
+        }
+        // 한글 완성형이 일치
+        else if (/[가-힣]/.test(inputChar) && /[가-힣]/.test(suggestionChar) && inputChar === suggestionChar) {
+          matchedLength++;
+          inputIndex++;
+          suggestionIndex++;
+        }
+        // 한글 초성 매칭 (예: "ㅈ"과 "장")
+        else if (/[ㄱ-ㅎ]/.test(inputChar) && /[가-힣]/.test(suggestionChar)) {
+          const initial = this.getKoreanInitial(suggestionChar);
+          if (initial === inputChar) {
+            matchedLength++;
+            inputIndex++;
+            suggestionIndex++;
+          } else {
+            break;
+          }
+        }
+        // 공백 문자 매칭
+        else if (inputChar === ' ' && suggestionChar === ' ') {
+          matchedLength++;
+          inputIndex++;
+          suggestionIndex++;
+        }
+        else {
+          break;
+        }
+      }
+      
+      return matchedLength > 0 ? suggestion.substring(0, matchedLength) : '';
+    },
+
+    // 한글 문자에서 초성 추출
+    getKoreanInitial(char) {
+      if (!/[가-힣]/.test(char)) return '';
+      
+      const code = char.charCodeAt(0) - 0xAC00;
+      const initialIndex = Math.floor(code / 588);
+      const initials = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+      return initials[initialIndex] || '';
+    },
+
+    // 매칭된 부분 가져오기 (공간용)
+    getMatchedPart() {
+      if (this.suggestions.length > 0 && this.suggestions[0]) {
+        const firstSuggestion = this.suggestions[0];
+        if (typeof firstSuggestion === 'object' && firstSuggestion.searchTitle) {
+          const current = this.searchKeyword.trim();
+          const suggestion = firstSuggestion.searchTitle;
+          return this.findMatchedPart(current, suggestion);
+        }
+      }
+      return '';
+    },
+
+    // 미리보기 전체 텍스트 가져오기
+    getPreviewText() {
+      if (this.suggestions.length > 0 && this.suggestions[0]) {
+        const firstSuggestion = this.suggestions[0];
+        if (typeof firstSuggestion === 'object' && firstSuggestion.searchTitle) {
+          // 전체 제안 내용 표시
+          return firstSuggestion.searchTitle;
+        }
+      }
+      return '';
+    },
+
+    // 입력된 텍스트의 너비 계산
+    getTextWidth(text) {
+      if (!text) return 0;
+      
+      // 캔버스를 사용하여 텍스트 너비 측정
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      context.font = '400 14px Pretendard, sans-serif';
+      return context.measureText(text).width;
+    },
+
     // 검색어 입력 시 자동완성
     onSearchInput() {
       console.log('onSearchInput called, keyword:', this.searchKeyword);
+      
+      // 입력 중 상태로 설정
+      this.isTyping = true;
+      
+      // 입력 중 상태 해제 타이머 리셋
+      if (this.typingTimer) {
+        clearTimeout(this.typingTimer);
+      }
       
       if (this.suggestTimer) {
         clearTimeout(this.suggestTimer);
@@ -349,49 +474,117 @@ export default {
       if (!this.searchKeyword || this.searchKeyword.trim().length === 0) {
         this.suggestions = [];
         this.showSuggestions = false;
+        this.isTyping = false;
         return;
       }
 
-      // 최소 2글자 이상 입력 시 자동완성
-      if (this.searchKeyword.trim().length < 2) {
-        this.suggestions = [];
-        this.showSuggestions = false;
-        return;
-      }
-
-      // 디바운싱 (300ms)
+      // 디바운싱 (50ms로 단축하여 즉시 반응)
       this.suggestTimer = setTimeout(async () => {
         try {
-          console.log('Calling suggest API with keyword:', this.searchKeyword.trim());
-          const response = await searchService.suggest(this.searchKeyword.trim());
+          const keyword = this.searchKeyword.trim();
+          console.log('Calling suggest API with keyword:', keyword);
+          
+          const response = await searchService.suggest(keyword);
           console.log('Suggest API response:', response);
           
+          // 응답이 올 때까지 입력값이 변경되었는지 확인
+          if (keyword !== this.searchKeyword.trim()) {
+            console.log('입력값이 변경되어 응답 무시');
+            return;
+          }
+          
           if (response.result && Array.isArray(response.result)) {
+            // FILE 타입 항목에 대한 필드 확인 및 로그
+            response.result.forEach((item, index) => {
+              if (item.docType === 'FILE') {
+                console.log(`[자동완성] FILE 항목 #${index}:`, {
+                  id: item.id,
+                  searchTitle: item.searchTitle,
+                  fileUrl: item.fileUrl,
+                  docType: item.docType
+                });
+              }
+            });
+            
             this.suggestions = response.result;
             this.showSuggestions = this.suggestions.length > 0;
             console.log('Suggestions:', this.suggestions, 'showSuggestions:', this.showSuggestions);
+            
+            // 응답 받은 후 입력 중 상태 해제 (미리보기 표시)
+            // 사용자가 입력을 멈춘 것으로 간주 (300ms 후)
+            if (this.typingTimer) {
+              clearTimeout(this.typingTimer);
+            }
+            this.typingTimer = setTimeout(() => {
+              // 입력값이 변경되지 않았으면 입력 중 상태 해제
+              if (keyword === this.searchKeyword.trim()) {
+                this.isTyping = false;
+              }
+            }, 300);
           } else {
             console.warn('Invalid response format:', response);
             this.suggestions = [];
             this.showSuggestions = false;
+            this.isTyping = false;
           }
         } catch (error) {
           console.error('자동완성 실패:', error);
           console.error('Error details:', error.response);
+          this.isTyping = false;
+          // 에러 발생 시에도 입력값이 변경되었는지 확인
+          if (error.config && error.config.params) {
+            const requestedKeyword = error.config.params.keyword;
+            if (requestedKeyword !== this.searchKeyword.trim()) {
+              console.log('입력값이 변경되어 에러 응답 무시');
+              return;
+            }
+          }
         }
-      }, 300);
+      }, 50);
     },
 
     // 자동완성 항목 선택
     selectSuggestion(suggestion) {
       console.log('Suggestion selected:', suggestion);
-      this.searchKeyword = suggestion;
-      this.showSuggestions = false;
-      this.performSearch();
+      
+      // suggestion이 객체인 경우
+      if (typeof suggestion === 'object' && suggestion.id) {
+        // DOCUMENT 타입인 경우 바로 문서 뷰어로 이동
+        if (suggestion.docType === 'DOCUMENT') {
+          this.showSuggestions = false;
+          const routeData = this.$router.resolve(`/viewer/${suggestion.id}`);
+          window.open(routeData.href, '_blank');
+          return;
+        }
+        
+        // FILE 타입인 경우 fileUrl로 열기
+        if (suggestion.docType === 'FILE') {
+          this.showSuggestions = false;
+          if (suggestion.fileUrl) {
+            window.open(suggestion.fileUrl, '_blank');
+          } else {
+            console.warn('파일 URL이 없습니다:', suggestion);
+            showSnackbar('파일을 열 수 없습니다.', 'error');
+          }
+          return;
+        }
+        
+        // 다른 타입이거나 객체가 아닌 경우 검색 수행
+        const keyword = suggestion.searchTitle || suggestion;
+        this.searchKeyword = keyword;
+        this.showSuggestions = false;
+        this.performSearch();
+      } else {
+        // 문자열인 경우 그대로 사용하여 검색
+        const keyword = typeof suggestion === 'string' ? suggestion : String(suggestion);
+        this.searchKeyword = keyword;
+        this.showSuggestions = false;
+        this.performSearch();
+      }
     },
 
     // 검색 수행
-    async performSearch() {
+    performSearch() {
       const keyword = this.searchKeyword.trim();
       
       if (!keyword) {
@@ -399,82 +592,52 @@ export default {
         return;
       }
 
-      this.currentSearchKeyword = keyword;
+      if (keyword.length < 2) {
+        showSnackbar('검색어는 최소 2글자 이상 입력해주세요.', 'warning');
+        return;
+      }
+
       this.showSuggestions = false;
-      this.searchDialog = true;
-      this.searchLoading = true;
-
-      try {
-        const response = await searchService.search(keyword);
-        if (response.result && Array.isArray(response.result)) {
-          this.searchResults = response.result;
-        } else {
-          this.searchResults = [];
-        }
-      } catch (error) {
-        console.error('검색 실패:', error);
-        showSnackbar('검색에 실패했습니다.', 'error');
-        this.searchResults = [];
-      } finally {
-        this.searchLoading = false;
-      }
+      // 검색 결과 페이지로 이동
+      this.$router.push({
+        path: '/search',
+        query: { keyword: keyword }
+      });
     },
 
-    // 검색어 하이라이트
-    highlightKeyword(text) {
-      if (!this.searchKeyword) return text;
-      const keyword = this.searchKeyword.trim();
-      const regex = new RegExp(`(${keyword})`, 'gi');
-      return text.replace(regex, '<strong>$1</strong>');
-    },
-
-    // 문서 타입 이름
-    getTypeName(docType) {
-      const typeMap = {
-        stones: '프로젝트',
-        documents: '문서',
-        files: '파일',
-        tasks: '태스크',
+    // 문서 타입 아이콘 (자동완성용)
+    getDocTypeIcon(docType) {
+      const iconMap = {
+        DOCUMENT: 'mdi-file-document-outline',
+        FILE: 'mdi-file-outline',
+        STONE: 'mdi-folder-star-outline',
+        PROJECT: 'mdi-folder-outline',
       };
-      return typeMap[docType] || docType;
+      return iconMap[docType] || 'mdi-file-outline';
     },
 
-    // 문서 타입 색상
-    getTypeColor(docType) {
+    // 문서 타입 아이콘 색상 (자동완성용)
+    getDocTypeIconColor(docType) {
       const colorMap = {
-        stones: 'blue',
-        documents: 'green',
-        files: 'orange',
-        tasks: 'purple',
+        DOCUMENT: '#1976d2',
+        FILE: '#ff9800',
+        STONE: '#9c27b0',
+        PROJECT: '#1976d2',
       };
-      return colorMap[docType] || 'grey';
+      return colorMap[docType] || '#757575';
     },
 
-    // 날짜 포맷
-    formatDate(dateString) {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return date.toLocaleDateString('ko-KR');
+    // 문서 타입 라벨 (자동완성용)
+    getDocTypeLabel(docType) {
+      const labelMap = {
+        DOCUMENT: '[문서]',
+        FILE: '[파일]',
+        STONE: '[스톤]',
+        PROJECT: '[프로젝트]',
+      };
+      return labelMap[docType] || docType;
     },
 
-    // 검색 결과 열기
-    openResult(result) {
-      this.searchDialog = false;
-      
-      // 문서 타입에 따라 라우팅
-      if (result.docType === 'documents') {
-        // 문서는 독립적인 뷰어로 새 탭에서 열기
-        const routeData = this.$router.resolve(`/viewer/${result.id}`);
-        window.open(routeData.href, '_blank');
-      } else if (result.docType === 'stones') {
-        this.$router.push({ path: '/project', query: { id: result.id } });
-      } else if (result.docType === 'files') {
-        // 파일은 다운로드 또는 미리보기
-        showSnackbar('파일 미리보기 기능은 준비 중입니다.', 'info');
-      } else if (result.docType === 'tasks') {
-        showSnackbar('태스크 상세 페이지는 준비 중입니다.', 'info');
-      }
-    },
 
     // 외부 클릭 처리
     handleClickOutside(event) {
@@ -592,7 +755,17 @@ export default {
   box-shadow: inset 0 0 0 1px #DDDDDD;
 }
 
+.search-input-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
 .search-field {
+  position: relative;
+  z-index: 2;
   width: 100%;
   height: 100%;
   background: transparent;
@@ -607,6 +780,26 @@ export default {
   -webkit-appearance: none;
   appearance: none;
   box-shadow: none;
+}
+
+/* 첫 번째 자동완성 미리보기 */
+.search-preview {
+  position: absolute;
+  right: 50px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #999;
+  white-space: nowrap;
+  background: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+  border: 1px solid #e0e0e0;
 }
 
 .search-input:focus-within {
@@ -684,6 +877,17 @@ export default {
 .suggestion-item strong {
   color: #1976d2;
   font-weight: 600;
+}
+
+.suggestion-type-label {
+  color: #757575;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.suggestion-title {
+  color: #333;
+  font-weight: 400;
 }
 
 /* 검색 결과 모달 */
@@ -880,12 +1084,14 @@ export default {
   border-radius: 0;
   background: transparent;
   position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
 }
-.notif-item:hover { background: rgba(255,255,255,0.03); }
+.notif-item:hover { background: rgba(255,255,255,0.08); }
 .notif-item:last-child { border-bottom: none; }
 .notif-item.unread { border-left: none; }
-.notif-item-title { font-weight: 700; font-size: 13.5px; color: #FFFFFF; margin-bottom: 4px; line-height: 1.35; }
-.notif-item-content { font-size: 12.5px; color: #DEDEDE; margin-bottom: 6px; line-height: 1.45; }
+.notif-item-title { font-weight: 700; font-size: 15px; color: #FFFFFF; margin-bottom: 4px; line-height: 1.35; }
+.notif-item-content { font-size: 14px; color: #DEDEDE; margin-bottom: 6px; line-height: 1.45; }
 .notif-item-time { font-size: 11.5px; color: #BDBDBD; }
 
 .notif-dismiss {
@@ -978,8 +1184,8 @@ export default {
 }
 
 .user-icon {
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   opacity: 0.8;
   filter: brightness(0);
 }

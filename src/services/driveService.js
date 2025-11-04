@@ -162,5 +162,35 @@ export default {
   getContentsByRoot(rootType, rootId) {
     return driveApi.get(`/${rootType}/${rootId}`);
   },
+
+  // 루트에서 하위 폴더들만 가져오기
+  getFoldersByRoot(rootType, rootId) {
+    return driveApi.get(`/${rootType}/${rootId}/folders`);
+  },
+
+  // 특정 폴더의 하위 폴더들만 가져오기
+  getChildFolders(folderId) {
+    return driveApi.get(`/folder/${folderId}/folders`);
+  },
+
+  // 루트 이름 가져오기
+  getRootName(rootType, rootId) {
+    return driveApi.get(`/${rootType}/${rootId}/name`);
+  },
+
+  // 문서 상세 정보 조회
+  getDocumentInfo(documentId) {
+    return driveApi.get(`/document/${documentId}/info`);
+  },
+
+  // 폴더 상세 정보 조회
+  getFolderInfoDetail(folderId) {
+    return driveApi.get(`/folder/${folderId}/info`);
+  },
+
+  // 파일 상세 정보 조회
+  getFileInfo(fileId) {
+    return driveApi.get(`/file/${fileId}/info`);
+  },
 };
 

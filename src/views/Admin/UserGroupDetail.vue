@@ -55,7 +55,7 @@
               class="member-item"
             >
               <div class="user-avatar">
-                <img src="@/assets/icons/user/user_default_icon.svg" alt="user" />
+                <img :src="member.profileImageUrl || userDefaultIcon" alt="user" @error="handleAvatarError($event)" />
               </div>
               <div class="user-info">
                 <div class="user-name">{{ member.userName }}</div>
@@ -72,6 +72,7 @@
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import userDefaultIcon from '@/assets/icons/user/user_default_icon.svg';
 
 export default {
   name: 'UserGroupDetail',
@@ -83,7 +84,8 @@ export default {
         members: []
       },
       members: [],
-      loading: false
+      loading: false,
+      userDefaultIcon
     };
   },
   setup() {
@@ -122,7 +124,12 @@ export default {
           // 관리자 사용자 제외
           this.members = allMembers.filter(member => 
             member.userId !== adminUserId
-          );
+          ).map(member => ({
+            userId: member.userId,
+            userName: member.userName,
+            userEmail: member.userEmail,
+            profileImageUrl: member.profileImageUrl
+          }));
         }
       } catch (error) {
         console.error('사용자 그룹 상세 조회 실패:', error);
@@ -136,6 +143,11 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    
+    // 아바타 이미지 로드 실패 시 기본 아이콘으로 대체
+    handleAvatarError(event) {
+      event.target.src = this.userDefaultIcon;
     }
   }
 };

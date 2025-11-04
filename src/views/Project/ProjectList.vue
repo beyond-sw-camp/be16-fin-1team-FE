@@ -1,35 +1,28 @@
 <template>
-  <div class="project-container">
+  <div class="project-container" :class="{ 'documents-tab-mode': activeTab === 'documents' }">
     <!-- 프로젝트 헤더 (바디 안의 헤더) -->
     <div class="project-header">
-      <div class="title-wrapper">
+      <div class="title-wrapper" ref="titleWrapper">
+        <img class="project-title-icon" src="@/assets/icons/project/stones_1.svg" alt="Project Icon" />
         <h1 class="project-title">{{ projectName }}</h1>
         <div class="action-icons">
-          <svg class="edit-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" @click="openEditModal">
+          <svg class="edit-icon" width="20" height="20" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" @click="openEditModal">
             <path d="M10.5 1.5L12.5 3.5L11 5L9 3L10.5 1.5Z" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M9 3L11 5L4.5 11.5L1 13L2.5 9.5L9 3Z" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <svg class="delete-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" @click="openDeleteModal">
+          <svg class="delete-icon" width="20" height="20" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" @click="openDeleteModal">
             <path d="M11.6667 3.5H2.33333M5.83333 6.41667V9.33333M8.16667 6.41667V9.33333M2.33333 3.5V11.6667C2.33333 12.1269 2.70643 12.5 3.16667 12.5H10.8333C11.2936 12.5 11.6667 12.1269 11.6667 11.6667V3.5M4.66667 3.5V2.33333C4.66667 1.8731 5.03976 1.5 5.5 1.5H8.5C8.96024 1.5 9.33333 1.8731 9.33333 2.33333V3.5" stroke="#FF3E41" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
       </div>
       <!-- 프로젝트 정보 (제목 오른쪽) -->
-      <div class="project-info">
+      <div class="project-info" ref="projectInfo">
         <div class="date-info">
-          <svg class="calendar-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12.6667 2.66667H3.33333C2.59695 2.66667 2 3.26362 2 4V13.3333C2 14.0697 2.59695 14.6667 3.33333 14.6667H12.6667C13.403 14.6667 14 14.0697 14 13.3333V4C14 3.26362 13.403 2.66667 12.6667 2.66667Z" stroke="#666666" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M10.6667 1.33333V4" stroke="#666666" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M5.33333 1.33333V4" stroke="#666666" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M2 6.66667H14" stroke="#666666" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <span class="calendar-icon" aria-hidden="true"></span>
           <span class="date-range">{{ formatDateRange(projectDetail.startTime, projectDetail.endTime) }}</span>
         </div>
         <div class="project-owner">
-          <svg class="user-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 8C10.2091 8 12 6.20914 12 4C12 1.79086 10.2091 0 8 0C5.79086 0 4 1.79086 4 4C4 6.20914 5.79086 8 8 8Z" fill="#666666"/>
-            <path d="M8 10C3.58172 10 0 13.5817 0 18H16C16 13.5817 12.4183 10 8 10Z" fill="#666666"/>
-          </svg>
+          <span class="user-icon" aria-hidden="true"></span>
           <span class="owner-name">{{ projectDetail.manager }}</span>
         </div>
       </div>
@@ -41,7 +34,8 @@
     </div>
     
     <!-- 탭 메뉴 -->
-    <div class="tab-section">
+    <div class="tab-section" ref="tabSection">
+      <div class="tab-rail" :style="{ left: tabRailLeft + 'px', width: tabRailWidth + 'px' }"></div>
       <div class="tab-menu">
         <div class="tab-item" :class="{ active: activeTab === 'milestone' }" @click="activeTab = 'milestone'">
           마일스톤
@@ -59,7 +53,31 @@
     </div>
     
     <!-- 마일스톤 탭 -->
-    <div v-if="activeTab === 'milestone'">
+    <div v-if="activeTab === 'milestone'" :key="viewMode + ':' + (currentFocusedStoneId || 'none')">
+      <!-- 전체스톤 버튼 - 포커스 모드일 때만 표시 -->
+      <button 
+        v-if="viewMode === 'focus' && focusedStoneStack.length > 0" 
+        class="milestone-all-stone-button" 
+        @click="goToAllStones"
+        title="root 스톤으로 이동"
+      >
+        <img src="@/assets/icons/project/node-tree.svg" alt="전체트리" class="all-stone-icon" />
+        <span class="all-stone-text">ROOT</span>
+      </button>
+      
+      <!-- 핀 버튼 (루트 설정 저장/복원) - 포커스 모드일 때만 표시 -->
+      <button 
+        v-if="viewMode === 'focus' && focusedStoneStack.length > 0"
+        class="milestone-pin-button" 
+        @click="togglePinRootView"
+        :title="isPinned ? '핀 해제' : '이 뷰 고정'"
+      >
+        <img 
+          :src="pinIconPath" 
+          :alt="isPinned ? 'pinned' : 'pin'" 
+          class="pin-icon"
+        />
+      </button>
       <!-- 마일스톤 캔버스 -->
       <div 
         class="milestone-canvas" 
@@ -68,8 +86,38 @@
           'pan-mode': interactionMode === 'pan',
           'click-mode': interactionMode === 'click'
         }"
+        :style="{
+          left: (milestoneLeft != null ? milestoneLeft + 'px' : undefined),
+          right: 'auto',
+          width: (tabRailWidth ? (tabRailWidth + 'px') : undefined)
+        }"
         ref="milestoneCanvas"
       >
+        <!-- 보기 모드 스위치: 카드 상단 중앙 정렬 -->
+        <div class="view-mode-controls">
+          <div class="segmented-switch" role="tablist" aria-label="보기 모드 선택">
+            <button
+              class="seg-option"
+              :class="{ active: viewMode === 'all' }"
+              role="tab"
+              :aria-selected="viewMode === 'all'"
+              @click="setViewMode('all')"
+              title="전체보기 모드"
+            >
+              전체보기 모드
+            </button>
+            <button
+              class="seg-option"
+              :class="{ active: viewMode === 'focus' }"
+              role="tab"
+              :aria-selected="viewMode === 'focus'"
+              @click="setViewMode('focus')"
+              title="포커스 모드"
+            >
+              포커스 모드
+            </button>
+          </div>
+        </div>
         <div v-if="loading" class="loading-container">
           <p class="loading-text">스톤 목록을 불러오는 중...</p>
         </div>
@@ -85,6 +133,14 @@
           @mouseup="onMouseUp"
           @mouseleave="onMouseUp"
         >
+          <!-- 배경 패턴 정의 -->
+          <defs>
+            <pattern id="dotPattern" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+              <circle cx="12" cy="12" r="1" fill="rgba(0, 0, 0, 0.1)" />
+            </pattern>
+          </defs>
+          <!-- 배경 -->
+          <rect width="100%" height="100%" fill="url(#dotPattern)" />
           <!-- 확대/축소 그룹 -->
           <g :transform="`translate(${translate.x}, ${translate.y}) scale(${scale})`">
         <!-- 연결선들 -->
@@ -94,8 +150,9 @@
               :y1="connection.y1" 
               :x2="connection.x2" 
               :y2="connection.y2"
-              stroke="#8EA8A0"
-              stroke-width="2"
+              stroke="#2A2828"
+              stroke-opacity="0.4"
+              stroke-width="3"
               stroke-linecap="round"
               stroke-linejoin="round"
               :class="connection.isFromRoot ? 'root-connection-line' : 'milestone-line'"
@@ -103,69 +160,54 @@
           </g>
         
         <!-- 스톤 노드들 -->
-            <g v-for="stone in stoneNodes" :key="stone.id" class="stone-group">
+            <g v-for="stone in stoneNodes" :key="stone.id" class="stone-group" @mouseenter="hoveredStoneId = stone.id" @mouseleave="hoveredStoneId = null">
               <!-- 도넛형 진척도 스톤 -->
               <g class="donut-stone" :class="{ 
                 'root-stone': stone.isRoot,
                 'completed-stone': stone.stoneStatus === 'COMPLETED' || stone.milestone === 100
               }" @click="onStoneClick(stone, $event)">
-                <!-- 루트 스톤 배경 그라데이션 -->
-                <defs v-if="stone.isRoot">
-                  <radialGradient id="rootStoneGradient" cx="40%" cy="40%">
-                    <stop offset="0%" style="stop-color:#5F9EA0;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#4C6B7C;stop-opacity:1" />
+                <!-- 스톤 배경 (모든 스톤 동일한 디자인) -->
+                <defs>
+                  <!-- 볼록한 질감을 위한 그라데이션 -->
+                  <radialGradient :id="`stoneGradient_${stone.id}`" cx="35%" cy="35%">
+                    <stop offset="0%" style="stop-color:#4A4848;stop-opacity:1" />
+                    <stop offset="40%" style="stop-color:#3A3838;stop-opacity:1" />
+                    <stop offset="70%" style="stop-color:#2F2D2D;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#2A2828;stop-opacity:1" />
                   </radialGradient>
-                  <!-- 하이라이트 그라데이션 -->
-                  <radialGradient id="rootStoneHighlight" cx="25%" cy="25%">
-                    <stop offset="0%" style="stop-color:#E8EEED;stop-opacity:0.2" />
-                    <stop offset="100%" style="stop-color:#E8EEED;stop-opacity:0" />
-                  </radialGradient>
-                </defs>
-                
-                <!-- 루트 스톤 배경 원 -->
-                <circle
-                  v-if="stone.isRoot"
-                  :cx="stone.x + 90"
-                  :cy="stone.y + 90"
-                  :r="90"
-                  fill="url(#rootStoneGradient)"
-                  class="root-stone-bg"
-                />
-                
-                <!-- 루트 스톤 하이라이트 -->
-                <circle
-                  v-if="stone.isRoot"
-                  :cx="stone.x + 90"
-                  :cy="stone.y + 90"
-                  :r="60"
-                  fill="url(#rootStoneHighlight)"
-                  class="root-stone-highlight"
-                />
-                
-                <!-- 하위 스톤 배경 (루트가 아닌 경우) -->
-                <circle
-                  v-if="!stone.isRoot"
-                  :cx="stone.x + 75"
-                  :cy="stone.y + 75"
-                  :r="75"
-                  fill="#E8EEED"
-                  class="child-stone-bg"
-                />
-                
-                <!-- 하위 스톤 내부 그라데이션 -->
-                <defs v-if="!stone.isRoot">
-                  <radialGradient id="childStoneGradient" cx="30%" cy="30%">
-                    <stop offset="0%" style="stop-color:#E8EEED;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#D5E1DD;stop-opacity:1" />
+                  <!-- 하이라이트 효과 -->
+                  <radialGradient :id="`stoneHighlight_${stone.id}`" cx="30%" cy="30%">
+                    <stop offset="0%" style="stop-color:#555555;stop-opacity:0.4" />
+                    <stop offset="50%" style="stop-color:#3A3838;stop-opacity:0.2" />
+                    <stop offset="100%" style="stop-color:#2A2828;stop-opacity:0" />
                   </radialGradient>
                 </defs>
+                
+                <!-- 스톤 배경 원 -->
                 <circle
-                  v-if="!stone.isRoot"
-                  :cx="stone.x + 75"
-                  :cy="stone.y + 75"
-                  :r="65"
-                  fill="url(#childStoneGradient)"
-                  class="child-stone-inner"
+                  :cx="stone.x + (stone.isRoot ? 90 : 75)"
+                  :cy="stone.y + (stone.isRoot ? 90 : 75)"
+                  :r="stone.isRoot ? 90 : 75"
+                  fill="#2A2828"
+                  :class="stone.isRoot ? 'root-stone-bg' : 'child-stone-bg'"
+                />
+                
+                <!-- 스톤 내부 그라데이션 -->
+                <circle
+                  :cx="stone.x + (stone.isRoot ? 90 : 75)"
+                  :cy="stone.y + (stone.isRoot ? 90 : 75)"
+                  :r="stone.isRoot ? 80 : 65"
+                  :fill="`url(#stoneGradient_${stone.id})`"
+                  :class="stone.isRoot ? 'root-stone-inner' : 'child-stone-inner'"
+                />
+                
+                <!-- 볼록한 질감을 위한 하이라이트 -->
+                <circle
+                  :cx="stone.x + (stone.isRoot ? 90 : 75)"
+                  :cy="stone.y + (stone.isRoot ? 90 : 75)"
+                  :r="stone.isRoot ? 80 : 65"
+                  :fill="`url(#stoneHighlight_${stone.id})`"
+                  class="stone-highlight"
                 />
                 
                 <!-- 외곽 원형 테두리 -->
@@ -174,61 +216,126 @@
                   :cy="stone.y + (stone.isRoot ? 90 : 75)"
                   :r="stone.isRoot ? 90 : 75"
                   fill="none"
-                  :stroke="stone.isRoot ? '#AEC3B0' : '#B6A28E'"
+                  stroke="#666666"
+                  :class="{ 'root-donut-bg': stone.isRoot, 'child-donut-bg': !stone.isRoot }"
                   :stroke-width="stone.isRoot ? 16 : 4"
                   class="donut-background"
                 />
                 
+                <!-- 진척도 progress ring 배경 (게이지가 차지 않은 부분) -->
+                <circle
+                  :cx="stone.x + (stone.isRoot ? 90 : 75)"
+                  :cy="stone.y + (stone.isRoot ? 90 : 75)"
+                  :r="stone.isRoot ? (90 - 20/2) : (75 - 16/2)"
+                  fill="none"
+                  stroke="#666666"
+                  :stroke-width="stone.isRoot ? 20 : 16"
+                  stroke-linecap="round"
+                  :stroke-dasharray="2 * Math.PI * (stone.isRoot ? (90 - 20/2) : (75 - 16/2))"
+                  stroke-dashoffset="0"
+                  class="donut-progress-bg"
+                  transform="rotate(-90)"
+                  :transform-origin="`${stone.x + (stone.isRoot ? 90 : 75)}px ${stone.y + (stone.isRoot ? 90 : 75)}px`"
+                />
                 <!-- 진척도 progress ring -->
                 <circle
                   :cx="stone.x + (stone.isRoot ? 90 : 75)"
                   :cy="stone.y + (stone.isRoot ? 90 : 75)"
-                  :r="stone.isRoot ? 90 : 75"
+                  :r="stone.isRoot ? (90 - 20/2) : (75 - 16/2)"
                   fill="none"
-                  stroke="url(#progressGradient)"
-                  :stroke-width="stone.isRoot ? 16 : 12"
+                  :stroke="(stone.stoneStatus === 'COMPLETED' || stone.milestone === 100) ? 'url(#completedProgressGradient)' : 'url(#progressGradient)'"
+                  :stroke-width="stone.isRoot ? 20 : 16"
                   stroke-linecap="round"
-                  :stroke-dasharray="2 * Math.PI * (stone.isRoot ? 90 : 75)"
-                  :stroke-dashoffset="2 * Math.PI * (stone.isRoot ? 90 : 75) * (1 - (stone.milestone || 0) / 100)"
+                  :stroke-dasharray="2 * Math.PI * (stone.isRoot ? (90 - 20/2) : (75 - 16/2))"
+                  :stroke-dashoffset="gaugeAnimationReady ? 2 * Math.PI * (stone.isRoot ? (90 - 20/2) : (75 - 16/2)) * (1 - (stone.milestone || 0) / 100) : 2 * Math.PI * (stone.isRoot ? (90 - 20/2) : (75 - 16/2))"
                   class="donut-progress"
                   transform="rotate(-90)"
                   :transform-origin="`${stone.x + (stone.isRoot ? 90 : 75)}px ${stone.y + (stone.isRoot ? 90 : 75)}px`"
                 />
                 
-                <!-- 스톤명 텍스트 -->
-                <text
-                  :x="stone.x + (stone.isRoot ? 90 : 75)"
-                  :y="stone.y + (stone.isRoot ? 90 : 75) - 5"
-                  text-anchor="middle"
-                  :class="stone.isRoot ? 'root-stone-name' : 'stone-name'"
-                >
-                  {{ stone.name }}
-                </text>
-                
                 <!-- 마일스톤 진행률 텍스트 -->
                 <text
                   :x="stone.x + (stone.isRoot ? 90 : 75)"
-                  :y="stone.y + (stone.isRoot ? 90 : 75) + 15"
+                  :y="stone.y + (stone.isRoot ? 90 : 75) - 25"
                   text-anchor="middle"
                   :class="stone.isRoot ? 'root-stone-milestone' : 'stone-milestone'"
                 >
                   {{ (stone.milestone || 0) }}%
                 </text>
                 
+                <!-- 스톤명 텍스트 -->
+                <foreignObject
+                  :x="stone.x + (stone.isRoot ? 20 : 15)"
+                  :y="stone.y + (stone.isRoot ? 75 : 60)"
+                  :width="stone.isRoot ? 140 : 120"
+                  :height="stone.isRoot ? 50 : 40"
+                >
+                  <div xmlns="http://www.w3.org/1999/xhtml" 
+                    :class="stone.isRoot ? 'root-stone-name-container' : 'stone-name-container'"
+                  >
+                    {{ stone.name }}
+                  </div>
+                </foreignObject>
+                
                 <!-- D-Day 텍스트 -->
                 <text
                   v-if="stone.dDay"
                   :x="stone.x + (stone.isRoot ? 90 : 75)"
-                  :y="stone.y + (stone.isRoot ? 90 : 75) + 30"
+                  :y="stone.y + (stone.isRoot ? 135 : 115)"
                   text-anchor="middle"
                   :class="stone.isRoot ? 'root-stone-dday' : 'stone-dday'"
                 >
                   {{ stone.dDay }}
                 </text>
               </g>
+
+              <!-- Depth 표시 (hover 시) -->
+              <text
+                v-if="hoveredStoneId === stone.id"
+                :x="calculateDepthIndicatorPosition(stone).x"
+                :y="calculateDepthIndicatorPosition(stone).y"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                class="stone-depth-label"
+              >
+                Depth {{ getDepthForStone(stone) }} of {{ getTotalDepthForStone(stone) }}
+              </text>
               
+              <!-- 호버 시 상/하 버튼만 표시 -->
+              <g v-if="viewMode === 'focus' && hoveredStoneId === stone.id" class="saturn-ring-group">
+                <!-- 위쪽 버튼 (arrow-up) -->
+                <g v-if="showUpButton(stone)" :transform="buttonTransform(stone, 'up')" class="ring-button" :class="{ disabled: isUpDisabled() }" @click.stop="onRingUpClick(stone, $event)" @mouseenter="onRingEnter(stone, 'up')" @mouseleave="onRingLeave">
+                  <circle r="20" fill="transparent" class="ring-button-hit" />
+                  <!-- 호버 시 pill, 기본은 원 -->
+                  <template v-if="isRingHovered(stone, 'up')">
+                    <rect x="-55" y="-16" width="110" height="32" rx="16" ry="16" :fill="getButtonColor(stone)" />
+                    <image :href="arrowUpIcon" :xlink:href="arrowUpIcon" x="-48" y="-8" width="16" height="16" />
+                    <text x="-26" y="0" text-anchor="start" dominant-baseline="middle" fill="#FFFFFF" font-size="11" font-weight="600">상위스톤 이동</text>
+                  </template>
+                  <template v-else>
+                    <circle r="14" :fill="getButtonColor(stone)" />
+                    <image :href="arrowUpIcon" :xlink:href="arrowUpIcon" x="-8" y="-8" width="16" height="16" />
+                  </template>
+                </g>
+
+                <!-- 아래쪽 버튼 (arrow-down) -->
+                <g v-if="showDownButton(stone)" :transform="buttonTransform(stone, 'down')" class="ring-button" :class="{ disabled: isDownDisabled(stone) }" @click.stop="onRingDownClick(stone, $event)" @mouseenter="onRingEnter(stone, 'down')" @mouseleave="onRingLeave">
+                  <circle r="20" fill="transparent" class="ring-button-hit" />
+                  <template v-if="isRingHovered(stone, 'down')">
+                    <rect x="-55" y="-16" width="110" height="32" rx="16" ry="16" :fill="getButtonColor(stone)" />
+                    <image :href="arrowDownIcon" :xlink:href="arrowDownIcon" x="-48" y="-8" width="16" height="16" />
+                    <text x="-26" y="0" text-anchor="start" dominant-baseline="middle" fill="#FFFFFF" font-size="11" font-weight="600">하위스톤 이동</text>
+                  </template>
+                  <template v-else>
+                    <circle r="14" :fill="getButtonColor(stone)" />
+                    <image :href="arrowDownIcon" :xlink:href="arrowDownIcon" x="-8" y="-8" width="16" height="16" />
+                  </template>
+                </g>
+              </g>
+
               <!-- 스톤 생성 텍스트 버튼 -->
               <g 
+                v-if="hoveredStoneId === stone.id"
                 class="create-stone-text stone-add-text" 
                 :class="{ 'disabled': isStoneCompleted(stone) }"
                 @click="openCreateStoneModal(stone, $event)"
@@ -250,14 +357,24 @@
                   ＋ 스톤 추가
                 </text>
               </g>
+              
+              
             </g>
           </g>
           
           <!-- 그라데이션 정의 -->
           <defs>
             <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#F9A825;stop-opacity:1" />
-              <stop offset="100%" style="stop-color:#FFB300;stop-opacity:1" />
+              <stop offset="0%" style="stop-color:#FFF176;stop-opacity:1" />
+              <stop offset="30%" style="stop-color:#FFE364;stop-opacity:1" />
+              <stop offset="70%" style="stop-color:#F4CE53;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#D4A743;stop-opacity:1" />
+            </linearGradient>
+            <!-- 완료된 스톤용 초록색 그라데이션 -->
+            <linearGradient id="completedProgressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#86EFAC;stop-opacity:1" />
+              <stop offset="50%" style="stop-color:#4ADE80;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#22C55E;stop-opacity:1" />
             </linearGradient>
             <!-- 연결선 그라데이션 -->
             <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -271,33 +388,108 @@
             </linearGradient>
           </defs>
         </svg>
+        <!-- 전체보기 전용 미니맵 -->
+        <div 
+          v-if="viewMode === 'all' && stoneNodes && stoneNodes.length > 0" 
+          class="milestone-minimap"
+          :style="{ width: minimapWidth + 'px', height: minimapHeight + 'px' }"
+        >
+          <svg 
+            :width="minimapWidth" 
+            :height="minimapHeight" 
+            class="minimap-svg"
+            @click="onMinimapClick"
+          >
+            <rect class="minimap-bg" width="100%" height="100%" rx="6" ry="6" />
+            <g v-if="minimapState">
+              <!-- 간선 표시 -->
+              <g class="minimap-connections">
+                <line 
+                  v-for="(c, i) in connections" 
+                  :key="'mc-' + i"
+                  class="minimap-connection"
+                  :x1="minimapState.offsetX + (c.x1 - minimapState.minX) * minimapState.scale"
+                  :y1="minimapState.offsetY + (c.y1 - minimapState.minY) * minimapState.scale"
+                  :x2="minimapState.offsetX + (c.x2 - minimapState.minX) * minimapState.scale"
+                  :y2="minimapState.offsetY + (c.y2 - minimapState.minY) * minimapState.scale"
+                />
+              </g>
+              <!-- 노드 표시 (원형) -->
+              <circle 
+                v-for="s in stoneNodes" 
+                :key="'mm-' + s.id"
+                class="minimap-node"
+                :cx="minimapState.offsetX + ((s.x + (s.isRoot ? 90 : 75)) - minimapState.minX) * minimapState.scale"
+                :cy="minimapState.offsetY + ((s.y + (s.isRoot ? 90 : 75)) - minimapState.minY) * minimapState.scale"
+                :r="s.isRoot ? 6 : 4.5"
+                :opacity="s.isRoot ? 0.9 : 0.6"
+              />
+              <!-- 현재 뷰포트 표시 -->
+              <rect 
+                class="minimap-viewport"
+                :x="minimapState.offsetX + (minimapState.worldLeft - minimapState.minX) * minimapState.scale"
+                :y="minimapState.offsetY + (minimapState.worldTop - minimapState.minY) * minimapState.scale"
+                :width="minimapState.worldWidth * minimapState.scale"
+                :height="minimapState.worldHeight * minimapState.scale"
+              />
+            </g>
+          </svg>
+        </div>
         </template>
       </div>
     </div>
     
     <!-- 다른 탭들 -->
-    <div v-else class="other-tabs">
-      <p v-if="activeTab === 'dashboard'" class="placeholder-text">대시보드 컨텐츠</p>
+    <div v-else class="other-tabs" :class="{ 'documents-tab-active': activeTab === 'documents' }">
+      <div v-if="activeTab === 'dashboard'" class="dashboard-container">
+        <ProjectDashboard 
+          :project-id="$route.query.id" 
+          @change-tab="handleTabChange"
+          @view-stone="handleViewStone"
+          @view-task="handleViewTask"
+        />
+      </div>
       <p v-if="activeTab === 'gantt'" class="placeholder-text">간트차트 컨텐츠</p>
-      <p v-if="activeTab === 'documents'" class="placeholder-text">문서함 컨텐츠</p>
+      <div v-if="activeTab === 'documents'" class="project-drive-container">
+        <DriveMain :project-id="$route.query.id" />
+      </div>
     </div>
     
-    <!-- 확대/축소 컨트롤 (ProjectList에 직접 추가) -->
-    <div class="zoom-controls">
-      <button class="zoom-btn zoom-in" @click="zoomIn" :disabled="zoomLevel >= zoomMax">+</button>
-      <button class="zoom-btn zoom-out" @click="zoomOut" :disabled="zoomLevel <= zoomMin">-</button>
+    <!-- 확대/축소 컨트롤 (마일스톤 탭에서만 표시) -->
+    <div v-if="activeTab === 'milestone'" class="zoom-controls">
+      <button class="zoom-btn">
+        <span class="zoom-icon zoom-in" @click="zoomIn" :class="{ disabled: zoomLevel >= zoomMax }">
+          <img src="@/assets/icons/project/plus.svg" alt="zoom in" />
+        </span>
+        <span class="zoom-separator"></span>
+        <span class="zoom-icon zoom-out" @click="zoomOut" :class="{ disabled: zoomLevel <= zoomMin }">
+          <img src="@/assets/icons/project/minus.svg" alt="zoom out" />
+        </span>
+      </button>
     </div>
     
-    <!-- 모드 전환 버튼 -->
-    <div class="mode-controls">
+    
+    
+    <!-- 모드 전환 버튼 (마일스톤 탭에서만 표시) -->
+    <div v-if="activeTab === 'milestone'" class="mode-controls">
       <button 
         class="mode-btn" 
         :class="{ active: interactionMode === 'click' }"
         @click="toggleInteractionMode"
         :title="interactionMode === 'click' ? '클릭 모드' : '팬 모드'"
       >
-        <span v-if="interactionMode === 'click'" class="mode-icon">🔘</span>
-        <span v-else class="mode-icon">🖐️</span>
+        <img 
+          v-if="interactionMode === 'click'" 
+          src="@/assets/icons/project/cursor_2.svg" 
+          alt="click mode" 
+          class="mode-icon"
+        />
+        <img 
+          v-else 
+          src="@/assets/icons/project/hand_2.svg" 
+          alt="pan mode" 
+          class="mode-icon"
+        />
       </button>
     </div>
     
@@ -391,6 +583,18 @@
                 참여자 선택
               </button>
             </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
+              스톤 설명
+            </label>
+            <textarea 
+              class="form-textarea" 
+              v-model="newStone.stoneDescribe"
+              placeholder="스톤 설명을 입력하세요"
+              rows="4"
+            ></textarea>
           </div>
           
           <div class="form-group">
@@ -565,6 +769,7 @@
       @manager-changed="handleManagerChanged"
       @task-created="handleTaskCreated"
       @task-completed="handleTaskCompleted"
+      @task-cancelled="handleTaskCancelled"
     />
 
     <!-- 프로젝트 수정 모달 -->
@@ -766,17 +971,26 @@
 import axios from 'axios';
 import * as d3 from 'd3';
 import StoneDetailModal from '@Project/StoneDetailModal.vue';
+import DriveMain from '@/views/Drive/DriveMain.vue';
+import ProjectDashboard from '@/views/Project/ProjectDashboard.vue';
+import arrowUpIcon from '@/views/Project/arrow-up.svg';
+import arrowDownIcon from '@/views/Project/arrow-down.svg';
 import { searchWorkspaceParticipants, getStoneDetail } from '@/services/stoneService.js';
+import { showSnackbar } from '@/services/snackbar.js';
+import pinIcon from '@/assets/icons/project/pin.svg';
+import pinOutlineIcon from '@/assets/icons/project/pin-outline.svg';
 
 export default {
   name: 'ProjectList',
   components: {
-    StoneDetailModal
+    StoneDetailModal,
+    DriveMain,
+    ProjectDashboard
   },
   data() {
     return {
       activeTab: 'milestone',
-      projectName: '오르빗 출시',
+      projectName: '',
       projectDescription: '프로젝트 협업을 위한 일정 관리 서비스',
       stones: [],
       loading: false,
@@ -804,6 +1018,15 @@ export default {
       panMode: false,
       interactionMode: 'click', // 'click' or 'pan'
       isPotentialClick: false,
+      // 보기 모드: all | focus (localStorage에서 불러오기, 기본값: 'all')
+      viewMode: localStorage.getItem('projectViewMode') || 'all',
+      // 전체보기 모드 방문 여부 (포커스 전환 시 간격 축소에 활용)
+      hasVisitedOverview: false,
+      // 전체보기에서 루트 스톤을 화면 상단에 두기 위한 여백(px)
+      overviewTopPadding: 100,
+      // 미니맵 설정
+      minimapWidth: 200,
+      minimapHeight: 130,
       canvasWidth: 1000,
       canvasHeight: 600,
       stoneNodes: [],
@@ -841,7 +1064,8 @@ export default {
         endTime: '',
         assignee: '', // loadCurrentUserInfo에서 설정됨
         participants: '',
-        createChat: false
+        createChat: false,
+        stoneDescribe: '' // 스톤 설명 (nullable)
       },
       showUserSelectModal: false,
       userSelectType: '', // 'assignee' or 'participants'
@@ -866,7 +1090,42 @@ export default {
         { id: 4, name: '최디자인', email: 'design@orbit.com', group: '디자인팀' },
         { id: 5, name: '정기획', email: 'plan@orbit.com', group: '기획팀' }
       ],
-      filteredUserList: []
+      filteredUserList: [],
+      // 탭 구분선 정렬용 상태
+      tabRailLeft: -10,
+      tabRailWidth: 0,
+      tabRailOffset: 100,
+      tabRailRightTrim: 0,
+      tabRailRightExtend: 12,
+      milestoneLeft: null,
+      milestoneRight: null,
+      // 스톤 포커스 관련 (스택 구조로 depth 지원)
+      focusedStoneStack: [],
+      hoveredStoneId: null,
+      // 핀 상태
+      isPinned: false,
+      // 게이지 애니메이션 트리거
+      gaugeAnimationReady: false
+      ,
+      // 토성 띠 버튼 아이콘 (템플릿 접근용)
+      arrowUpIcon,
+      arrowDownIcon
+      ,
+      // 링 버튼 hover 상태
+      hoveredRingStoneId: null,
+      hoveredRingDir: null,
+      // 그래프 초기 중심 Y 오프셋 (디폴트 위치를 약간 아래로)
+      defaultCenterYOffset: 30,
+      // 모드별 뷰포트 상태 (포커스/전체보기 분리 보관)
+      modeViewport: {
+        all: null,   // { scale, x, y }
+        focus: null  // { scale, x, y }
+      },
+      // 최초 계산된 레이아웃 좌표 스냅샷(모드별 고정): { [mode]: { [stoneId]: {x,y} } }
+      layoutSnapshots: {
+        all: {},
+        focus: {}
+      }
     };
   },
   computed: {
@@ -883,6 +1142,20 @@ export default {
       }
       
       return false;
+    },
+    // 현재 포커스된 스톤 ID (스택의 마지막 요소)
+    currentFocusedStoneId() {
+      return this.focusedStoneStack.length > 0 
+        ? this.focusedStoneStack[this.focusedStoneStack.length - 1] 
+        : null;
+    },
+    // 핀 아이콘 경로
+    pinIconPath() {
+      return this.isPinned ? pinIcon : pinOutlineIcon;
+    },
+    // 전체보기 미니맵 상태(computed로 캐시)
+    minimapState() {
+      return this.getMinimapState();
     }
   },
   async mounted() {
@@ -891,20 +1164,25 @@ export default {
     
     // 워크스페이스 ID 초기화
     this.currentWorkspaceId = localStorage.getItem('selectedWorkspaceId') || '';
-    
-    const projectId = this.$route.query.id;
-    if (projectId) {
-      await this.loadProjectData(projectId);
-      await this.loadProjectDetail(projectId);
+
+    // 새로고침 직후 초기 모드가 전체보기라면, 첫 포커스 전환에도 간격 축소가 적용되도록 플래그 세팅
+    if (this.viewMode === 'all') {
+      this.hasVisitedOverview = true;
     }
+    
+    // 프로젝트 데이터는 watch에서 처리하므로 여기서는 이벤트 리스너만 등록
+    // 프로젝트 라우트 변경 이벤트 리스너 추가
+    window.addEventListener('projectRouteChanged', this.onProjectRouteChanged);
     
     // 캔버스 크기 업데이트
     this.$nextTick(() => {
       this.updateCanvasSize();
+      this.updateTabRailPosition();
     });
     
     // 윈도우 리사이즈 이벤트 리스너 추가
     window.addEventListener('resize', this.updateCanvasSize);
+    window.addEventListener('resize', this.updateTabRailPosition);
     
     // 스톤 수정 이벤트 리스너 추가
     window.addEventListener('stoneUpdated', this.onStoneUpdated);
@@ -917,9 +1195,11 @@ export default {
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.updateCanvasSize);
+    window.removeEventListener('resize', this.updateTabRailPosition);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('stoneUpdated', this.onStoneUpdated);
+    window.removeEventListener('projectRouteChanged', this.onProjectRouteChanged);
   },
   watch: {
     stones: {
@@ -932,6 +1212,16 @@ export default {
           this.$nextTick(() => {
             this.updateStonePositions();
             this.updateConnections();
+            // 게이지 애니메이션 초기화
+            this.gaugeAnimationReady = false;
+            setTimeout(() => {
+              this.gaugeAnimationReady = true;
+              // 전체보기 모드에서만 레이아웃 관련 보정 수행 (포커스 모드 영향 없음)
+              if (this.viewMode === 'all') {
+                this.applyAutoScaleForAllMode && this.applyAutoScaleForAllMode();
+                this.restoreViewportForCurrentMode && this.restoreViewportForCurrentMode();
+              }
+            }, 500);
           });
         } else {
           console.log('스톤 데이터가 없거나 비어있음');
@@ -943,15 +1233,486 @@ export default {
     },
     '$route.query.id': {
       handler(newProjectId, oldProjectId) {
+        // 프로젝트 ID가 실제로 변경된 경우에만 처리
         if (newProjectId && newProjectId !== oldProjectId) {
           console.log('프로젝트 ID 변경됨:', oldProjectId, '->', newProjectId);
-          this.loadProjectData(newProjectId);
+          
+          // 프로젝트 변경 시 이전 데이터 완전 초기화 (캐싱 문제 방지)
+          this.stones = [];
+          this.stoneNodes = [];
+          this.connections = [];
+          this.projectName = '';
+          this.projectDescription = '프로젝트 협업을 위한 일정 관리 서비스';
+          this.focusedStoneStack = [];
+          this.isPinned = false;
+          
+          // 이전 프로젝트의 로컬스토리지 데이터도 정리 (핀 데이터)
+          if (oldProjectId) {
+            const oldStorageKey = `milestone_pinned_view_${oldProjectId}`;
+            // 삭제하지 않고 현재 프로젝트와 다르면 무시하도록 함
+          }
+          
+          // 새 프로젝트 데이터 로드 (강제로 초기화 후 로드)
+          this.$nextTick(async () => {
+            await this.loadProjectData(newProjectId);
+          });
+          
+          // stoneId도 함께 확인해서 모달 열기
+          const stoneId = this.$route.query.stoneId;
+          if (stoneId) {
+            this.$nextTick(() => {
+              this.openStoneModalByQuery(stoneId);
+            });
+          }
+        } else if (newProjectId && !oldProjectId) {
+          // 초기 마운트 시에도 데이터 로드
+          console.log('초기 프로젝트 로드:', newProjectId);
+          this.$nextTick(async () => {
+            await this.loadProjectData(newProjectId);
+          });
         }
       },
       immediate: true
+    },
+    activeTab: {
+      handler(newTab) {
+        // 마일스톤 탭으로 전환될 때 핀된 뷰 복원 (포커스 모드일 때만)
+        if (newTab === 'milestone' && this.viewMode === 'focus' && this.isPinned && this.focusedStoneStack.length === 0) {
+          const projectId = this.$route.query.id;
+          if (projectId) {
+            this.restorePinnedView(projectId);
+          }
+        }
+      }
+    },
+    // 보기 모드 변경 시 트리 재계산
+    viewMode: {
+      handler(newMode) {
+        if (newMode === 'all') {
+          // 전체보기 전환 시 포커스 스택 초기화하여 전체 표시
+          this.focusedStoneStack = [];
+          this.isPinned = false; // 전체보기 모드에서는 핀 상태 해제
+          // 전체보기 방문 플래그 설정
+          this.hasVisitedOverview = true;
+        } else if (newMode === 'focus') {
+          // 포커스 모드로 전환 시 핀된 뷰가 있으면 복원
+          const projectId = this.$route.query.id;
+          if (projectId) {
+            this.restorePinnedView(projectId);
+          }
+          // 전체보기를 한 번이라도 본 이후의 포커스 진입이면, 포커스 레이아웃 스냅샷을 초기화해
+          // 촘촘한 간격으로 새로 배치되도록 강제
+          if (this.hasVisitedOverview) {
+            this.layoutSnapshots.focus = {};
+            if (this.modeViewport && this.modeViewport.focus) {
+              this.modeViewport.focus = null;
+            }
+          }
+        }
+        // 모드 전환 시 남아있는 UI 상태 초기화 (스냅샷 잔상 방지)
+        this.hoveredStoneId = null;
+        this.isPotentialClick = false;
+        this.isPanning = false;
+        this.panMode = false;
+        this.$nextTick(() => {
+          if (this.stones && this.stones.length > 0) {
+            this.stoneNodes = this.convertStonesToNodes(this.stones);
+            // 스냅샷이 있으면 레이아웃/뷰포트 그대로 복원 (재계산 금지)
+            if (this.restoreLayoutIfAvailable && this.restoreLayoutIfAvailable()) {
+              this.updateConnections();
+              this.restoreViewportForCurrentMode && this.restoreViewportForCurrentMode();
+            } else {
+              // 최초 진입 시에만 배치 계산 후 스냅샷 고정
+              this.updateStonePositions();
+              this.updateConnections();
+              this.snapshotLayoutOnce && this.snapshotLayoutOnce();
+              this.restoreViewportForCurrentMode && this.restoreViewportForCurrentMode();
+            }
+          }
+        });
+      }
     }
   },
   methods: {
+    // 현재 모드 키
+    getModeKey() {
+      return this.viewMode === 'focus' ? 'focus' : 'all';
+    },
+    // 레이아웃 스냅샷 저장(최초 1회만)
+    snapshotLayoutOnce() {
+      const key = this.getModeKey();
+      const store = this.layoutSnapshots[key] || {};
+      // 이미 저장되어 있으면 건너뜀
+      if (store && Object.keys(store).length > 0) return;
+      const next = {};
+      this.stoneNodes.forEach(n => {
+        next[n.id] = { x: n.x, y: n.y };
+      });
+      this.$set ? this.$set(this.layoutSnapshots, key, next) : (this.layoutSnapshots[key] = next);
+    },
+    // 저장된 레이아웃 복원(완전 일치 시에만 적용)
+    restoreLayoutIfAvailable() {
+      const key = this.getModeKey();
+      const snap = this.layoutSnapshots[key];
+      if (!snap || Object.keys(snap).length === 0) return false;
+      // 모든 노드가 스냅샷에 존재하는 경우에만 복원
+      for (const n of this.stoneNodes) {
+        if (!snap[n.id]) return false;
+      }
+      this.stoneNodes.forEach(n => {
+        const s = snap[n.id];
+        n.x = s.x;
+        n.y = s.y;
+      });
+      return true;
+    },
+    // 현재 모드의 뷰포트 저장
+    saveViewportForCurrentMode() {
+      const key = this.viewMode === 'focus' ? 'focus' : 'all';
+      this.modeViewport[key] = {
+        scale: this.scale,
+        x: this.translate?.x ?? 0,
+        y: this.translate?.y ?? 0
+      };
+    },
+    // 현재 모드의 뷰포트 복원 (없으면 기본 동작)
+    restoreViewportForCurrentMode() {
+      const key = this.viewMode === 'focus' ? 'focus' : 'all';
+      const vp = this.modeViewport[key];
+      if (vp && typeof vp.scale === 'number') {
+        this.scale = vp.scale;
+        this.zoomLevel = vp.scale;
+        this.translate.x = vp.x ?? 0;
+        this.translate.y = vp.y ?? 0;
+      } else {
+        if (key === 'all') {
+          // 전체보기: 자동 스케일 적용
+          this.applyAutoScaleForAllMode && this.applyAutoScaleForAllMode();
+        } else {
+          // 포커스: 기본 중앙 정렬, 스케일 1
+          this.scale = 1;
+          this.zoomLevel = 1;
+          this.calculateGraphCenter();
+        }
+      }
+    },
+    // 전체보기 모드에서 스톤 수에 따라 자동 스케일 조정 (포커스 모드에는 영향 없음)
+    applyAutoScaleForAllMode() {
+      if (this.viewMode !== 'all') return;
+      // 이미 all 모드의 뷰포트가 저장돼 있다면, 사용자가 본 모양을 유지하기 위해 스케일 자동 변경을 하지 않음
+      if (this.modeViewport && this.modeViewport.all && typeof this.modeViewport.all.scale === 'number') {
+        return;
+      }
+      const count = Array.isArray(this.stoneNodes) ? this.stoneNodes.length : 0;
+      if (count <= 0) return;
+      let target = 1.0;
+      if (count > 20) target = 0.6;
+      else if (count > 15) target = 0.7;
+      else if (count > 10) target = 0.8;
+      else if (count > 6) target = 0.9;
+      target = this.clamp(target, this.minScale, this.maxScale);
+      if (Math.abs((this.scale || 1) - target) > 0.001) {
+        const center = { x: this.canvasWidth / 2, y: this.canvasHeight / 2 };
+        this.applyZoom(target, center);
+      }
+    },
+    setViewMode(mode) {
+      if (mode !== 'all' && mode !== 'focus') return;
+      if (this.viewMode === mode) return;
+      // 현재 모드 뷰포트 저장
+      this.saveViewportForCurrentMode && this.saveViewportForCurrentMode();
+      this.viewMode = mode;
+      localStorage.setItem('projectViewMode', this.viewMode);
+      // 모드별 뷰포트 복원
+      this.$nextTick(() => this.restoreViewportForCurrentMode && this.restoreViewportForCurrentMode());
+    },
+    // 토성 띠 반지름 계산 (스톤 외곽에서 여백을 둔 링)
+    getRingRadius(stone) {
+      const base = stone.isRoot ? 90 : 75;
+      const gap = stone.isRoot ? 18 : 14; // 스톤 외곽과 띠 사이 여백
+      return base + gap;
+    },
+    // 띠 위 버튼 위치 (위/아래)
+    buttonTransform(stone, dir) {
+      const cx = stone.x + (stone.isRoot ? 90 : 75);
+      const cy = stone.y + (stone.isRoot ? 90 : 75);
+      const r = this.getRingRadius(stone);
+      const angle = dir === 'up' ? -90 : 90; // 위/아래
+      const rad = (angle * Math.PI) / 180;
+      const bx = cx + Math.cos(rad) * r;
+      const by = cy + Math.sin(rad) * r;
+      return `translate(${bx}, ${by})`;
+    },
+    // 버튼 색상: 스톤 계열보다 조금 밝게
+    getButtonColor() {
+      return '#3A3838';
+    },
+    // 링 버튼 hover 핸들러
+    onRingEnter(stone, dir) {
+      this.hoveredRingStoneId = stone.id;
+      this.hoveredRingDir = dir;
+    },
+    onRingLeave() {
+      this.hoveredRingStoneId = null;
+      this.hoveredRingDir = null;
+    },
+    isRingHovered(stone, dir) {
+      return this.hoveredRingStoneId === stone.id && this.hoveredRingDir === dir;
+    },
+    buttonLabelTransform(dir) {
+      // 버튼 중심 기준으로 위/아래에 라벨 배치
+      return dir === 'up' ? 'translate(0, 0)' : 'translate(0, 0)';
+    },
+    // Depth 인디케이터 위치: 스톤 우상단 (스톤 추가 버튼의 대칭 위치)
+    calculateDepthIndicatorPosition(stone) {
+      const centerX = stone.x + (stone.isRoot ? 90 : 75);
+      const centerY = stone.y + (stone.isRoot ? 90 : 75);
+      const radius = stone.isRoot ? 90 : 75;
+      // 스톤과 조금 더 가깝게 붙이고, 텍스트를 약간 오른쪽으로 이동
+      const offsetX = radius * 0.95 + 22;
+      const offsetY = radius * 0.85;
+      return {
+        x: centerX + offsetX,
+        y: centerY - offsetY
+      };
+    },
+    // 노드 깊이 (현재 뷰의 루트에서 1부터 시작)
+    getDepthForStone(stone) {
+      // 전체 트리(전체보기 기준)에서 루트까지의 거리(1부터)로 계산
+      if (!stone) return 0;
+      const { byId } = this.buildFullIndex();
+      const node = byId.get(stone.id);
+      if (!node) return 1;
+      let depth = 1;
+      let current = node;
+      while (current && current.parentStoneId) {
+        const parent = byId.get(current.parentStoneId);
+        if (!parent) break;
+        depth += 1;
+        current = parent;
+      }
+      return depth;
+    },
+    // 현재 표시 중인 트리의 총 depth (최대 레벨)
+    getTotalDepth() {
+      if (!this.stoneNodes || this.stoneNodes.length === 0) return 0;
+      const byId = new Map(this.stoneNodes.map(n => [n.id, n]));
+      const memo = new Map();
+      const depthOf = (node) => {
+        if (memo.has(node.id)) return memo.get(node.id);
+        let depth = 1;
+        let current = node;
+        while (current && current.parentId) {
+          const parent = byId.get(current.parentId);
+          if (!parent) break;
+          depth += 1;
+          current = parent;
+        }
+        memo.set(node.id, depth);
+        return depth;
+      };
+      let maxDepth = 1;
+      for (const n of this.stoneNodes) {
+        const d = depthOf(n);
+        if (d > maxDepth) maxDepth = d;
+      }
+      return maxDepth;
+    },
+    // 특정 스톤 기준 서브트리의 총 depth (해당 스톤을 1로 카운트)
+    getSubtreeTotalDepth(stone) {
+      if (!stone) return 0;
+      const childrenMap = new Map();
+      // 자식 인덱스 맵 작성
+      for (const n of this.stoneNodes) {
+        if (!childrenMap.has(n.parentId)) childrenMap.set(n.parentId, []);
+        childrenMap.get(n.parentId).push(n);
+      }
+      const memo = new Map();
+      const height = (node) => {
+        if (memo.has(node.id)) return memo.get(node.id);
+        const children = childrenMap.get(node.id) || [];
+        if (children.length === 0) {
+          memo.set(node.id, 1);
+          return 1;
+        }
+        let maxChild = 0;
+        for (const c of children) {
+          const h = height(c);
+          if (h > maxChild) maxChild = h;
+        }
+        const res = 1 + maxChild;
+        memo.set(node.id, res);
+        return res;
+      };
+      return height(stone);
+    },
+    // 요구사항: 루트/리프/중간에 따라 총 depth 계산 (항상 전체 트리 기준)
+    getTotalDepthForStone(stone) {
+      if (!stone) return 0;
+      const { byId, childrenMap } = this.buildFullIndex();
+      const subtreeHeight = (node) => {
+        const children = childrenMap.get(node.stoneId || node.id) || [];
+        if (children.length === 0) return 1;
+        let maxChild = 0;
+        for (const c of children) {
+          const h = subtreeHeight(c);
+          if (h > maxChild) maxChild = h;
+        }
+        return 1 + maxChild;
+      };
+      const depthFromRoot = (node) => {
+        let depth = 1;
+        let current = node;
+        while (current && current.parentStoneId) {
+          const parent = byId.get(current.parentStoneId);
+          if (!parent) break;
+          depth += 1;
+          current = parent;
+        }
+        return depth;
+      };
+      const node = byId.get(stone.id);
+      if (!node) return 1;
+      const hasChildren = (childrenMap.get(node.stoneId) || []).length > 0;
+      const isLeaf = !hasChildren;
+      const isRoot = !node.parentStoneId;
+      if (isRoot) {
+        // 루트: 가장 깊은 자식 기준 (서브트리 높이)
+        return subtreeHeight(node);
+      }
+      if (isLeaf) {
+        // 리프: 루트까지의 거리
+        return depthFromRoot(node);
+      }
+      // 중간 노드: 위로 루트까지 + 아래로 가장 깊은 하위까지 - 1(자기 중복 제거)
+      return depthFromRoot(node) + subtreeHeight(node) - 1;
+    },
+    // 전체 트리 인덱스 생성 (this.stones 기준)
+    buildFullIndex() {
+      const byId = new Map();
+      const childrenMap = new Map();
+      const walk = (list, parentId = null) => {
+        if (!Array.isArray(list)) return;
+        for (const s of list) {
+          const id = s.stoneId || s.id;
+          byId.set(id, s);
+          s.parentStoneId = s.parentStoneId ?? parentId;
+          if (!childrenMap.has(parentId)) childrenMap.set(parentId, []);
+          childrenMap.get(parentId).push(s);
+          if (s.childStone && s.childStone.length > 0) {
+            walk(s.childStone, id);
+          }
+        }
+      };
+      if (this.stones && this.stones.length > 0) {
+        walk(this.stones, null);
+      } else {
+        // 폴백: stoneNodes 기반 (정보 부족 시)
+        for (const n of this.stoneNodes) {
+          byId.set(n.id, { stoneId: n.id, parentStoneId: n.parentId });
+          if (!childrenMap.has(n.parentId)) childrenMap.set(n.parentId, []);
+          childrenMap.get(n.parentId).push({ stoneId: n.id, parentStoneId: n.parentId });
+        }
+      }
+      return { byId, childrenMap };
+    },
+    onRingUpClick(stone, event) {
+      // 뒤로가기와 동일 동작 (상위스톤 이동)
+      if (this.isUpDisabled()) {
+        if (this.viewMode === 'focus') {
+          showSnackbar('루트 스톤입니다.', { color: 'warning' });
+        }
+        return;
+      }
+      this.exitFocusMode();
+    },
+    onRingDownClick(stone, event) {
+      // 하위스톤 이동: 해당 스톤으로 포커스 이동
+      if (this.isDownDisabled(stone)) {
+        if (this.viewMode === 'focus') {
+          showSnackbar('마지막 스톤입니다.', { color: 'warning' });
+        }
+        return;
+      }
+      this.focusOnStone(stone, event);
+    },
+    // 표시 조건: 상단 버튼
+    showUpButton(stone) {
+      if (this.viewMode !== 'focus') return false;
+      // 화면이 부모(현재 포커스) + 자식들인 경우, 자식들에는 상위 이동 버튼 숨김
+      if (this.currentFocusedStoneId && stone.parentId === this.currentFocusedStoneId) {
+        return false;
+      }
+      return true;
+    },
+    // 표시 조건: 하단 버튼
+    showDownButton(stone) {
+      if (this.viewMode !== 'focus') return false;
+      // 현재 포커스(부모)에는 하위 이동 버튼 숨김 (이미 같은 화면에 자식들이 존재)
+      if (this.currentFocusedStoneId && stone.id === this.currentFocusedStoneId) {
+        return false;
+      }
+      return true;
+    },
+    // 상위 이동 불가 여부 (포커스 최상단)
+    isUpDisabled() {
+      if (this.viewMode !== 'focus') return true;
+      return this.focusedStoneStack.length === 0;
+    },
+    // 하위스톤 존재 여부 판단 (원본 트리 기준)
+    isDownDisabled(stone) {
+      if (this.viewMode !== 'focus') return true;
+      const target = this.findStoneById(this.stones, stone.id);
+      if (!target) return true;
+      return !(target.childStone && target.childStone.length > 0);
+    },
+    findStoneById(list, id) {
+      if (!Array.isArray(list)) return null;
+      for (const s of list) {
+        if (s.stoneId === id || s.id === id) return s;
+        if (s.childStone && s.childStone.length > 0) {
+          const found = this.findStoneById(s.childStone, id);
+          if (found) return found;
+        }
+      }
+      return null;
+    },
+    // 보기 모드 토글
+    toggleViewMode() {
+      this.viewMode = this.viewMode === 'focus' ? 'all' : 'focus';
+      // localStorage에 저장
+      localStorage.setItem('projectViewMode', this.viewMode);
+    },
+    updateTabRailPosition() {
+      this.$nextTick(() => {
+        const tabSection = this.$refs.tabSection;
+        const title = this.$refs.titleWrapper;
+        const info = this.$refs.projectInfo;
+        if (!tabSection || !title || !info) return;
+        const tabRect = tabSection.getBoundingClientRect();
+        const leftRect = title.getBoundingClientRect();
+        const rightRect = info.getBoundingClientRect();
+        const styles = window.getComputedStyle(tabSection);
+        const paddingLeft = parseFloat(styles.paddingLeft) || 0;
+        const paddingRight = parseFloat(styles.paddingRight) || 0;
+
+        // 좌측 시작 위치 (아이콘 기준, 추가 오프셋 적용)
+        const rawLeft = leftRect.left - tabRect.left;
+        const leftEdge = Math.max(0, rawLeft - this.tabRailOffset);
+        this.tabRailLeft = leftEdge;
+
+        // 우측 끝 위치 (날짜 텍스트 끝 기준, 트림/확장 적용)
+        const rawRight = rightRect.right - tabRect.left;
+        const rightEdge = rawRight - this.tabRailRightTrim + this.tabRailRightExtend;
+
+        // 클램프 제거: 확장 값이 즉시 반영되도록 직접 사용
+        this.tabRailWidth = Math.max(0, rightEdge - leftEdge);
+
+        // 마일스톤 캔버스 좌우 기준(뷰포트 기준 px)
+        this.milestoneLeft = Math.max(0, tabRect.left + leftEdge);
+        this.milestoneRight = Math.max(this.milestoneLeft, tabRect.left + rightEdge);
+      });
+    },
     // 날짜 범위 포맷팅 메서드
     formatDateRange(startDate, endDate) {
       if (!startDate || !endDate) return '날짜 미설정'
@@ -1038,6 +1799,9 @@ export default {
         console.log('스톤 목록 로드 시작');
         await this.loadStones(projectId);
         
+        // 핀된 뷰 복원
+        this.restorePinnedView(projectId);
+        
         // 프로젝트 상세 정보는 선택적으로 로드 (실패해도 계속 진행)
         try {
           console.log('프로젝트 상세 정보 로드 시작');
@@ -1089,6 +1853,12 @@ export default {
     async loadStones(projectId) {
       try {
         console.log('loadStones 시작, projectId:', projectId);
+        
+        // 먼저 이전 데이터 초기화 (캐싱 문제 방지)
+        this.stones = [];
+        this.stoneNodes = [];
+        this.connections = [];
+        
         this.loading = true;
         const userId = localStorage.getItem('id');
         console.log('사용자 ID:', userId);
@@ -1105,9 +1875,12 @@ export default {
         console.log('스톤 API 응답:', response.data);
         
         if (response.data.statusCode === 200) {
-          this.stones = response.data.result || [];
+          // 새 배열로 완전히 교체 (참조 변경하여 반응성 보장)
+          this.stones = [...(response.data.result || [])];
           console.log('스톤 목록 로드 성공, stones 배열:', this.stones);
           console.log('stones 길이:', this.stones.length);
+          console.log('첫 번째 스톤:', this.stones[0]);
+          console.log('첫 번째 스톤의 stoneName:', this.stones[0]?.stoneName);
           console.log('첫 번째 스톤의 childStone:', this.stones[0]?.childStone);
         } else {
           console.log('스톤 목록 응답 상태 코드:', response.data.statusCode);
@@ -1188,6 +1961,12 @@ export default {
           e.target.classList.contains('stone-add-text')) {
         return;
       }
+      // 이 스톤부터 보기 텍스트 클릭은 팬 모드에서도 허용
+      if (e.target.classList.contains('focus-stone-text') || 
+          e.target.classList.contains('focus-stone-text-content') ||
+          e.target.classList.contains('focus-stone-click-area')) {
+        return;
+      }
       
       if (e.button === 0 && (this.panMode || e.target.classList.contains('milestone-svg'))) { // 좌클릭 + Space 키 또는 SVG 배경 클릭
         this.startPt = { x: e.clientX, y: e.clientY };
@@ -1241,6 +2020,8 @@ export default {
       this.translate.y = center.y - ratio * (center.y - this.translate.y);
       this.scale = newScale;
       this.zoomLevel = newScale;
+      // 모드별 뷰포트 저장
+      this.saveViewportForCurrentMode && this.saveViewportForCurrentMode();
     },
     
     // 값 제한 유틸리티
@@ -1267,44 +2048,128 @@ export default {
       }
     },
     
-    // 실제 그래프의 bounding box 중심 계산
+    // 실제 그래프의 중심 계산 (DOM BBox 대신 데이터로 계산하여 hover 오버레이 영향 제거)
     calculateGraphCenter() {
       this.$nextTick(() => {
-        const svgElement = this.$refs.milestoneCanvas?.querySelector('.milestone-svg');
-        if (!svgElement) return;
-        
-        const gElement = svgElement.querySelector('g');
-        if (!gElement) return;
-        
-        try {
-          // D3를 사용하여 bounding box 계산
-          const bbox = d3.select(gElement).node().getBBox();
-          
-          // 그래프의 실제 중심점 계산
-          const graphCenterX = bbox.x + bbox.width / 2;
-          const graphCenterY = bbox.y + bbox.height / 2;
-          
-          // SVG 중심점
-          const svgCenterX = this.canvasWidth / 2;
-          const svgCenterY = this.canvasHeight / 2;
-          
-          // 그래프를 SVG 중앙에 위치시키기 위한 translate 계산
-          this.translate.x = svgCenterX - graphCenterX;
-          this.translate.y = svgCenterY - graphCenterY;
-          
-          console.log('그래프 중심점 계산:', {
-            bbox: { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height },
-            graphCenter: { x: graphCenterX, y: graphCenterY },
-            svgCenter: { x: svgCenterX, y: svgCenterY },
-            translate: { x: this.translate.x, y: this.translate.y }
-          });
-        } catch (error) {
-          console.warn('Bounding box 계산 실패, 기본 중심점 사용:', error);
-          // fallback: SVG 중심점 사용
-          this.translate.x = this.canvasWidth / 2;
-          this.translate.y = this.canvasHeight / 2;
+        const canvasElement = this.$refs.milestoneCanvas;
+        if (!canvasElement) return;
+        const canvasRect = canvasElement.getBoundingClientRect();
+
+        // stoneNodes 기반 계산 (오버레이 DOM 영향 없음)
+        if (!this.stoneNodes || this.stoneNodes.length === 0) return;
+
+        // 전체보기 모드: 루트 스톤을 기준으로, 가로는 중앙 정렬, 세로는 상단 여백에 배치
+        if (this.viewMode === 'all') {
+          const root = this.stoneNodes.find(s => s.isRoot);
+          if (root) {
+            const rootCenterX = root.x + (root.isRoot ? 90 : 75);
+            const svgCenterX = canvasRect.width / 2;
+            this.translate.x = svgCenterX - rootCenterX;
+            const topPad = (this.overviewTopPadding != null) ? this.overviewTopPadding : 40;
+            // 루트의 상단이 화면 상단 여백(topPad)에 오도록
+            this.translate.y = topPad - root.y;
+            // 전체보기 초기 정렬을 뷰포트로 저장하여 이후 전환 시 동일 위치 복원
+            this.saveViewportForCurrentMode && this.saveViewportForCurrentMode();
+            return;
+          }
+        }
+
+        // 포커스 모드 또는 루트 미탐색: 그래프 바운딩 박스 중심을 기준으로 정렬
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const s of this.stoneNodes) {
+          const w = s.isRoot ? 180 : 150;
+          const h = s.isRoot ? 180 : 150;
+          const left = s.x;
+          const top = s.y;
+          const right = left + w;
+          const bottom = top + h;
+          if (left < minX) minX = left;
+          if (top < minY) minY = top;
+          if (right > maxX) maxX = right;
+          if (bottom > maxY) maxY = bottom;
+        }
+        const graphCenterX = (minX + maxX) / 2;
+        const graphCenterY = (minY + maxY) / 2;
+        const svgCenterX = canvasRect.width / 2;
+        const svgCenterY = canvasRect.height / 2;
+        this.translate.x = svgCenterX - graphCenterX;
+        this.translate.y = svgCenterY - graphCenterY + (this.defaultCenterYOffset || 0);
+        if (this.viewMode === 'all') {
+          this.saveViewportForCurrentMode && this.saveViewportForCurrentMode();
         }
       });
+    },
+    // 그래프 바운딩 박스 계산 (world 좌표)
+    getGraphBounds() {
+      if (!this.stoneNodes || this.stoneNodes.length === 0) return null;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const s of this.stoneNodes) {
+        const w = s.isRoot ? 180 : 150;
+        const h = s.isRoot ? 180 : 150;
+        const left = s.x;
+        const top = s.y;
+        const right = left + w;
+        const bottom = top + h;
+        if (left < minX) minX = left;
+        if (top < minY) minY = top;
+        if (right > maxX) maxX = right;
+        if (bottom > maxY) maxY = bottom;
+      }
+      return { minX, minY, maxX, maxY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) };
+    },
+    // 미니맵 상태 계산 (스케일/오프셋/뷰포트)
+    getMinimapState() {
+      const bounds = this.getGraphBounds();
+      if (!bounds) return null;
+      const mmW = this.minimapWidth;
+      const mmH = this.minimapHeight;
+      const scale = Math.min(mmW / bounds.width, mmH / bounds.height);
+      const offsetX = (mmW - bounds.width * scale) / 2;
+      const offsetY = (mmH - bounds.height * scale) / 2;
+      // 현재 화면(스크린) 영역을 world로 환산
+      const canvasElement = this.$refs.milestoneCanvas;
+      if (!canvasElement) return null;
+      const rect = canvasElement.getBoundingClientRect();
+      const worldWidth = (rect.width || this.canvasWidth) / (this.scale || 1);
+      const worldHeight = (rect.height || this.canvasHeight) / (this.scale || 1);
+      const worldLeft = - (this.translate?.x || 0);
+      const worldTop = - (this.translate?.y || 0);
+      return {
+        minX: bounds.minX,
+        minY: bounds.minY,
+        width: bounds.width,
+        height: bounds.height,
+        scale,
+        offsetX,
+        offsetY,
+        worldLeft,
+        worldTop,
+        worldWidth,
+        worldHeight
+      };
+    },
+    // 미니맵 클릭: 클릭 지점을 중심으로 이동 (전체보기에서만 동작)
+    onMinimapClick(event) {
+      if (this.viewMode !== 'all') return;
+      const mm = this.getMinimapState();
+      if (!mm) return;
+      const svg = event.currentTarget;
+      const rect = svg.getBoundingClientRect();
+      const localX = event.clientX - rect.left;
+      const localY = event.clientY - rect.top;
+      // 미니맵 좌표 -> world 좌표
+      const worldX = mm.minX + (localX - mm.offsetX) / mm.scale;
+      const worldY = mm.minY + (localY - mm.offsetY) / mm.scale;
+      // 화면 중앙이 해당 world 좌표에 오도록 이동
+      const canvasElement = this.$refs.milestoneCanvas;
+      if (!canvasElement) return;
+      const cRect = canvasElement.getBoundingClientRect();
+      const svgCenterX = (cRect.width || this.canvasWidth) / 2;
+      const svgCenterY = (cRect.height || this.canvasHeight) / 2;
+      this.translate.x = svgCenterX - worldX;
+      this.translate.y = svgCenterY - worldY + (this.defaultCenterYOffset || 0);
+      // 뷰포트 저장 (전체보기 모드 유지 일관성)
+      this.saveViewportForCurrentMode && this.saveViewportForCurrentMode();
     },
     // 스톤 관련 메서드들
     async onStoneClick(stone, event) {
@@ -1317,8 +2182,8 @@ export default {
       try {
         this.isLoadingStoneDetail = true;
         
-        // 루트 스톤인 경우 프로젝트 상세 정보 API 호출
-        if (stone.isRoot) {
+        // 진짜 최상위 루트 스톤인 경우에만 프로젝트 상세 정보 API 호출 (루트 이동으로 들어간 경우 제외)
+        if (stone.isRoot && this.focusedStoneStack.length === 0) {
           try {
             // 루트 스톤의 경우 프로젝트 ID를 사용
             // 현재 프로젝트의 ID를 사용하거나 stone.id를 프로젝트 ID로 사용
@@ -1342,7 +2207,7 @@ export default {
               // 프로젝트 상세 데이터를 모달에 맞는 형태로 변환
               this.selectedStoneData = {
                 stoneId: stone.id,
-                stoneName: stone.stoneName,
+                stoneName: projectDetail.projectName,
                 startTime: projectDetail.startTime,
                 endTime: projectDetail.endTime,
                 manager: '프로젝트 담당자', // API에 담당자 정보가 없으므로 기본값
@@ -1399,6 +2264,7 @@ export default {
             documentLink: '바로가기', // API에 문서 링크가 없으므로 기본값
             chatCreation: stoneDetail.chatCreation,
             stoneStatus: stoneDetail.stoneStatus,
+            stoneDescribe: stoneDetail.stoneDescribe, // 스톤 설명 추가
             tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
               id: task.taskId || index + 1,
               name: task.taskName || '태스크',
@@ -1441,6 +2307,63 @@ export default {
         this.isLoadingStoneDetail = false;
       }
     },
+    
+    // 쿼리 파라미터로 stone 모달 열기
+    async openStoneModalByQuery(stoneId) {
+      console.log('쿼리로 스톤 모달 열기:', stoneId);
+      try {
+        this.isLoadingStoneDetail = true;
+        
+        const response = await getStoneDetail(stoneId);
+        
+        if (response.statusCode === 200) {
+          const stoneDetail = response.result;
+          
+          // 참여자 목록 처리
+          const participants = stoneDetail.stoneParticipantDtoList || [];
+          const participantNames = participants.map(p => p.participantName);
+          const participantsText = participantNames.length > 0 ? participantNames.join(', ') : '비어 있음';
+          
+          // API 응답 데이터를 모달에 맞는 형태로 변환
+          this.selectedStoneData = {
+            stoneId: stoneId,
+            stoneName: stoneDetail.stoneName,
+            startTime: stoneDetail.startTime,
+            endTime: stoneDetail.endTime,
+            manager: stoneDetail.stoneManagerName,
+            participants: participantsText,
+            documentLink: '바로가기',
+            chatCreation: stoneDetail.chatCreation,
+            stoneStatus: stoneDetail.stoneStatus,
+            stoneDescribe: stoneDetail.stoneDescribe, // 스톤 설명 추가
+            tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
+              id: task.taskId || index + 1,
+              name: task.taskName || '태스크',
+              completed: task.taskStatus === 'COMPLETED' || false,
+              startTime: task.startTime || stoneDetail.startTime,
+              endTime: task.endTime || stoneDetail.endTime
+            })),
+            isProject: false
+          };
+          
+          console.log('쿼리로 열린 스톤 모달 설정:', this.selectedStoneData);
+          this.showStoneDetailModal = true;
+          
+          // 쿼리 파라미터 제거
+          this.$router.replace({ 
+            path: '/project',
+            query: { id: this.$route.query.id }
+          });
+        } else {
+          console.error('스톤 상세 조회 실패:', response.statusMessage);
+        }
+      } catch (error) {
+        console.error('스톤 상세 조회 API 호출 실패:', error);
+      } finally {
+        this.isLoadingStoneDetail = false;
+      }
+    },
+    
     calculateDDay(endTime) {
       if (!endTime) return null;
       const endDate = new Date(endTime);
@@ -1461,42 +2384,88 @@ export default {
       const nodes = [];
       console.log('convertStonesToNodes 호출됨, 입력 stones:', stones);
       
+      // 보기 모드에 따라 처리 대상 및 깊이 제한 결정
+      const isFocusMode = this.viewMode === 'focus';
+      let depthLimit = Number.POSITIVE_INFINITY; // 0:루트만, 1:직계 하위까지
+
+      // 표시 대상 결정
+      let stonesToProcess = stones;
+      if (isFocusMode) {
+        if (this.currentFocusedStoneId) {
+          // 포커스 모드 + 특정 루트 지정: 루트와 직계 하위만
+          depthLimit = 1;
+          const findStoneById = (list, id) => {
+            for (const stone of list) {
+              if (stone.stoneId === id) return stone;
+              if (stone.childStone && stone.childStone.length > 0) {
+                const found = findStoneById(stone.childStone, id);
+                if (found) return found;
+              }
+            }
+            return null;
+          };
+          const focusedStone = findStoneById(stones, this.currentFocusedStoneId);
+          if (focusedStone) {
+            stonesToProcess = [focusedStone];
+          }
+        } else {
+          // 포커스 모드 + 루트 미지정: 프로젝트 루트 1개만
+          depthLimit = 0;
+          const topLevelRoots = stones.filter(s => s.parentStoneId === null);
+          const root = topLevelRoots.length > 0 ? topLevelRoots[0] : (stones[0] || null);
+          stonesToProcess = root ? [root] : [];
+        }
+      }
+      
       // 재귀적으로 스톤을 노드로 변환하는 함수
-      const convertStoneToNode = (stone) => {
+      const convertStoneToNode = (stone, currentDepth) => {
         console.log('convertStoneToNode 처리 중:', stone.stoneName, 'childStone:', stone.childStone);
+        
+        // 최상위 루트 스톤인 경우 프로젝트명 사용 (프로젝트명이 로드되지 않은 경우 스톤명 사용)
+        const isRootStone = this.currentFocusedStoneId ? (stone.stoneId === this.currentFocusedStoneId) : (stone.parentStoneId === null);
+        // 프로젝트명이 더미 데이터("오르빗 출시")이거나 없는 경우 스톤명 사용
+        const isDummyProjectName = !this.projectName || this.projectName === '오르빗 출시';
+        const displayName = (isRootStone && !this.currentFocusedStoneId && !isDummyProjectName) ? this.projectName : stone.stoneName;
         
         const node = {
           id: stone.stoneId,
-          name: stone.stoneName,
+          name: displayName,
+          stoneName: displayName,
           milestone: stone.milestone,
           startTime: stone.startTime,
           endTime: stone.endTime,
-          isRoot: stone.parentStoneId === null,
+          isRoot: isRootStone,
           parentId: stone.parentStoneId,
           dDay: this.calculateDDay(stone.endTime),
           createdAt: stone.createdAt,
+          projectId: stone.projectId || this.$route.query.id,
+          stoneStatus: stone.stoneStatus,
+          isChatCreation: stone.isChatCreation,
           x: 0,
           y: 0
         };
         nodes.push(node);
         console.log('스톤 노드 추가:', node.name, '부모:', node.parentId, '루트:', node.isRoot);
         
-        // 하위 스톤들도 재귀적으로 처리
-        if (stone.childStone && stone.childStone.length > 0) {
+        // 하위 스톤들도 재귀적으로 처리 (보기 모드에 따른 깊이 제한 적용)
+        const canDescend = currentDepth < depthLimit;
+        if (canDescend && stone.childStone && stone.childStone.length > 0) {
           console.log('하위 스톤 발견:', stone.childStone.length, '개', stone.childStone);
           stone.childStone.forEach((childStone, index) => {
             console.log(`하위 스톤 ${index + 1} 처리:`, childStone.stoneName);
-            convertStoneToNode(childStone);
+            convertStoneToNode(childStone, currentDepth + 1);
           });
+        } else if (!canDescend) {
+          console.log('깊이 제한으로 더 이상 하위 스톤을 표시하지 않습니다.');
         } else {
           console.log('하위 스톤 없음:', stone.stoneName);
         }
       };
       
       // 모든 최상위 스톤들을 처리
-      stones.forEach((stone, index) => {
+      stonesToProcess.forEach((stone, index) => {
         console.log(`최상위 스톤 ${index + 1} 처리:`, stone.stoneName);
-        convertStoneToNode(stone);
+        convertStoneToNode(stone, 0);
       });
       
       console.log('총 스톤 노드 개수:', nodes.length, '노드들:', nodes);
@@ -1507,6 +2476,15 @@ export default {
       if (this.stoneNodes.length === 0) return;
       
       console.log('D3.js 트리 배치 시작');
+      // 모드별로 저장된 좌표가 있으면 그것을 우선 적용하여 모드 전환 시 모양 고정
+      if (this.restoreLayoutIfAvailable && this.restoreLayoutIfAvailable()) {
+        this.updateConnections();
+        this.$nextTick(() => {
+          this.adjustCanvasSizeForStones();
+          this.calculateGraphCenter();
+        });
+        return;
+      }
       
       // 스톤 데이터를 D3.js 계층 구조로 변환
       const rootStone = this.stoneNodes.find(stone => stone.isRoot);
@@ -1515,18 +2493,42 @@ export default {
       const d3Data = this.convertToD3Hierarchy(rootStone);
       console.log('D3 데이터:', d3Data);
       
-      // D3.js 트리 레이아웃 설정
-      const width = this.canvasWidth;
-      const height = this.canvasHeight;
+      // D3.js 트리 레이아웃 설정 - 가로로 넓게 배치 (width > height)
+      // 포커스 모드 전환 시, 이전에 전체보기를 한 번이라도 본 경우 간격을 다소 촘촘하게 적용
+      const nodeCount = this.stoneNodes.length;
+      const maxDepth = (typeof this.getTotalDepth === 'function') ? this.getTotalDepth() : 3;
+      let layoutWidth = Math.max(1400, (this.canvasWidth || 1000) - 200);
+      let layoutHeight = Math.max(400, maxDepth * 220);
+      if (nodeCount > 24) layoutWidth *= 1.8;
+      else if (nodeCount > 16) layoutWidth *= 1.5;
+      else if (nodeCount > 10) layoutWidth *= 1.25;
+      else if (nodeCount > 6) layoutWidth *= 1.1;
+
+      const compactFocus = (this.viewMode === 'focus') && !!this.hasVisitedOverview;
+      if (compactFocus) {
+        // 폭/높이를 더 줄여서 간격을 한층 더 촘촘하게 조정
+        layoutWidth *= 0.6;   // 가로 간격 강하게 축소
+        layoutHeight *= 0.7;  // 세로 간격도 추가 축소
+      }
       
       const tree = d3.tree()
-        .size([width - 200, height - 200])
-        .separation((a, b) => (a.parent === b.parent ? 1 : 2) / a.depth);
+        .size([layoutWidth, layoutHeight])
+        .separation((a, b) => {
+          if (compactFocus) {
+            // 포커스(전체보기 경험 있음)에서는 간격을 더 촘촘하게
+            return a.parent === b.parent ? 0.7 : 1.0;
+          }
+          // 기본 간격
+          return a.parent === b.parent ? 1.5 : 1.8;
+        });
       
       const root = d3.hierarchy(d3Data, d => d.children);
       tree(root);
       
-      // D3.js 계산된 위치를 stoneNodes에 적용
+      // D3.js 계산된 위치를 stoneNodes에 적용 - 가로로 넓게 배치 (x와 y 교체)
+      const fixedOffsetX = 200;
+      const fixedOffsetY = 200;
+      
       root.descendants().forEach((node, index) => {
         const stone = this.stoneNodes.find(s => s.id === node.data.id);
         if (stone) {
@@ -1535,6 +2537,8 @@ export default {
           console.log(`${stone.name} D3 위치: (${stone.x}, ${stone.y})`);
         }
       });
+      // 최초 계산된 레이아웃을 모드별로 스냅샷 고정
+      this.snapshotLayoutOnce && this.snapshotLayoutOnce();
       
       // 연결선 업데이트
       this.updateConnections();
@@ -1631,6 +2635,241 @@ export default {
         y: centerY + offsetY
       };
     },
+    // 이 스톤부터 보기 버튼 위치 계산 (스톤 추가 버튼 아래)
+    calculateFocusPosition(stone) {
+      const rightTextPos = this.calculateTextPosition(stone);
+      // 스톤 추가 버튼 아래로 40px 떨어진 위치 (충분한 간격 확보)
+      return {
+        x: rightTextPos.x,
+        y: rightTextPos.y + 25
+      };
+    },
+    // 현재 포커스된 스톤인지 확인
+    isCurrentFocusedStone(stone) {
+      return this.currentFocusedStoneId === stone.id;
+    },
+    // 스톤 포커스 모드 진입 (스택에 push)
+    focusOnStone(stone, event) {
+      if (this.interactionMode === 'pan') {
+        event.stopPropagation();
+        return;
+      }
+      
+      event.stopPropagation();
+      // 스택에 추가 (depth가 깊어짐)
+      this.focusedStoneStack.push(stone.id);
+      
+      // 스톤 목록 재계산 및 화면 업데이트
+      this.$nextTick(() => {
+        if (this.stones && this.stones.length > 0) {
+          this.stoneNodes = this.convertStonesToNodes(this.stones);
+          this.updateStonePositions();
+          this.updateConnections();
+        }
+        
+        // 새로운 루트 설정 후 저장된 핀과 비교하여 핀 상태 업데이트
+        this.updatePinStateAfterNavigation();
+      });
+    },
+    // 포커스 모드 나가기 (스택에서 pop, 한 단계씩 뒤로)
+    exitFocusMode() {
+      if (this.focusedStoneStack.length > 0) {
+        this.focusedStoneStack.pop();
+      }
+      
+      // 이전 루트로 복원 및 핀 상태 업데이트
+      this.$nextTick(() => {
+        if (this.stones && this.stones.length > 0) {
+          this.stoneNodes = this.convertStonesToNodes(this.stones);
+          this.updateStonePositions();
+          this.updateConnections();
+        }
+        
+        // 뒤로가기 후 현재 스택과 저장된 핀 스택을 비교하여 핀 상태 업데이트
+        this.updatePinStateAfterNavigation();
+      });
+    },
+    // 전체 트리로 이동
+    goToAllStones() {
+      // 스택을 모두 비움
+      this.focusedStoneStack = [];
+      
+      // 전체 트리로 복원
+      this.$nextTick(() => {
+        if (this.stones && this.stones.length > 0) {
+          this.stoneNodes = this.convertStonesToNodes(this.stones);
+          this.updateStonePositions();
+          this.updateConnections();
+        }
+        
+        // 핀 상태 업데이트 (전체 트리이므로 핀 해제)
+        const projectId = this.$route.query.id;
+        if (projectId) {
+          const storageKey = `milestone_pinned_view_${projectId}`;
+          const savedData = localStorage.getItem(storageKey);
+          if (savedData) {
+            // 로컬스토리지는 유지하되, UI 상태만 해제
+            this.isPinned = false;
+          } else {
+            this.isPinned = false;
+          }
+        }
+      });
+    },
+    // 네비게이션 후 핀 상태 업데이트 (뒤로가기, 앞으로가기 등) - 포커스 모드일 때만
+    updatePinStateAfterNavigation() {
+      const projectId = this.$route.query.id;
+      if (!projectId) return;
+      
+      // 전체보기 모드에서는 핀 상태 무시
+      if (this.viewMode !== 'focus') {
+        this.isPinned = false;
+        return;
+      }
+      
+      const storageKey = `milestone_pinned_view_${projectId}`;
+      const savedData = localStorage.getItem(storageKey);
+      
+      if (savedData) {
+        try {
+          const pinnedData = JSON.parse(savedData);
+          if (pinnedData.focusedStoneStack && pinnedData.focusedStoneStack.length > 0) {
+            const existingStackStr = JSON.stringify(pinnedData.focusedStoneStack);
+            const currentStackStr = JSON.stringify(this.focusedStoneStack);
+            
+            // 현재 스택과 저장된 핀 스택이 일치하면 핀 상태 활성화
+            if (existingStackStr === currentStackStr) {
+              this.isPinned = true;
+              console.log('핀 상태 업데이트: 활성화 (뒤로가기 후)');
+            } else {
+              // 다르면 핀 상태 해제
+              this.isPinned = false;
+              console.log('핀 상태 업데이트: 해제 (뒤로가기 후, 다른 뷰)');
+            }
+          } else {
+            this.isPinned = false;
+          }
+        } catch (error) {
+          console.error('핀 상태 업데이트 실패:', error);
+          this.isPinned = false;
+        }
+      } else {
+        this.isPinned = false;
+      }
+    },
+    // 핀 토글 (루트 설정 저장/해제)
+    togglePinRootView() {
+      const projectId = this.$route.query.id;
+      if (!projectId) return;
+      
+      if (this.isPinned) {
+        // 핀 해제
+        this.unpinRootView();
+      } else {
+        // 핀 저장
+        if (this.focusedStoneStack.length > 0) {
+          this.pinRootView(projectId);
+        }
+      }
+    },
+    // 루트 뷰 핀 저장
+    pinRootView(projectId) {
+      const storageKey = `milestone_pinned_view_${projectId}`;
+      
+      // 기존 핀 확인
+      const existingData = localStorage.getItem(storageKey);
+      if (existingData) {
+        try {
+          const existingPinned = JSON.parse(existingData);
+          // 기존 핀의 스택과 현재 스택 비교
+          const existingStackStr = JSON.stringify(existingPinned.focusedStoneStack || []);
+          const currentStackStr = JSON.stringify(this.focusedStoneStack);
+          
+          // 다른 스톤에 핀이 고정되어 있으면 기존 핀 해제 처리
+          if (existingStackStr !== currentStackStr) {
+            console.log('기존 핀 해제 (다른 스톤에 핀 고정):', existingPinned.focusedStoneStack);
+          }
+        } catch (error) {
+          console.error('기존 핀 데이터 확인 실패:', error);
+        }
+      }
+      
+      // 새로운 핀 저장 (기존 핀은 자동으로 덮어쓰기됨)
+      const pinnedData = {
+        focusedStoneStack: [...this.focusedStoneStack],
+        timestamp: Date.now()
+      };
+      localStorage.setItem(storageKey, JSON.stringify(pinnedData));
+      this.isPinned = true;
+      console.log('루트 뷰 핀 저장:', pinnedData);
+    },
+    // 루트 뷰 핀 해제
+    unpinRootView() {
+      const projectId = this.$route.query.id;
+      if (!projectId) return;
+      
+      const storageKey = `milestone_pinned_view_${projectId}`;
+      localStorage.removeItem(storageKey);
+      this.isPinned = false;
+      console.log('루트 뷰 핀 해제');
+    },
+    // 핀된 뷰 복원 (포커스 모드일 때만)
+    restorePinnedView(projectId) {
+      if (!projectId) return;
+      
+      // 전체보기 모드에서는 핀 복원하지 않음
+      if (this.viewMode !== 'focus') return;
+      
+      const storageKey = `milestone_pinned_view_${projectId}`;
+      const savedData = localStorage.getItem(storageKey);
+      
+      if (savedData) {
+        try {
+          const pinnedData = JSON.parse(savedData);
+          if (pinnedData.focusedStoneStack && pinnedData.focusedStoneStack.length > 0) {
+            // 현재 스택이 비어있을 때만 복원 (사용자가 새로운 루트를 설정한 경우 복원하지 않음)
+            if (this.focusedStoneStack.length === 0) {
+              this.focusedStoneStack = [...pinnedData.focusedStoneStack];
+              this.isPinned = true;
+              
+              // 화면 업데이트
+              this.$nextTick(() => {
+                if (this.stones && this.stones.length > 0) {
+                  this.stoneNodes = this.convertStonesToNodes(this.stones);
+                  this.updateStonePositions();
+                  this.updateConnections();
+                }
+              });
+              
+              console.log('핀된 뷰 복원:', pinnedData);
+            } else {
+              // 현재 스택이 있으면 저장된 핀과 비교하여 일치하면 핀 상태만 업데이트
+              const existingStackStr = JSON.stringify(pinnedData.focusedStoneStack);
+              const currentStackStr = JSON.stringify(this.focusedStoneStack);
+              
+              if (existingStackStr === currentStackStr) {
+                this.isPinned = true;
+                console.log('핀 상태만 업데이트 (이미 올바른 뷰)');
+              } else {
+                // 다른 뷰이면 핀 상태 해제
+                this.isPinned = false;
+                console.log('핀된 뷰와 현재 뷰가 다름, 핀 상태 해제');
+              }
+            }
+          } else {
+            // 저장된 스택이 없으면 핀 해제
+            this.isPinned = false;
+          }
+        } catch (error) {
+          console.error('핀된 뷰 복원 실패:', error);
+          localStorage.removeItem(storageKey);
+          this.isPinned = false;
+        }
+      } else {
+        // 저장된 데이터가 없으면 핀 해제
+        this.isPinned = false;
+      }
+    },
     updateCanvasSize() {
       if (this.$refs.milestoneCanvas) {
         const rect = this.$refs.milestoneCanvas.getBoundingClientRect();
@@ -1663,7 +2902,7 @@ export default {
       });
       
       // 여유 공간 추가 (패딩)
-      const padding = 100;
+      const padding = 400;
       const requiredWidth = Math.max(maxX + padding, this.canvasWidth);
       const requiredHeight = Math.max(maxY + padding, this.canvasHeight);
       
@@ -1676,7 +2915,8 @@ export default {
     
     // 스톤이 완료되었는지 확인
     isStoneCompleted(stone) {
-      return stone.stoneStatus === 'COMPLETED' || stone.milestone === 100;
+      // 실제 완료 상태만 체크 (마일스톤 100%는 완료 상태가 아님)
+      return stone.stoneStatus === 'COMPLETED';
     },
     
     // 스톤 생성 모달 관련 메서드들
@@ -1704,6 +2944,24 @@ export default {
     },
     
     // 스톤 수정 이벤트 처리
+    // 프로젝트 라우트 변경 이벤트 핸들러 (프로젝트 생성 후 호출)
+    onProjectRouteChanged(event) {
+      console.log('=== 프로젝트 라우트 변경 이벤트 수신 ===');
+      const projectId = event.detail?.projectId || this.$route.query.id;
+      if (projectId) {
+        console.log('프로젝트 데이터 강제 리로드:', projectId);
+        // 데이터 완전 초기화 후 리로드
+        this.stones = [];
+        this.stoneNodes = [];
+        this.connections = [];
+        this.projectName = '';
+        // 모드별 뷰포트/레이아웃 스냅샷 초기화(프로젝트 변경 시)
+        this.modeViewport = { all: null, focus: null };
+        this.layoutSnapshots = { all: {}, focus: {} };
+        this.loadProjectData(projectId);
+      }
+    },
+    
     onStoneUpdated(event) {
       console.log('=== ProjectList에서 스톤 수정 이벤트 수신 ===');
       console.log('전체 이벤트 객체:', event);
@@ -2025,6 +3283,24 @@ export default {
       }
     },
     
+    // 태스크 취소 처리
+    async handleTaskCancelled(taskData) {
+      console.log('태스크 취소:', taskData);
+      
+      try {
+        // 해당 스톤의 마일스톤 재계산
+        await this.recalculateStoneMilestone(taskData.stoneId);
+        
+        // 스톤 목록 새로고침 (백그라운드에서)
+        const projectId = this.$route.query.id;
+        if (projectId) {
+          await this.loadStones(projectId);
+        }
+      } catch (error) {
+        console.error('태스크 취소 후 마일스톤 재계산 실패:', error);
+      }
+    },
+    
     // 스톤 마일스톤 재계산
     async recalculateStoneMilestone(stoneId) {
       try {
@@ -2113,7 +3389,8 @@ export default {
         endTime: '',
         assignee: this.currentUser.name || '김을빗', // 현재 사용자 이름으로 설정
         participants: '',
-        createChat: false
+        createChat: false,
+        stoneDescribe: '' // 스톤 설명 초기화
       };
     },
     
@@ -2142,7 +3419,8 @@ export default {
           startTime: this.newStone.startTime + 'T09:00:00',
           endTime: this.newStone.endTime + 'T18:00:00',
           chatCreation: this.newStone.createChat,
-          participantIds: participantIds
+          participantIds: participantIds,
+          stoneDescribe: this.newStone.stoneDescribe?.trim() || null // nullable
         };
         
         const response = await axios.post(
@@ -3059,6 +4337,21 @@ export default {
       } finally {
         this.closeDeleteModal();
       }
+    },
+    
+    // 대시보드 이벤트 핸들러
+    handleTabChange(tabName) {
+      this.activeTab = tabName;
+    },
+    
+    handleViewStone(stone) {
+      // 스톤 상세 보기 로직 (기존 onStoneClick과 유사하게 처리)
+      this.onStoneClick(stone);
+    },
+    
+    handleViewTask(task) {
+      // Task 상세 보기 로직 (필요시 구현)
+      console.log('Task 상세 보기:', task);
     }
   }
 };
@@ -3075,21 +4368,54 @@ export default {
   height: auto;
   overflow: hidden;
   background: #F5F5F5;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-container.documents-tab-mode {
+  display: flex;
+  flex-direction: column;
 }
 
 /* 프로젝트 헤더 (바디 안의 헤더) */
 .project-header {
   background: #F5F5F5;
-  padding: 20px 50px 10px 50px;
+  padding: 10px 30px 2px 5px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .title-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
+}
+
+.back-button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: #FFFFFF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-right: 8px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.back-button:hover {
+  background: #F5F5F5;
+}
+
+.back-button:focus {
+  outline: none;
 }
 
 .action-icons {
@@ -3121,10 +4447,19 @@ export default {
 .project-title {
   font-family: 'Pretendard', sans-serif;
   font-weight: 800;
-  font-size: 28px;
-  line-height: 33px;
+  font-size: 24px;
+  line-height: 29px;
   color: #1C0F0F;
   margin: 0;
+  padding-left: 40px;
+}
+
+.project-title-icon {
+  width: 30px;
+  height: 30px;
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 .edit-icon {
@@ -3140,13 +4475,14 @@ export default {
 /* 프로젝트 설명 섹션 */
 .project-description-section {
   background: #F5F5F5;
-  padding: 0 50px 20px 50px;
+  padding: 0 50px 32px 50px;
+  flex-shrink: 0;
 }
 
 .project-description-text {
   font-family: 'Pretendard', sans-serif;
   font-weight: 800;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 19px;
   color: #666666;
   margin: 0;
@@ -3156,41 +4492,54 @@ export default {
 .tab-section {
   background: #F5F5F5;
   padding: 0 50px;
-  border-bottom: 1px solid rgba(42, 40, 40, 0.5);
+  border-bottom: none;
+  position: relative;
+  flex-shrink: 0;
 }
 
 .tab-menu {
-  display: flex;
-  gap: 0;
+  display: inline-flex;
+  gap: 94px;
   padding-bottom: 6px;
-  width: 100%;
-  border-bottom: 1px solid rgba(42, 40, 40, 0.2);
+  width: auto;
+  justify-content: flex-start;
+  border-bottom: none;
+  align-self: flex-start;
+  margin-right: 32px;
+}
+
+.tab-rail {
+  position: absolute;
+  bottom: 0;
+  height: 1px;
+  background: rgba(42, 40, 40, 0.2);
+  pointer-events: none;
 }
 
 .tab-item {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 20px;
-  line-height: 24px;
+  font-size: 16px;
+  line-height: 20px;
   color: #1C0F0F;
   cursor: pointer;
   transition: color 0.2s;
-  flex: 1;
-  text-align: center;
+  flex: 0 0 auto;
+  text-align: left;
   padding-bottom: 4px;
   position: relative;
 }
 
 .tab-item.active {
-  color: #FFDD44;
+  color: #1C0F0F;
 }
 
 .tab-item.active::after {
   content: '';
   position: absolute;
   bottom: -7px;
-  left: 0;
-  right: 0;
+  left: -30px;
+  right: -30px;
   height: 4px;
   background: #FFDD44;
   border-radius: 2px 2px 0 0;
@@ -3260,98 +4609,190 @@ export default {
 /* 확대/축소 컨트롤 */
 .zoom-controls {
   position: fixed;
-  bottom: 20px;
-  left: 320px;
+  bottom: 30px;
+  left: 300px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
   z-index: 1000;
 }
 
 /* 모드 전환 컨트롤 */
 .mode-controls {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1001;
+  bottom: 128px;
+  left: 300px;
+  z-index: 999;
+}
+
+/* 보기 모드 스위치 (전체보기/포커스) */
+.view-mode-controls {
+  position: absolute; /* 카드 내부 기준 */
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.segmented-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px; /* 세그먼트 간 여백으로 분리 */
+  padding: 4px;
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB; /* 미세한 테두리 */
+  border-radius: 999px; /* pill 형태 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.seg-option {
+  min-width: 112px;
+  height: 32px; /* 더 낮은 높이 */
+  padding: 0 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px; /* 각 세그먼트도 pill */
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #6B7280; /* gray-500 */
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.seg-option:hover {
+  background: #F9FAFB; /* 아주 옅은 hover */
+  color: #374151; /* gray-700 */
+}
+
+.seg-option.active {
+  background: #3A3838; /* stone dark 보다 한 톤 밝게 */
+  color: #F5F5F5; /* 밝은 텍스트 */
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1.5px #3A3838; /* 동일 톤 */
+}
+
+/* 기본 파란 포커스 링 제거 */
+.seg-option:focus,
+.seg-option:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .mode-btn {
-  width: 50px;
-  height: 50px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 247, 204, 0.8);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  width: 44px;
+  height: 44px;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  background: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
   font-size: 20px;
+  outline: none;
 }
 
 .mode-btn:hover {
-  background: rgba(255, 245, 157, 0.9);
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.mode-btn:active {
+  outline: none;
+  transform: translateY(0px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mode-btn:focus {
+  outline: none;
 }
 
 .mode-btn.active {
-  background: rgba(255, 212, 79, 0.9);
-  box-shadow: 0 0 0 2px rgba(255, 179, 0, 0.3);
+  background: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .mode-icon {
-  font-size: 18px;
-  line-height: 1;
+  width: 24px;
+  height: 24px;
+  filter: brightness(0);
 }
 
 .zoom-btn {
   width: 44px;
-  height: 44px;
-  border: 2px solid #E0E0E0;
+  height: 88px;
+  border: 1px solid #E0E0E0;
   border-radius: 8px;
-  background: rgba(255, 247, 204, 0.8);
-  color: #A67600;
+  background: #FFFFFF;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(166, 118, 0, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
-  backdrop-filter: blur(4px);
+  padding: 0;
+  gap: 0;
+  outline: none;
 }
 
 .zoom-btn:hover {
-  background: rgba(255, 247, 204, 0.95);
-  color: #8B5A00;
-  border-color: #D4AF37;
-  box-shadow: 0 4px 12px rgba(166, 118, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
 }
 
 .zoom-btn:active {
   transform: translateY(0px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.zoom-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.zoom-btn:focus {
+  outline: none;
+}
+
+.zoom-icon {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.zoom-icon img {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0);
+}
+
+.zoom-icon:hover:not(.disabled) {
   background: #F5F5F5;
-  color: #999999;
-  border-color: #E5E5E5;
+}
+
+.zoom-icon.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.zoom-separator {
+  width: 28px;
+  height: 1px;
+  background: #E0E0E0;
 }
 
 /* 프로젝트 정보 (제목 오른쪽) */
 .project-info {
   display: flex;
-  align-items: center;
-  gap: 24px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  transform: translateY(16px);
 }
 
 
@@ -3385,24 +4826,166 @@ export default {
 
 .calendar-icon,
 .user-icon {
-  opacity: 0.6;
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  background-color: #F4CE53;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.calendar-icon {
+  -webkit-mask-image: url('/src/assets/icons/project/calendar_1.svg');
+  mask-image: url('/src/assets/icons/project/calendar_1.svg');
+}
+
+.user-icon {
+  -webkit-mask-image: url('/src/assets/icons/user/account-circle.svg');
+  mask-image: url('/src/assets/icons/user/account-circle.svg');
+}
+
+/* 마일스톤 뒤로가기 버튼 */
+.milestone-back-button {
+  position: fixed;
+  top: 250px;
+  left: 350px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  background: #FFFFFF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.milestone-back-button:hover {
+  background: #F5F5F5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.milestone-back-button:focus {
+  outline: none;
+}
+
+.back-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0);
+}
+
+/* 마일스톤 전체스톤 버튼 */
+.milestone-all-stone-button {
+  position: fixed;
+  top: 250px;
+  left: 296px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  background: #FFFFFF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  z-index: 999;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.milestone-all-stone-button:hover {
+  background: #F5F5F5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.milestone-all-stone-button:focus {
+  outline: none;
+}
+
+.all-stone-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0);
+}
+
+.all-stone-text {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: #1C0F0F;
+}
+
+/* 마일스톤 핀 버튼 */
+.milestone-pin-button {
+  position: fixed;
+  top: 250px;
+  right: 30px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  background: #FFFFFF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  outline: none;
+  padding: 0;
+}
+
+.milestone-pin-button:hover {
+  background: #F5F5F5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.milestone-pin-button:active {
+  transform: translateY(0px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.milestone-pin-button:focus {
+  outline: none;
+}
+
+.pin-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0);
 }
 
 /* 마일스톤 캔버스 스타일 */
 .milestone-canvas {
   position: fixed;
-  top: 300px;
+  top: 240px;
   left: 280px;
   right: 0;
-  bottom: 0;
+  bottom: 15px;
   width: auto;
   height: auto;
-  background-color: #F7F8F8;
-  background-image:
-    radial-gradient(rgba(120, 130, 130, 0.1) 1.5px, transparent 1.5px),
-    radial-gradient(rgba(120, 130, 130, 0.1) 1.5px, transparent 1.5px);
+  background-color: #FFFFFF;
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
   background-size: 24px 24px;
-  background-position: 0 0, 12px 12px;
+  background-position: 0 0;
+  border-radius: 16px;
   overflow: auto; /* 스크롤 허용 */
 }
 
@@ -3428,10 +5011,71 @@ export default {
   cursor: inherit;
 }
 
+/* 전체보기 전용 미니맵 */
+.milestone-minimap {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 5;
+}
+.minimap-svg { display: block; }
+.minimap-bg {
+  fill: rgba(0,0,0,0.55);
+}
+.minimap-node {
+  fill: #B8C7C0;
+  rx: 1; ry: 1;
+}
+.minimap-connection {
+  stroke: #D2D9D5;
+  stroke-opacity: 0.6;
+  stroke-width: 1.2;
+}
+.minimap-viewport {
+  fill: rgba(255, 221, 68, 0.08);
+  stroke: #FFDD44;
+  stroke-width: 1.5;
+}
+
 /* SVG 스톤 그룹 */
 .stone-group {
   cursor: pointer;
 }
+
+/* 토성 띠 및 버튼 */
+.saturn-ring-group {
+  pointer-events: none; /* 띠는 클릭 방지 */
+}
+
+.saturn-ring {
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.12));
+}
+
+.ring-button {
+  pointer-events: all; /* 버튼은 클릭 가능 */
+}
+
+.ring-button.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.saturn-ring-hit {
+  pointer-events: all;
+}
+
+.ring-button-hit {
+  pointer-events: all;
+}
+
+.ring-button-label text {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 600;
+}
+
 
 /* 연결선 스타일 */
 .connection-line {
@@ -3453,26 +5097,30 @@ export default {
 }
 
 .milestone-line {
-  stroke-width: 2;
+  stroke-width: 3;
+  stroke-opacity: 0.4;
   stroke-linecap: round;
   stroke-linejoin: round;
   transition: all 0.2s ease;
 }
 
 .milestone-line:hover {
-  stroke-width: 2.5;
+  stroke-width: 3.5;
+  stroke-opacity: 0.6;
 }
 
 /* 루트 연결선 스타일 */
 .root-connection-line {
-  stroke-width: 2;
+  stroke-width: 3;
+  stroke-opacity: 0.4;
   stroke-linecap: round;
   stroke-linejoin: round;
   transition: all 0.2s ease;
 }
 
 .root-connection-line:hover {
-  stroke-width: 2.5;
+  stroke-width: 3.5;
+  stroke-opacity: 0.6;
 }
 
 /* 도넛형 스톤 스타일 */
@@ -3508,8 +5156,8 @@ export default {
 }
 
 .root-stone:hover {
-  filter: drop-shadow(0 0 15px rgba(78, 110, 129, 0.4)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
-  transform: scale(1.02);
+  filter: drop-shadow(0 0 10px rgba(78, 110, 129, 0.28)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.12));
+  transform: scale(1.002);
 }
 
 .root-stone-bg {
@@ -3521,6 +5169,17 @@ export default {
 }
 
 /* 하위 스톤 스타일 */
+.donut-stone:not(.root-stone),
+.stone-group:not(.root-stone) {
+  transition: all 0.3s ease;
+}
+
+.donut-stone:not(.root-stone):hover,
+.stone-group:not(.root-stone):hover {
+  filter: drop-shadow(0 0 10px rgba(78, 110, 129, 0.28)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.12));
+  transform: scale(1.002);
+}
+
 .child-stone-bg {
   transition: all 0.2s ease;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
@@ -3542,61 +5201,66 @@ export default {
 }
 
 /* 하위 스톤 테두리 */
+.child-donut-bg {
+  stroke: #888888 !important;
+}
+
+.root-donut-bg {
+  stroke: #AEC3B0 !important;
+}
+
+.stone-group:not(.root-stone) .donut-background,
+.donut-stone:not(.root-stone) .donut-background,
 .child-stone-bg + .child-stone-inner + .donut-background {
-  stroke: #8EA8A0;
+  stroke: #888888 !important;
   stroke-width: 2;
 }
 
 /* 완료된 스톤 스타일 */
 .completed-stone {
-  opacity: 0.8;
-  filter: grayscale(0.3) drop-shadow(0 0 8px rgba(34, 197, 94, 0.3));
+  opacity: 1;
 }
 
 .completed-stone .root-stone-bg,
 .completed-stone .child-stone-bg {
-  fill: #DCFCE7;
+  fill: #2A2828;
 }
 
-.completed-stone .root-stone-highlight,
-.completed-stone .child-stone-inner {
-  fill: #BBF7D0;
-}
 
 .completed-stone .donut-background {
-  stroke: #22C55E;
-  stroke-width: 3;
+  stroke: #666666;
+  stroke-width: 2;
 }
 
 .completed-stone .donut-progress {
-  stroke: #16A34A;
+  stroke: url(#completedProgressGradient);
 }
 
 .completed-stone .stone-name,
 .completed-stone .root-stone-name {
-  color: #15803D;
-  font-weight: 800;
+  fill: #FFFFFF;
+  font-weight: 700;
+}
+
+.completed-stone .stone-name-container,
+.completed-stone .root-stone-name-container {
+  color: #FFFFFF;
+  font-weight: 700;
 }
 
 .completed-stone .stone-milestone,
 .completed-stone .root-stone-milestone {
-  color: #16A34A;
-  font-weight: 800;
+  fill: #22C55E;
+  font-weight: 700;
 }
 
+
+.donut-progress-bg {
+  opacity: 0.5;
+}
 
 .donut-progress {
-  transition: stroke-dashoffset 0.8s ease-in-out;
-  animation: progressFill 1s ease-out;
-}
-
-@keyframes progressFill {
-  from {
-    stroke-dashoffset: 2 * 3.14159 * 90; /* 초기값: 완전히 비어있는 상태 */
-  }
-  to {
-    stroke-dashoffset: 2 * 3.14159 * 90 * (1 - var(--progress, 0) / 100);
-  }
+  transition: stroke-dashoffset 2s ease-out;
 }
 
 /* 스톤 생성 텍스트 버튼 스타일 */
@@ -3629,18 +5293,19 @@ export default {
 
 .create-stone-text-content {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 500;
+  font-weight: 700;
   font-size: 11px;
-  fill: #6B8E89;
+  fill: #4A4848;
   text-anchor: middle;
   pointer-events: all;
   letter-spacing: 0.5px;
-  transition: none !important;
+  transition: all 0.2s ease !important;
   cursor: pointer !important;
 }
 
 .create-stone-text:hover .create-stone-text-content {
-  fill: #6B8E89;
+  fill: #2A2828;
+  font-size: 12px;
 }
 
 /* 완료된 스톤의 스톤 생성 텍스트 비활성화 */
@@ -3658,22 +5323,83 @@ export default {
   fill: #9CA3AF !important;
 }
 
+/* 이 스톤부터 보기 텍스트 버튼 스타일 */
+.focus-stone-text {
+  cursor: pointer !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+.focus-stone-text:hover {
+  cursor: pointer !important;
+}
+
+.focus-stone-text:active {
+  transform: none !important;
+}
+
+.click-mode .focus-stone-text {
+  cursor: pointer !important;
+}
+
+.pan-mode .focus-stone-text {
+  cursor: pointer !important;
+}
+
+.focus-stone-click-area {
+  cursor: pointer !important;
+  pointer-events: all;
+}
+
+.focus-stone-text-content {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  fill: #4A4848;
+  text-anchor: middle;
+  pointer-events: all;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+.focus-stone-text:hover .focus-stone-text-content {
+  fill: #2A2828;
+  font-size: 12px;
+}
+
 /* SVG 텍스트 스타일 */
 .stone-name {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 14px;
-  fill: #1A1A1A;
+  font-size: 16px;
+  fill: #FFFFFF;
   pointer-events: none;
   text-anchor: middle;
   line-height: 1.2;
+}
+
+.stone-name-container {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #FFFFFF;
+  text-align: center;
+  line-height: 1.2;
+  pointer-events: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .stone-dday {
   font-family: 'Pretendard', sans-serif;
   font-weight: 500;
   font-size: 12px;
-  fill: #666666;
+  fill: #FFFFFF;
   pointer-events: none;
   text-anchor: middle;
 }
@@ -3682,27 +5408,54 @@ export default {
   font-family: 'Pretendard', sans-serif;
   font-weight: 600;
   font-size: 12px;
-  fill: #4A90E2;
+  fill: #FFFFFF;
   pointer-events: none;
   text-anchor: middle;
+}
+
+/* 스톤 depth 라벨 (hover 시) */
+.stone-depth-label {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  fill: #1C0F0F; /* 검은 글씨 */
+  paint-order: normal;
+  stroke: none;
+  stroke-width: 0;
 }
 
 /* 루트 스톤 텍스트 스타일 */
 .root-stone-name {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 16px;
-  fill: #F8F8F2;
+  font-size: 18px;
+  fill: #FFFFFF;
   pointer-events: none;
   text-anchor: middle;
   line-height: 1.2;
+}
+
+.root-stone-name-container {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #FFFFFF;
+  text-align: center;
+  line-height: 1.2;
+  pointer-events: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .root-stone-dday {
   font-family: 'Pretendard', sans-serif;
   font-weight: 600;
   font-size: 13px;
-  fill: #F8F8F2;
+  fill: #FFFFFF;
   pointer-events: none;
   text-anchor: middle;
 }
@@ -3711,7 +5464,7 @@ export default {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
   font-size: 13px;
-  fill: #4A90E2;
+  fill: #FFFFFF;
   pointer-events: none;
   text-anchor: middle;
 }
@@ -3719,17 +5472,78 @@ export default {
 
 /* 다른 탭들 */
 .other-tabs {
-  position: fixed;
-  top: 83px;
-  left: 280px;
-  right: 0;
-  bottom: 0;
-  width: auto;
-  height: auto;
+  padding: 20px 50px;
   background: #F5F5F5;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  height: 100%;
+}
+
+.other-tabs.documents-tab-active {
+  padding: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.dashboard-container {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.dashboard-placeholder {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 40px 50px;
+  box-sizing: border-box;
+}
+
+.project-drive-container {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.project-drive-container :deep(.drive-container) {
+  height: 100%;
+  padding: 0;
+}
+
+.project-drive-container :deep(.drive-layout) {
+  height: 100%;
+}
+
+.dashboard-box {
+  width: 100%;
+  max-width: 960px;
+  min-height: 360px;
+  background: #FFFFFF;
+  border: 1px solid rgba(42, 40, 40, 0.2);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  color: #7C7C7C;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 
 /* 기존 스타일들은 새로운 SVG 기반 디자인으로 대체됨 */

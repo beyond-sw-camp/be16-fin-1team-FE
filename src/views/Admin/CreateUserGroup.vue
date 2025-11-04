@@ -27,6 +27,7 @@
               placeholder="사용자 이메일로 검색"
               v-model="userSearchQuery"
               @keyup.enter="searchUsers"
+              @input="handleSearchInput"
             />
             <button class="search-btn" @click="searchUsers">검색</button>
           </div>
@@ -46,7 +47,7 @@
                   :key="user.userId" 
                   class="user-item"
                 >
-                  <img src="/user_default_icon.svg" alt="user" class="user-avatar" />
+                  <img :src="user.profileImageUrl || userDefaultIcon" alt="user" class="user-avatar" @error="handleAvatarError($event)" />
                   <div class="user-info">
                     <div class="user-name">{{ user.userName }}</div>
                     <div class="user-email">{{ user.userEmail }}</div>
@@ -61,19 +62,10 @@
                 </div>
               </div>
               
-              <!-- 페이지네이션 -->
-              <div class="pagination">
-                <button class="page-btn prev-btn">← 이전</button>
-                <button class="page-btn active">1</button>
-                <button class="page-btn">2</button>
-                <button class="page-btn">3</button>
-                <span class="page-ellipsis">...</span>
-                <button class="page-btn">10</button>
-                <button class="page-btn next-btn">다음 →</button>
+              <!-- 페이지네이션 (사용자가 많을 때만 표시) -->
+              <div v-if="availableUsers.length === 0" class="empty-message">
+                <p>사용자가 없습니다.</p>
               </div>
-              
-              <!-- 더보기 버튼 -->
-              <button class="more-btn">더보기</button>
             </div>
           </div>
           
@@ -92,7 +84,7 @@
                   :key="user.userId" 
                   class="selected-user-item"
                 >
-                  <img src="/user_default_icon.svg" alt="user" class="user-avatar" />
+                  <img :src="user.profileImageUrl || userDefaultIcon" alt="user" class="user-avatar" @error="handleAvatarError($event)" />
                   <div class="user-info">
                     <div class="user-name">{{ user.userName }}</div>
                     <div class="user-email">{{ user.userEmail }}</div>
@@ -119,6 +111,7 @@
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import userDefaultIcon from '@/assets/icons/user/user_default_icon.svg';
 
 export default {
   name: 'CreateUserGroup',
@@ -127,7 +120,8 @@ export default {
       newGroupName: '',
       userSearchQuery: '',
       availableUsers: [],
-      selectedUsers: []
+      selectedUsers: [],
+      userDefaultIcon
     };
   },
   setup() {
@@ -135,7 +129,8 @@ export default {
     return { workspaceStore };
   },
   mounted() {
-    // 초기 로드 시에는 사용자 목록을 자동으로 로드하지 않음
+    // 초기 로드 시 사용자 목록을 자동으로 로드
+    this.loadAvailableUsers();
   },
   methods: {
     goBack() {
@@ -156,12 +151,25 @@ export default {
         });
         
         if (response.data.statusCode === 200) {
-          this.availableUsers = response.data.result.userInfoList || [];
+          this.availableUsers = (response.data.result.userInfoList || []).map(user => ({
+            userId: user.userId,
+            userName: user.userName,
+            userEmail: user.userEmail,
+            profileImageUrl: user.profileImageUrl
+          }));
           console.log('그룹에 속하지 않은 참여자 목록:', this.availableUsers);
         }
       } catch (error) {
         console.error('사용자 목록 로드 실패:', error);
         this.availableUsers = [];
+      }
+    },
+    
+    // 검색어 입력 핸들러
+    handleSearchInput() {
+      // 검색어가 비어있으면 전체 목록 로드
+      if (!this.userSearchQuery.trim()) {
+        this.loadAvailableUsers();
       }
     },
     
@@ -184,7 +192,12 @@ export default {
         });
         
         if (response.data.statusCode === 200) {
-          this.availableUsers = response.data.result.userInfoList || [];
+          this.availableUsers = (response.data.result.userInfoList || []).map(user => ({
+            userId: user.userId,
+            userName: user.userName,
+            userEmail: user.userEmail,
+            profileImageUrl: user.profileImageUrl
+          }));
           console.log('검색 결과:', this.availableUsers);
         }
       } catch (error) {
@@ -196,7 +209,12 @@ export default {
     // 사용자 추가
     addUser(user) {
       if (!this.selectedUsers.find(u => u.userId === user.userId)) {
-        this.selectedUsers.push(user);
+        this.selectedUsers.push({
+          userId: user.userId,
+          userName: user.userName,
+          userEmail: user.userEmail,
+          profileImageUrl: user.profileImageUrl
+        });
       }
     },
     
@@ -236,6 +254,11 @@ export default {
           alert('그룹 생성에 실패했습니다.');
         }
       }
+    },
+    
+    // 아바타 이미지 로드 실패 시 기본 아이콘으로 대체
+    handleAvatarError(event) {
+      event.target.src = this.userDefaultIcon;
     }
   }
 };
@@ -626,6 +649,18 @@ export default {
   align-items: center;
   justify-content: center;
   transform: rotate(180deg);
+}
+
+/* 빈 메시지 */
+.empty-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999999;
+  font-size: 14px;
+}
+
+.empty-message p {
+  margin: 0;
 }
 
 /* 안내 메시지 */

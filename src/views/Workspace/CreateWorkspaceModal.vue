@@ -36,7 +36,9 @@
               :class="{ 'selected': selectedTemplate === template.value }"
               @click="selectTemplate(template.value)"
             >
-              <div class="template-icon">{{ template.icon }}</div>
+              <div class="template-icon">
+                <img :src="template.icon" :alt="template.name" :class="['template-icon-img', template.value === 'PRO' ? 'icon-pro' : 'icon-enterprise']" />
+              </div>
               <div class="template-info">
                 <div class="template-name">{{ template.name }}</div>
                 <div class="template-description">{{ template.description }}</div>
@@ -86,13 +88,13 @@ export default {
           value: 'PRO',
           name: 'PRO',
           description: '개인 및 소규모 팀을 위한 기본 플랜',
-          icon: '👤'
+          icon: '/src/assets/icons/chat/account-supervisor.svg'
         },
         {
           value: 'ENTERPRISE',
           name: 'ENTERPRISE',
           description: '대규모 조직을 위한 고급 플랜',
-          icon: '🏢'
+          icon: '/src/assets/icons/sidebar/company-svgrepo-com.svg'
         }
       ]
     };
@@ -348,7 +350,6 @@ export default {
 }
 
 .template-icon {
-  font-size: 28px;
   width: 48px;
   height: 48px;
   display: flex;
@@ -357,6 +358,20 @@ export default {
   background: #F5F5F5;
   border-radius: 12px;
   flex-shrink: 0;
+}
+
+.template-icon-img {
+  filter: brightness(0) saturate(100%) invert(27%) sepia(0%) saturate(0%) hue-rotate(180deg) brightness(95%) contrast(88%);
+}
+
+.icon-pro {
+  width: 32px;
+  height: 32px;
+}
+
+.icon-enterprise {
+  width: 28px;
+  height: 28px;
 }
 
 .template-info {

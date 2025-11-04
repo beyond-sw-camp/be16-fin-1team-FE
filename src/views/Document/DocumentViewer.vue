@@ -12,6 +12,10 @@
             @blur="updateDocumentTitle"
             @keypress.enter="$event.target.blur()"
           />
+          <div v-if="folderName" class="folder-name">
+            <v-icon size="14" color="#5f6368">mdi-folder-outline</v-icon>
+            <span>{{ folderName }}</span>
+          </div>
         </div>
       </div>
       
@@ -132,6 +136,7 @@ const editorInitialContent = ref('');
 const isContentLoaded = ref(false);
 const lockedLinesMap = ref(new Map());
 const documentTitle = ref('제목 없는 문서');
+const folderName = ref(null);
 const onlineUsers = ref([]);
 const connectionStatus = ref('connecting'); // 'connecting' | 'connected' | 'offline'
 const connectionStatusText = computed(() => {
@@ -209,25 +214,56 @@ const fetchDocumentInfo = async () => {
     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
     const localUserId = localStorage.getItem('id');
     const token = localStorage.getItem('accessToken');
+    const workspaceId = localStorage.getItem('selectedWorkspaceId');
     const res = await axios.get(`${baseURL}/drive-service/drive/document/${documentId.value}`, {
       headers: {
         'X-User-Id': localUserId || '',
         'Authorization': token ? `Bearer ${token}` : undefined,
+        ...(workspaceId && { 'X-Workspace-Id': workspaceId }),
       }
     });
     const doc = res?.data?.result || res?.data;
     if (doc) {
       documentTitle.value = doc.title || doc.name || '제목 없는 문서';
+      folderName.value = doc.folderName || null;
     } else {
       documentTitle.value = '제목 없는 문서';
+      folderName.value = null;
     }
   } catch (error) {
     console.error('문서 정보 로딩 실패:', error);
-    if (error.response?.status === 401) {
-      handle401Error();
-      return;
-    }
-    documentTitle.value = '제목 없는 문서';
+    
+    // 서버 응답값 추출 및 표시
+    const errorMessage = error.response?.data?.message 
+      || error.response?.data?.statusMessage 
+      || error.response?.data?.error 
+      || error.response?.data?.result 
+      || error.message
+      || '문서를 불러오는 중 오류가 발생했습니다.';
+    
+    // 서버 응답 데이터 전체를 표시
+    const serverResponse = error.response?.data 
+      ? JSON.stringify(error.response.data, null, 2)
+      : error.message;
+    
+    console.error('서버 응답:', serverResponse);
+    showSnackbar(`오류: ${errorMessage}`, 'error');
+    
+    // 에러 발생 시 창 닫기
+    handleDisconnect();
+    
+    setTimeout(() => {
+      if (window.opener) {
+        // 새 창에서 열린 경우 창 닫기
+        window.close();
+      } else {
+        // 새 창이 아닌 경우 이전 페이지로 이동
+        router.go(-1);
+      }
+    }, 2000);
+    
+    // 더 이상 진행하지 않음
+    return;
   }
 };
 
@@ -260,11 +296,13 @@ const updateDocumentTitle = async () => {
   try {
     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
     const token = localStorage.getItem('accessToken');
+    const workspaceId = localStorage.getItem('selectedWorkspaceId');
     const body = { title: documentTitle.value };
     await axios.put(`${baseURL}/drive-service/drive/document/${documentId.value}`, body, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token ? `Bearer ${token}` : undefined,
+        ...(workspaceId && { 'X-Workspace-Id': workspaceId }),
       }
     });
     showSnackbar('문서 제목이 변경되었습니다.', 'success');
@@ -524,6 +562,9 @@ onBeforeRouteLeave((to, from, next) => {
 .title-section {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .document-title {
@@ -533,7 +574,8 @@ onBeforeRouteLeave((to, from, next) => {
   outline: none;
   padding: 6px 8px;
   border-radius: 4px;
-  width: 100%;
+  flex: 0 1 auto;
+  min-width: 0;
   max-width: 500px;
   transition: background-color 0.2s;
 }
@@ -545,6 +587,29 @@ onBeforeRouteLeave((to, from, next) => {
 .document-title:focus {
   background-color: #fff;
   box-shadow: 0 0 0 2px #4285f4;
+}
+
+.folder-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #5f6368;
+  padding: 4px 10px;
+  background-color: #f1f3f4;
+  border-radius: 16px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.folder-name:hover {
+  background-color: #e8eaed;
+}
+
+.folder-name .v-icon {
+  margin: 0;
 }
 
 .header-right {

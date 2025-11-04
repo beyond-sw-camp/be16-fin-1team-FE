@@ -22,9 +22,6 @@
           <p class="confirm-message">
             <strong>'{{ taskName }}'</strong> 태스크를 완료 처리하시겠습니까?
           </p>
-          <p class="info-text">
-            완료 처리된 태스크는 되돌릴 수 없습니다.
-          </p>
         </div>
       </div>
       

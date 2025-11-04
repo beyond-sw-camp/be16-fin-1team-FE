@@ -1,0 +1,129 @@
+/* src/assets/fullcalendar-custom.css */
+
+/* 기본 폰트와 배경 */
+.fc {
+  font-family: 'Pretendard', sans-serif;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+
+/* 헤더 요일 영역 */
+/* 요일 헤더 셀 전체 영역 */
+.fc-col-header-cell {
+  background-color: #f8f8f8;
+  border: none;
+}
+
+/* 요일 텍스트 (MON, TUE, WED ...) */
+.fc-col-header-cell-cushion {
+  color: #888; /* 기본 텍스트 색 */
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.3px;
+  padding: 10px 0;
+}
+
+/* 일요일 빨강, 토요일 파랑 */
+.fc-day-sun .fc-col-header-cell-cushion {
+  color: #e57373 !important;
+}
+
+.fc-day-sat .fc-col-header-cell-cushion {
+  color: #64b5f6 !important;
+}
+
+/* 오늘 요일 강조 (노란 테두리와 동일한 톤으로 강조) */
+.fc-day-today .fc-col-header-cell-cushion {
+  color: #ffb300 !important;
+  font-weight: 700;
+}
+
+/* 날짜 숫자 스타일 */
+.fc-daygrid-day-number {
+  color: #444;
+  font-size: 13px;
+  font-weight: 500;
+  margin: 4px 6px;
+}
+
+/* 오늘 날짜 하이라이트 */
+/* 오늘 날짜 하이라이트 (테두리 + 그림자 강조) */
+.fc-day-today {
+  background-color: transparent !important; /* ✅ 배경색 제거 */
+  position: relative;
+  box-shadow: 0 0 0 2px #ffcd4d inset, 0 0 6px rgba(255, 205, 77, 0.4);
+  z-index: 2; /* ✅ 위에 표시되도록 */
+}
+
+/* 주간/일간 뷰에서도 동일한 효과 유지 */
+.fc-timegrid-col.fc-day-today {
+  background-color: transparent !important;
+  box-shadow: 0 0 0 2px #ffcd4d inset, 0 0 6px rgba(255, 205, 77, 0.4);
+  border-radius: 3px;
+}
+
+/* 오늘 날짜 - 숫자를 동그란 배경 안에 표시 */
+.fc-day-today .fc-daygrid-day-number {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;             /* 동그라미 크기 */
+  height: 28px;
+  border-radius: 50%;
+  background-color: #ffcd4d; /* Orbit 포인트 컬러 */
+  color: #fff !important;   /* 숫자 색상 흰색 */
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(255, 205, 77, 0.5);
+  margin-right: 4px;        /* 기존 위치 맞춤 */
+  transition: all 0.2s ease;
+}
+
+/* hover 시 살짝 강조 */
+.fc-day-today .fc-daygrid-day-number:hover {
+  box-shadow: 0 3px 8px rgba(255, 205, 77, 0.7);
+  transform: scale(1.05);
+}
+
+/* hover 시 효과 (선택 아님) */
+.fc-day-today:hover {
+  box-shadow: 0 0 0 2px #ffc933 inset, 0 0 10px rgba(255, 221, 77, 0.55);
+}
+
+/* 주말 색상 약간 흐리게 */
+.fc-day-sun .fc-daygrid-day-number,
+.fc-day-sat .fc-daygrid-day-number {
+  color: #aaa;
+}
+
+/* 이벤트 카드 */
+.fc-event {
+  border: none !important;
+  color: #333 !important;
+  font-size: 13px;
+  border-radius: 6px;
+  padding: 2px 4px;
+  transition: all 0.2s ease;
+}
+
+/* hover 시 부드럽게 강조 */
+.fc-event:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* 날짜 셀 경계선 완화 */
+.fc-scrollgrid {
+  border: none !important;
+}
+
+.fc-scrollgrid-section > td {
+  border: none !important;
+}
+
+/* 주간/일간 뷰 공통 */
+.fc-timegrid-slot {
+  border-color: #f4f4f4;
+}
