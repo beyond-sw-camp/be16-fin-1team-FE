@@ -811,14 +811,14 @@ export default {
   left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  opacity: 0.9;
+  width: 24px;
+  height: 24px;
+  filter: brightness(0) saturate(100%) invert(97%) sepia(8%) saturate(584%) hue-rotate(324deg) brightness(103%) contrast(96%);
 }
 
 .nav-text {
   position: absolute;
-  left: 46px;
+  left: 52px;
   top: 50%;
   transform: translateY(-50%);
   font-family: 'Pretendard', sans-serif;

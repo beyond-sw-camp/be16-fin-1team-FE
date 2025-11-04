@@ -1081,7 +1081,7 @@ export default {
       return lightColors[Math.abs(hash) % lightColors.length];
     },
     
-    // Project ID 기반 덜 밝은 색상 생성 (Task보다 채도 높음)
+    // Project ID 기반 약간 진한 밝은 색상 생성
     getProjectColor(projectId) {
       // projectId를 숫자로 변환 (해시 함수)
       let hash = 0;
@@ -1090,23 +1090,23 @@ export default {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
       }
       
-      // 덜 밝은 파스텔 색상 팔레트 (채도가 더 높음)
-      const mediumColors = [
-        '#FFB6C1', // 핑크
-        '#FFD7A8', // 주황
-        '#FFF380', // 노랑
-        '#B0EEB0', // 민트
-        '#B0D4FF', // 하늘
-        '#D8BFD8', // 라벤더
-        '#FFB6D9', // 장미
-        '#FFE0B2', // 살구
-        '#C8E6C9', // 초록
-        '#E1BEE7', // 보라
-        '#B3E5FC', // 파랑
-        '#FFF59D', // 레몬
+      // 약간 진한 파스텔 색상 팔레트
+      const lightColors = [
+        '#FFCCCB', // 약간 진한 핑크
+        '#FFD699', // 약간 진한 주황
+        '#FFF380', // 약간 진한 노랑
+        '#C0F0C0', // 약간 진한 민트
+        '#C0E4FF', // 약간 진한 하늘
+        '#D6D6F5', // 약간 진한 라벤더
+        '#FFCCE5', // 약간 진한 장미
+        '#FFE6CC', // 약간 진한 살구
+        '#D4EED4', // 약간 진한 초록
+        '#E8D5F0', // 약간 진한 보라
+        '#CCE9FF', // 약간 진한 파랑
+        '#FFF59D', // 약간 진한 레몬
       ];
       
-      return mediumColors[Math.abs(hash) % mediumColors.length];
+      return lightColors[Math.abs(hash) % lightColors.length];
     },
     
     // Task 기간 포맷팅

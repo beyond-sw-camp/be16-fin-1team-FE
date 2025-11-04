@@ -922,8 +922,8 @@ export default {
 }
 
 .user-icon {
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
   opacity: 0.8;
   filter: brightness(0);
 }
