@@ -975,6 +975,8 @@ export default {
       viewMode: localStorage.getItem('projectViewMode') || 'all',
       // 전체보기 모드 방문 여부 (포커스 전환 시 간격 축소에 활용)
       hasVisitedOverview: false,
+      // 전체보기에서 루트 스톤을 화면 상단에 두기 위한 여백(px)
+      overviewTopPadding: 100,
       canvasWidth: 1000,
       canvasHeight: 600,
       stoneNodes: [],
@@ -1999,8 +2001,26 @@ export default {
         if (!canvasElement) return;
         const canvasRect = canvasElement.getBoundingClientRect();
 
-        // stoneNodes 기반으로 bounds 계산 (오버레이의 DOM 변화에 영향 받지 않음)
+        // stoneNodes 기반 계산 (오버레이 DOM 영향 없음)
         if (!this.stoneNodes || this.stoneNodes.length === 0) return;
+
+        // 전체보기 모드: 루트 스톤을 기준으로, 가로는 중앙 정렬, 세로는 상단 여백에 배치
+        if (this.viewMode === 'all') {
+          const root = this.stoneNodes.find(s => s.isRoot);
+          if (root) {
+            const rootCenterX = root.x + (root.isRoot ? 90 : 75);
+            const svgCenterX = canvasRect.width / 2;
+            this.translate.x = svgCenterX - rootCenterX;
+            const topPad = (this.overviewTopPadding != null) ? this.overviewTopPadding : 40;
+            // 루트의 상단이 화면 상단 여백(topPad)에 오도록
+            this.translate.y = topPad - root.y;
+            // 전체보기 초기 정렬을 뷰포트로 저장하여 이후 전환 시 동일 위치 복원
+            this.saveViewportForCurrentMode && this.saveViewportForCurrentMode();
+            return;
+          }
+        }
+
+        // 포커스 모드 또는 루트 미탐색: 그래프 바운딩 박스 중심을 기준으로 정렬
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         for (const s of this.stoneNodes) {
           const w = s.isRoot ? 180 : 150;
@@ -2020,6 +2040,9 @@ export default {
         const svgCenterY = canvasRect.height / 2;
         this.translate.x = svgCenterX - graphCenterX;
         this.translate.y = svgCenterY - graphCenterY + (this.defaultCenterYOffset || 0);
+        if (this.viewMode === 'all') {
+          this.saveViewportForCurrentMode && this.saveViewportForCurrentMode();
+        }
       });
     },
     // 스톤 관련 메서드들
