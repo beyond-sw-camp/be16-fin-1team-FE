@@ -2,7 +2,9 @@
   <div class="shared-calendar-wrap">
     <div class="toolbar">
       <div class="left">
-        <h2>공유 캘린더</h2>
+        <button @click="prevMonth" class="nav-btn">◀</button>
+        <span class="month-text">{{ currentYearMonth }}</span>
+        <button @click="nextMonth" class="nav-btn">▶</button>
       </div>
       <div class="right">
         <button class="create-btn" @click="showModal = true">＋ 일정 등록</button>
@@ -17,13 +19,38 @@
             {{ type.label }}
           </button>
         </div>
+        <div>
+          <!-- 월/주: 기존 FullCalendar -->
+          <FullCalendarWrapper
+            v-if="view !== 'day'"
+            :events="mergedEventsForMonthWeek"
+            :view-type="view === 'month' ? 'dayGridMonth' : 'timeGridWeek'"
+          />
+
+          <!-- 일: 사람별 컬럼 보드(무료 버전) -->
+          <SharedCalendarDayBoard
+            v-else
+            :my-events="myEvents"
+            :subscribers="subscribers"
+            :height="880"
+            @eventClick="openDetailModal"
+          />
+        </div>
       </div>
     </div>
 
     <div class="calendar-container">
       <!-- 사이드바 -->
       <div class="sidebar">
-        <h4>공유 중인 유저</h4>
+        <div class="subscribe-header">
+          <h4>구독 리스트</h4>
+          <img
+            src="@/assets/icons/calendar/setting.svg"
+            alt="설정"
+            class="setting-icon"
+            @click="isManageModalOpen = true"
+          />
+        </div>
           <div v-for="user in subscribers" :key="user.targetUserId" class="user-item">
             <label class="user-label">
               <input type="checkbox" v-model="user.visible" class="user-checkbox" />
@@ -39,12 +66,6 @@
             </label>
           </div>
         <hr />
-
-        <!-- 유저 구독 추가 -->
-        <div class="subscribe-section">
-          <h3>새 구독 추가</h3>
-          <v-btn color="yellow-darken-1" @click="openModal">＋ 새 구독 추가</v-btn>
-        </div>
       </div>
 
       <div class="calendar-panel">
@@ -59,6 +80,14 @@
         :workspaceId="workspaceId"
         @subscribed="fetchSharedData"
       />
+      <!-- 구독 모달 -->
+      <ManageSubscriptionModal
+        v-model:visible="isManageModalOpen"
+        :workspaceId="workspaceId"
+        :subscribers="subscribers"
+        @subscribed="fetchSharedData"
+      />
+
     </div>
     
     <!-- 일정 등록 모달 -->
@@ -109,11 +138,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed  } from "vue";
 import { getMySchedules, getSubscriptions } from "@/api/sharedCalendarApi.js";
 import axios from "axios";
 import SearchUserModal from "@/components/modal/SearchUserModal.vue"; 
 import ScheduleDetailModal from "@/components/modal/ScheduleDetailModal.vue";
+import ManageSubscriptionModal from "@/components/modal/ManageSubscriptionModal.vue";
+
+const isManageModalOpen = ref(false);
 
 const workspaceId = localStorage.getItem("selectedWorkspaceId");
 const calendarEl = ref(null);
@@ -131,6 +163,22 @@ const openModal = () => (isUserModalOpen.value = true);
 
 const selectedEventId = ref(null);
 const isDetailModalOpen = ref(false);
+
+const currentDate = ref(new Date());
+
+const currentYearMonth = computed(() => {
+  return `${currentDate.value.getFullYear()}년 ${currentDate.value.getMonth() + 1}월`;
+});
+
+const prevMonth = () => {
+  calendar?.prev(); // FullCalendar 내부 이동
+  currentDate.value = calendar?.getDate(); 
+};
+
+const nextMonth = () => {
+  calendar?.next();
+  currentDate.value = calendar?.getDate(); 
+};
 
 const form = ref({
   calendarName: "",
@@ -183,6 +231,7 @@ const fetchSharedData = async () => {
       getMySchedules(workspaceId),
       getSubscriptions(workspaceId),
     ]);
+    console.log(subs)
 
     // 내 일정
     myEvents.value = mine.map((e) => ({
@@ -196,6 +245,7 @@ const fetchSharedData = async () => {
 
     // 구독자별 일정
     subscribers.value = subs.map((s, i) => ({
+      subscriptionId: s.id,
       targetUserId: s.targetUserId,
       targetUserName: s.targetUserName,
       visible: true,
@@ -553,6 +603,39 @@ onMounted(async () => {
 /* hover 시 색상 점 살짝 커짐 */
 .user-item:hover .user-dot {
   transform: scale(1.2);
+}
+
+.nav-btn {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: 0 4px;
+  cursor: pointer;
+}
+
+.month-text {
+  font-weight: 600;
+  margin: 0 8px;
+}
+
+.subscribe-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.setting-icon {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.setting-icon:hover {
+  opacity: 1;
 }
 
 </style>
