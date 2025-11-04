@@ -60,10 +60,30 @@ function daysFromToday(dateIso) {
   return Math.round(millis / (1000 * 60 * 60 * 24));
 }
 
+// 개인 일정 (SharedCalendar)
+async function fetchPersonalSchedules(workspaceId, userId) {
+  const { data } = await http.get(`/user-service/shared-calendars/${workspaceId}`, {
+    headers: { "X-User-Id": userId },
+  });
+
+  const list = data?.result ?? data ?? [];
+  return list
+    .filter((s) => s.userId === userId) // 본인 일정만
+    .map((s) => ({
+      id: s.id,
+      title: s.calendarName,
+      startAt: s.startedAt,
+      endAt: s.endedAt,
+      isShared: s.isShared,
+      userName: s.userName,
+    }));
+}
+
 export default {
   fetchMyMilestones,
   fetchMyTasks,
   fetchPersonalTodos,
+  fetchPersonalSchedules,
   toggleTodo,
   toggleTask,
 };

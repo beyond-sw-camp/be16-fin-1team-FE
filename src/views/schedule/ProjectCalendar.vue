@@ -35,6 +35,12 @@ const isParticipantUpdating = ref(false);
 
 
 
+const viewOptions = [
+  { value: "dayGridMonth", label: "월" },
+  { value: "timeGridWeek", label: "주" },
+  { value: "timeGridDay", label: "일" },
+];
+
 // ✅ 일정 배열
 const events = ref<any[]>([]);
 const currentView = ref("dayGridMonth");
@@ -514,11 +520,16 @@ function toggleVisibility(item) {
 
       <div class="right">
         <button class="icon-btn" @click="toggleSidebar">👁️</button>
-        <select v-model="currentView" class="view-select">
-          <option value="timeGridDay">일</option>
-          <option value="timeGridWeek">주</option>
-          <option value="dayGridMonth">월</option>
-        </select>
+        <div class="view-toggle">
+          <button
+            v-for="type in viewOptions"
+            :key="type.value"
+            :class="['view-btn', { active: currentView === type.value }]"
+            @click="currentView = type.value"
+          >
+            {{ type.label }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -527,6 +538,7 @@ function toggleVisibility(item) {
       <CalendarBase
         :events="events"
         :initial-date="currentDate"
+        :view-type="currentView"
         @event-click="openStoneModal"
       />
 
@@ -751,17 +763,34 @@ function toggleVisibility(item) {
   background: #fffae0;
 }
 
-.view-select {
-  border: 1px solid #ddd;
+/* 월/주/일 변경 버튼 */
+.view-toggle {
+  display: inline-flex;
   border-radius: 8px;
-  padding: 6px 10px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
   background: #fff;
-  cursor: pointer;
-  font-size: 14px;
-  transition: border-color 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
-.view-select:hover {
-  border-color: #ffcd4d;
+
+.view-btn {
+  border: none;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-weight: 500;
+  background: #fff;
+  color: #555;
+  transition: all 0.2s ease;
+}
+
+.view-btn:hover {
+  background: #f8f8f8;
+}
+
+.view-btn.active {
+  background: #ffd580;
+  color: #333;
+  font-weight: 600;
 }
 
 /* ===== Calendar Container ===== */

@@ -55,9 +55,9 @@ import axios from "axios";
 
 const props = defineProps({
   visible: Boolean,
-  eventId: String,
+  scheduleId: String,
 });
-const emit = defineEmits(["update:visible", "updated", "deleted"]);
+const emit = defineEmits(["update:visible", "updated", "deleted", "close"]);
 
 const userId = localStorage.getItem("id");
 const workspaceId = localStorage.getItem("selectedWorkspaceId");
@@ -67,7 +67,7 @@ const editForm = ref({});
 
 // 일정 정보 불러오기
 watch(
-  () => props.eventId,
+  () => props.scheduleId,
   async (newId) => {
     if (!newId) return;
     try {
@@ -97,7 +97,7 @@ watch(
 const updateSchedule = async () => {
   try {
     await axios.put(
-      `/user-service/shared-calendars/${props.eventId}?workspaceId=${workspaceId}`,
+      `/user-service/shared-calendars/${props.scheduleId}?workspaceId=${workspaceId}`,
       {
         calendarName: editForm.value.calendarName,
         startedAt: editForm.value.startedAt,
@@ -121,7 +121,7 @@ const deleteSchedule = async () => {
   if (!confirm("이 일정을 삭제하시겠습니까?")) return;
   try {
     await axios.delete(
-      `/user-service/shared-calendars/${props.eventId}?workspaceId=${workspaceId}`,
+      `/user-service/shared-calendars/${props.scheduleId}?workspaceId=${workspaceId}`,
       { headers: { "X-User-Id": userId } }
     );
     alert("🗑️ 일정이 삭제되었습니다.");
@@ -135,6 +135,7 @@ const deleteSchedule = async () => {
 
 const close = () => {
   emit("update:visible", false);
+  emit("close");
 };
 </script>
 

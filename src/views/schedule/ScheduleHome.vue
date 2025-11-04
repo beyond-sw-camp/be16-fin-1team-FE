@@ -1,20 +1,36 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue";
 import MilestoneCard from "@/components/schedule/MilestoneCard.vue";
-// import TaskList from "@/components/schedule/TaskList.vue";
-// import PersonalTodo from "@/components/schedule/PersonalTodo.vue";
 import Todo from "@/components/schedule/TodoCard.vue";
 import { useScheduleStore } from "@/stores/schedule";
 import HomeTaskCard from "../../components/schedule/HomeTaskCard.vue";
+import ScheduleDetailModal from "@/components/modal/ScheduleDetailModal.vue";
 
 const store = useScheduleStore();
 const workspaceId = localStorage.getItem("workspaceId") || "";
 store.setWorkspace(workspaceId);
 
+// 모달 상태
+const showScheduleModal = ref(false);
+const selectedScheduleId = ref<string | null>(null);
+
 onMounted(async () => {
   await store.loadMilestones();
   await store.loadMyTasks();
+  await store.loadPersonalSchedules();
 });
+
+// 일정 클릭 시
+function openScheduleDetail(id: string) {
+  selectedScheduleId.value = id;
+  showScheduleModal.value = true;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}.${String(d.getDate()).padStart(2, "0")}`;
+}
 
 const today = computed(() => {
   const d = new Date();
@@ -70,10 +86,46 @@ function prevMs() {
         <HomeTaskCard />
       </div>
 
-      <!-- 추가 기능 -->
+      <!-- 나의 일정 카드 -->
       <div class="card summary">
-        <div class="personal schedule">개인 일정</div>
-      </div>
+        <div class="schedule-container">
+          <div class="schedule-header">
+            <h3>나의 일정</h3>
+            <button class="view-more" @click="$router.push('/schedule/shared')">전체보기</button>
+          </div>
+
+          <!-- 스크롤 가능한 리스트 영역 -->
+          <div class="schedule-scroll">
+            <div v-if="store.personalSchedules.length === 0" class="empty">
+              오늘 포함된 일정이 없습니다.
+            </div>
+
+            <ul v-else class="schedule-list">
+              <li
+                v-for="item in store.personalSchedules"
+                :key="item.id"
+                class="schedule-item"
+                @click="openScheduleDetail(item.id)"
+              >
+                <div class="left">
+                  <div class="dot"></div>
+                  <div class="title">{{ item.title }}</div>
+                </div>
+                <div class="right">
+                  <span class="date">{{ formatDate(item.startAt) }} ~ {{ formatDate(item.endAt) }}</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+    </div>
+    <!-- 일정 상세 모달 -->
+    <ScheduleDetailModal
+        v-if="showScheduleModal"
+        :visible="showScheduleModal"
+        :schedule-id="selectedScheduleId"
+        @close="showScheduleModal = false"
+      />
     </div>
   </div>
 </template>
@@ -197,5 +249,123 @@ function prevMs() {
   .grid {
     grid-template-columns: 1fr;
   }
+}
+
+.schedule-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  padding: 8px 10px;
+}
+
+/* 상단 제목 영역 */
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  border-bottom: 1px solid #f2f2f2;
+  flex-shrink: 0; /* 고정 */
+}
+
+.schedule-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+  margin: 0;
+}
+
+.view-more {
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.view-more:hover {
+  color: #000;
+}
+
+/* 스크롤 가능한 영역 */
+.schedule-scroll {
+  flex: 1;
+  overflow-y: auto; /* ✅ 내부 스크롤 */
+  padding-right: 6px;
+  margin-top: 4px;
+}
+
+/* 스크롤바 커스터마이징 (Chrome 기준) */
+.schedule-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.schedule-scroll::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
+.schedule-scroll::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
+}
+
+/* 일정 리스트 */
+.schedule-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 10px 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.schedule-item:hover {
+  background: #fff8d8;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* 일정 항목 내부 구성 */
+.left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  background: #ffd93d;
+  border-radius: 50%;
+}
+.title {
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.right .date {
+  font-size: 13px;
+  color: #777;
+}
+
+/* 빈 상태 */
+.empty {
+  color: #aaa;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 20px;
 }
 </style>

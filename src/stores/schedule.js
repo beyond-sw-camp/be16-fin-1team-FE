@@ -11,6 +11,7 @@ export const useScheduleStore = defineStore("schedule", {
     milestones: [],
     tasks: [],
     todos: [],
+    personalSchedules: [],
     error: null,
   }),
 
@@ -23,7 +24,7 @@ export const useScheduleStore = defineStore("schedule", {
       this.workspaceId = id;
     },
 
-    /** ✅ 내 태스크 불러오기 */
+    /** 내 태스크 불러오기 */
     async loadMyTasks() {
       try {
         this.loading = true;
@@ -43,7 +44,7 @@ export const useScheduleStore = defineStore("schedule", {
       }
     },
 
-    /** ✅ 태스크 완료 처리 */
+    /** 태스크 완료 처리 */
     async completeTask(id) {
       try {
         await completeTask(id);
@@ -54,7 +55,7 @@ export const useScheduleStore = defineStore("schedule", {
       }
     },
 
-    /** ✅ 태스크 삭제 */
+    /** 태스크 삭제 */
     async removeTask(id) {
       try {
         await deleteTask(id);
@@ -64,7 +65,7 @@ export const useScheduleStore = defineStore("schedule", {
       }
     },
 
-    /** ✅ 마일스톤 로드 */
+    /** 마일스톤 로드 */
     async loadMilestones() {
       try {
         const userId = localStorage.getItem("id");
@@ -114,11 +115,43 @@ export const useScheduleStore = defineStore("schedule", {
     },
 
 
-    /** ✅ 태스크 토글 */
+    /** 태스크 토글 */
     async toggleTask(id, done) {
       await scheduleApi.toggleTask(id, done);
       const t = this.tasks.find((x) => x.id === id);
       if (t) t.done = done;
+    },
+
+    /** 개인 일정 로드 */
+    async loadPersonalSchedules() {
+      try {
+        const workspaceId = localStorage.getItem("selectedWorkspaceId");
+        const userId = localStorage.getItem("id");
+
+        if (!workspaceId || !userId) {
+          console.warn("⚠️ 개인 일정 조회에 필요한 정보 부족");
+          return;
+        }
+
+        const schedules = await scheduleApi.fetchPersonalSchedules(workspaceId, userId);
+
+        // ✅ 오늘 날짜 포함된 일정만 필터링
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // 시각 초기화
+
+        this.personalSchedules = schedules.filter((s) => {
+          const start = new Date(s.startAt);
+          const end = new Date(s.endAt);
+          start.setHours(0, 0, 0, 0);
+          end.setHours(0, 0, 0, 0);
+          return start <= today && today <= end;
+        });
+
+        console.log("✅ 오늘 포함 개인 일정:", this.personalSchedules);
+      } catch (err) {
+        console.error("❌ 개인 일정 로드 실패:", err);
+        this.error = err;
+      }
     },
   },
 });
