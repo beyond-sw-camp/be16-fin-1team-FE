@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import axios from "axios";
+// @ts-ignore
 import CalendarBase from "@/components/CalendarBase.vue";
+// @ts-ignore
 import StoneDetailModal from "@/views/Project/StoneDetailModal.vue";
 import { useRoute } from "vue-router";
+// @ts-ignore
 import { getStoneDetail } from "@/services/stoneService.js";
 
 const route = useRoute();
@@ -13,25 +16,27 @@ const workspaceId = ref(
   localStorage.getItem("selectedWorkspaceId") || ""
 );
 const showModal = ref(false);
-const selectedStoneId = ref(null);
-const selectedStoneData = ref(null);
+const selectedStoneId = ref<string | null>(null);
+const selectedStoneData = ref<any>(null);
 const isLoadingStoneDetail = ref(false);
 const projectId = ref('');
 
 // 참여자 수정 모달 관련
 const showParticipantEditModal = ref(false);
-const selectedStoneForParticipants = ref(null);
+const selectedStoneForParticipants = ref<any>(null);
 const participantSearchKeyword = ref('');
-const emailSearchResults = ref([]);
-const allSelectedUsers = ref([]);
-const selectedUser = ref(null);
+const emailSearchResults = ref<any[]>([]);
+const allSelectedUsers = ref<any[]>([]);
+const selectedUser = ref<any>(null);
 const selectedGroup = ref('');
-const userGroupList = ref([]);
+const userGroupList = ref<any[]>([]);
 const isParticipantSearching = ref(false);
 const isParticipantUpdating = ref(false);
 
+
+
 // ✅ 일정 배열
-const events = ref([]);
+const events = ref<any[]>([]);
 const currentView = ref("dayGridMonth");
 const showSidebar = ref(false);
 const currentDate = ref(new Date());
@@ -123,7 +128,7 @@ async function loadGroupMembers() {
     const userId = localStorage.getItem('id');
     const selectedGroupItem = userGroupList.value.find(group => group.groupName === selectedGroup.value);
     
-    if (!selectedGroupItem) {
+    if (!selectedGroupItem || !selectedGroupItem.groupId) {
       return;
     }
     
@@ -170,7 +175,7 @@ async function loadGroupMembersForSelection() {
     const userId = localStorage.getItem('id');
     const selectedGroupItem = userGroupList.value.find(group => group.groupName === selectedGroup.value);
     
-    if (!selectedGroupItem) {
+    if (!selectedGroupItem || !selectedGroupItem.groupId) {
       return;
     }
     
@@ -426,8 +431,6 @@ async function openStoneModal(eventData) {
 
 // ✅ 참여 스톤 & 태스크 불러오기
 const fetchEvents = async () => {
-  const id = localStorage.getItem("id");
-
   if (!workspaceId.value) {
     return;
   }
