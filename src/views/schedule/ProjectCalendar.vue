@@ -30,10 +30,6 @@ const userGroupList = ref([]);
 const isParticipantSearching = ref(false);
 const isParticipantUpdating = ref(false);
 
-
-console.log("🧭 workspaceId:", workspaceId.value);
-console.log("🧭 userId:", localStorage.getItem("id"));
-
 // ✅ 일정 배열
 const events = ref([]);
 const currentView = ref("dayGridMonth");
@@ -41,17 +37,6 @@ const showSidebar = ref(false);
 const currentDate = ref(new Date());
 
 async function handleEditParticipants(stoneData) {
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('👥 [ProjectCalendar] 참여자 수정 이벤트 수신');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📦 받은 stoneData:', stoneData);
-  console.log('🆔 스톤 ID:', stoneData?.stoneId || stoneData?.id);
-  console.log('📋 스톤 이름:', stoneData?.stoneName);
-  console.log('👥 현재 참여자:', stoneData?.participants);
-  console.log('📋 참여자 원본 데이터:', stoneData?.stoneParticipantDtoList);
-  console.log('🌐 workspaceId:', workspaceId.value);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  
   // 참여자 수정 모달 열기
   selectedStoneForParticipants.value = stoneData;
   
@@ -66,15 +51,10 @@ async function handleEditParticipants(stoneData) {
   emailSearchResults.value = [];
   selectedUser.value = null;
   selectedGroup.value = '';
-  
-  console.log('✅ 참여자 수정 모달 열기 완료');
-  console.log('   - showParticipantEditModal:', showParticipantEditModal.value);
-  console.log('   - allSelectedUsers:', allSelectedUsers.value);
 }
 
 // 기존 참여자 로드
 async function loadExistingParticipants(stoneId) {
-  console.log('🔍 [ProjectCalendar] 기존 참여자 로드 시작:', stoneId);
   try {
     const userId = localStorage.getItem('id');
     
@@ -99,15 +79,10 @@ async function loadExistingParticipants(stoneId) {
         participantId: participant.participantId,
         group: '기존 참여자'
       }));
-      
-      console.log('✅ 기존 참여자 로드 완료:', allSelectedUsers.value);
-      console.log('   - 참여자 수:', allSelectedUsers.value.length);
     } else {
-      console.error('❌ 기존 참여자 로드 실패:', response.data);
       allSelectedUsers.value = [];
     }
   } catch (error) {
-    console.error('❌ 기존 참여자 로드 API 호출 실패:', error);
     allSelectedUsers.value = [];
   }
 }
@@ -128,13 +103,10 @@ async function loadUserGroupList() {
     
     if (response.data.statusCode === 200) {
       userGroupList.value = response.data.result.content || [];
-      console.log('✅ 사용자 그룹 목록 로드 완료:', userGroupList.value);
     } else {
-      console.error('❌ 사용자 그룹 목록 조회 실패:', response.data);
       userGroupList.value = [];
     }
   } catch (error) {
-    console.error('❌ 사용자 그룹 목록 API 호출 실패:', error);
     userGroupList.value = [];
   }
 }
@@ -152,7 +124,6 @@ async function loadGroupMembers() {
     const selectedGroupItem = userGroupList.value.find(group => group.groupName === selectedGroup.value);
     
     if (!selectedGroupItem) {
-      console.error('❌ 선택된 그룹을 찾을 수 없습니다.');
       return;
     }
     
@@ -177,15 +148,11 @@ async function loadGroupMembers() {
       
       emailSearchResults.value = [];
       selectedUser.value = groupMembers[0] || null;
-      
-      console.log('✅ 그룹 멤버 조회 완료:', groupMembers);
     } else {
-      console.error('❌ 그룹 멤버 조회 실패:', response.data);
       emailSearchResults.value = [];
       selectedUser.value = null;
     }
   } catch (error) {
-    console.error('❌ 그룹 멤버 API 호출 실패:', error);
     emailSearchResults.value = [];
     selectedUser.value = null;
   }
@@ -204,7 +171,6 @@ async function loadGroupMembersForSelection() {
     const selectedGroupItem = userGroupList.value.find(group => group.groupName === selectedGroup.value);
     
     if (!selectedGroupItem) {
-      console.error('❌ 선택된 그룹을 찾을 수 없습니다.');
       return;
     }
     
@@ -234,25 +200,16 @@ async function loadGroupMembersForSelection() {
           allSelectedUsers.value.push(member);
         }
       });
-      
-      console.log('✅ 전체 선택된 사용자들:', allSelectedUsers.value);
-    } else {
-      console.error('❌ 그룹 멤버 조회 실패:', response.data);
     }
   } catch (error) {
-    console.error('❌ 그룹 멤버 API 호출 실패:', error);
+    // 에러 처리 (로그 없음)
   }
 }
 
 // 참여자 검색
 async function searchUsers() {
-  console.log('🔍 [ProjectCalendar] 참여자 검색 시작');
-  console.log('   - 검색 키워드:', participantSearchKeyword.value);
-  console.log('   - workspaceId:', workspaceId.value);
-  
   if (!participantSearchKeyword.value.trim()) {
     emailSearchResults.value = [];
-    console.log('⚠️ 검색 키워드가 없어서 검색 결과를 초기화합니다.');
     return;
   }
   
@@ -283,15 +240,10 @@ async function searchUsers() {
         email: user.userEmail,
         group: '검색결과'
       }));
-      
-      console.log('✅ 참여자 검색 완료:', emailSearchResults.value);
-      console.log('   - 검색 결과 수:', emailSearchResults.value.length);
     } else {
-      console.error('❌ 참여자 검색 실패:', response.data);
       emailSearchResults.value = [];
     }
   } catch (error) {
-    console.error('❌ 참여자 검색 API 호출 실패:', error);
     emailSearchResults.value = [];
   } finally {
     isParticipantSearching.value = false;
@@ -307,9 +259,6 @@ function selectUser(user) {
   if (existingIndex === -1) {
     allSelectedUsers.value.push(user);
   }
-  
-  console.log('✅ 사용자 선택 완료:', user);
-  console.log('   - 전체 선택된 사용자:', allSelectedUsers.value);
 }
 
 // 선택된 사용자 해제
@@ -320,23 +269,15 @@ function removeSelectedUser() {
 // 개별 멤버 제거
 function removeMember(memberId) {
   allSelectedUsers.value = allSelectedUsers.value.filter(member => member.id !== memberId);
-  console.log('✅ 멤버 제거 완료. 현재 선택된 사용자:', allSelectedUsers.value);
 }
 
 // 모든 멤버 해제
 function clearAllMembers() {
   allSelectedUsers.value = [];
-  console.log('✅ 전체 멤버 해제 완료');
 }
 
 // 참여자 수정 확인
 async function confirmUserSelection() {
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('✅ [ProjectCalendar] 참여자 수정 확인');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📦 selectedStoneForParticipants:', selectedStoneForParticipants.value);
-  console.log('👥 allSelectedUsers:', allSelectedUsers.value);
-  
   if (!selectedStoneForParticipants.value) {
     alert('선택된 스톤이 없습니다.');
     return;
@@ -353,10 +294,6 @@ async function confirmUserSelection() {
     const stoneId = selectedStoneForParticipants.value.stoneId || selectedStoneForParticipants.value.id;
     const participantIds = allSelectedUsers.value.map(p => p.id);
     
-    console.log('📤 참여자 수정 API 호출 시작');
-    console.log('   - stoneId:', stoneId);
-    console.log('   - participantIds:', participantIds);
-    
     const response = await axios.patch(
       `/workspace-service/stone/participant/join`,
       {
@@ -372,7 +309,6 @@ async function confirmUserSelection() {
     );
     
     if (response.data.statusCode === 200) {
-      console.log('✅ 참여자 수정 성공:', response.data);
       alert('참여자가 성공적으로 변경되었습니다.');
       
       // 스톤 데이터 새로고침
@@ -382,11 +318,9 @@ async function confirmUserSelection() {
       
       closeParticipantEditModal();
     } else {
-      console.error('❌ 참여자 수정 실패:', response.data);
       alert('참여자 변경에 실패했습니다.');
     }
   } catch (error) {
-    console.error('❌ 참여자 수정 API 호출 실패:', error);
     const errorMessage = error.response?.data?.statusMessage || error.message || '참여자 변경 중 오류가 발생했습니다.';
     alert(errorMessage);
   } finally {
@@ -396,7 +330,6 @@ async function confirmUserSelection() {
 
 // 스톤 데이터 새로고침
 async function refreshStoneData(stoneId) {
-  console.log('🔄 [ProjectCalendar] 스톤 데이터 새로고침:', stoneId);
   try {
     const response = await getStoneDetail(stoneId);
     
@@ -411,17 +344,14 @@ async function refreshStoneData(stoneId) {
         participants: participantsText,
         stoneParticipantDtoList: participants
       };
-      
-      console.log('✅ 스톤 데이터 새로고침 완료');
     }
   } catch (error) {
-    console.error('❌ 스톤 데이터 새로고침 실패:', error);
+    // 에러 처리 (로그 없음)
   }
 }
 
 // 참여자 수정 모달 닫기
 function closeParticipantEditModal() {
-  console.log('🚪 [ProjectCalendar] 참여자 수정 모달 닫기');
   showParticipantEditModal.value = false;
   selectedStoneForParticipants.value = null;
   participantSearchKeyword.value = '';
@@ -433,11 +363,9 @@ function closeParticipantEditModal() {
 }
 
 async function openStoneModal(eventData) {
-  console.log("🖥️[ProjectCalendar] 클릭:", eventData);
   const stoneId = eventData.stoneId || eventData.id;
   
   if (!stoneId) {
-    console.error("❌ 스톤 ID가 없습니다.");
     return;
   }
   
@@ -480,18 +408,11 @@ async function openStoneModal(eventData) {
         isProject: false
       };
       
-      console.log('📅 [ProjectCalendar] 스톤 데이터 로드 완료:', selectedStoneData.value);
-      console.log('   - 진행률:', selectedStoneData.value.milestone, '%');
-      console.log('   - 담당자:', selectedStoneData.value.manager);
-      console.log('   - 참여자 목록:', selectedStoneData.value.stoneParticipantDtoList);
-      
       showModal.value = true;
     } else {
-      console.error('❌ 스톤 상세 조회 실패:', response.statusMessage);
       alert(response.statusMessage || '스톤 정보를 불러오는데 실패했습니다.');
     }
   } catch (error) {
-    console.error('❌ 스톤 상세 조회 API 호출 실패:', error);
     const errorMessage = error.message || '스톤 정보를 불러오는데 실패했습니다.';
     alert(errorMessage);
   } finally {
@@ -508,13 +429,10 @@ const fetchEvents = async () => {
   const id = localStorage.getItem("id");
 
   if (!workspaceId.value) {
-    console.error("❌ workspaceId가 없습니다. 요청 중단.");
     return;
   }
 
   try {
-    console.log("🔵 요청 URL:", `/workspace-service/workspace/${workspaceId.value}/my-stones`);
-
     const userId = localStorage.getItem("id");
 
     const [stoneRes, taskRes] = await Promise.all([
@@ -551,7 +469,7 @@ const fetchEvents = async () => {
 
     events.value = [...stoneEvents, ...taskEvents];
   } catch (e) {
-    console.error("❌ 프로젝트 캘린더 이벤트 불러오기 실패:", e);
+    // 에러 처리 (로그 없음)
   }
 };
 
