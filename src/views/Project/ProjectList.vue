@@ -388,6 +388,53 @@
             </linearGradient>
           </defs>
         </svg>
+        <!-- 전체보기 전용 미니맵 -->
+        <div 
+          v-if="viewMode === 'all' && stoneNodes && stoneNodes.length > 0" 
+          class="milestone-minimap"
+          :style="{ width: minimapWidth + 'px', height: minimapHeight + 'px' }"
+        >
+          <svg 
+            :width="minimapWidth" 
+            :height="minimapHeight" 
+            class="minimap-svg"
+            @click="onMinimapClick"
+          >
+            <rect class="minimap-bg" width="100%" height="100%" rx="6" ry="6" />
+            <g v-if="minimapState">
+              <!-- 간선 표시 -->
+              <g class="minimap-connections">
+                <line 
+                  v-for="(c, i) in connections" 
+                  :key="'mc-' + i"
+                  class="minimap-connection"
+                  :x1="minimapState.offsetX + (c.x1 - minimapState.minX) * minimapState.scale"
+                  :y1="minimapState.offsetY + (c.y1 - minimapState.minY) * minimapState.scale"
+                  :x2="minimapState.offsetX + (c.x2 - minimapState.minX) * minimapState.scale"
+                  :y2="minimapState.offsetY + (c.y2 - minimapState.minY) * minimapState.scale"
+                />
+              </g>
+              <!-- 노드 표시 (원형) -->
+              <circle 
+                v-for="s in stoneNodes" 
+                :key="'mm-' + s.id"
+                class="minimap-node"
+                :cx="minimapState.offsetX + ((s.x + (s.isRoot ? 90 : 75)) - minimapState.minX) * minimapState.scale"
+                :cy="minimapState.offsetY + ((s.y + (s.isRoot ? 90 : 75)) - minimapState.minY) * minimapState.scale"
+                :r="s.isRoot ? 6 : 4.5"
+                :opacity="s.isRoot ? 0.9 : 0.6"
+              />
+              <!-- 현재 뷰포트 표시 -->
+              <rect 
+                class="minimap-viewport"
+                :x="minimapState.offsetX + (minimapState.worldLeft - minimapState.minX) * minimapState.scale"
+                :y="minimapState.offsetY + (minimapState.worldTop - minimapState.minY) * minimapState.scale"
+                :width="minimapState.worldWidth * minimapState.scale"
+                :height="minimapState.worldHeight * minimapState.scale"
+              />
+            </g>
+          </svg>
+        </div>
         </template>
       </div>
     </div>
@@ -977,6 +1024,9 @@ export default {
       hasVisitedOverview: false,
       // 전체보기에서 루트 스톤을 화면 상단에 두기 위한 여백(px)
       overviewTopPadding: 100,
+      // 미니맵 설정
+      minimapWidth: 200,
+      minimapHeight: 130,
       canvasWidth: 1000,
       canvasHeight: 600,
       stoneNodes: [],
@@ -1102,6 +1152,10 @@ export default {
     // 핀 아이콘 경로
     pinIconPath() {
       return this.isPinned ? pinIcon : pinOutlineIcon;
+    },
+    // 전체보기 미니맵 상태(computed로 캐시)
+    minimapState() {
+      return this.getMinimapState();
     }
   },
   async mounted() {
@@ -2044,6 +2098,78 @@ export default {
           this.saveViewportForCurrentMode && this.saveViewportForCurrentMode();
         }
       });
+    },
+    // 그래프 바운딩 박스 계산 (world 좌표)
+    getGraphBounds() {
+      if (!this.stoneNodes || this.stoneNodes.length === 0) return null;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const s of this.stoneNodes) {
+        const w = s.isRoot ? 180 : 150;
+        const h = s.isRoot ? 180 : 150;
+        const left = s.x;
+        const top = s.y;
+        const right = left + w;
+        const bottom = top + h;
+        if (left < minX) minX = left;
+        if (top < minY) minY = top;
+        if (right > maxX) maxX = right;
+        if (bottom > maxY) maxY = bottom;
+      }
+      return { minX, minY, maxX, maxY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) };
+    },
+    // 미니맵 상태 계산 (스케일/오프셋/뷰포트)
+    getMinimapState() {
+      const bounds = this.getGraphBounds();
+      if (!bounds) return null;
+      const mmW = this.minimapWidth;
+      const mmH = this.minimapHeight;
+      const scale = Math.min(mmW / bounds.width, mmH / bounds.height);
+      const offsetX = (mmW - bounds.width * scale) / 2;
+      const offsetY = (mmH - bounds.height * scale) / 2;
+      // 현재 화면(스크린) 영역을 world로 환산
+      const canvasElement = this.$refs.milestoneCanvas;
+      if (!canvasElement) return null;
+      const rect = canvasElement.getBoundingClientRect();
+      const worldWidth = (rect.width || this.canvasWidth) / (this.scale || 1);
+      const worldHeight = (rect.height || this.canvasHeight) / (this.scale || 1);
+      const worldLeft = - (this.translate?.x || 0);
+      const worldTop = - (this.translate?.y || 0);
+      return {
+        minX: bounds.minX,
+        minY: bounds.minY,
+        width: bounds.width,
+        height: bounds.height,
+        scale,
+        offsetX,
+        offsetY,
+        worldLeft,
+        worldTop,
+        worldWidth,
+        worldHeight
+      };
+    },
+    // 미니맵 클릭: 클릭 지점을 중심으로 이동 (전체보기에서만 동작)
+    onMinimapClick(event) {
+      if (this.viewMode !== 'all') return;
+      const mm = this.getMinimapState();
+      if (!mm) return;
+      const svg = event.currentTarget;
+      const rect = svg.getBoundingClientRect();
+      const localX = event.clientX - rect.left;
+      const localY = event.clientY - rect.top;
+      // 미니맵 좌표 -> world 좌표
+      const worldX = mm.minX + (localX - mm.offsetX) / mm.scale;
+      const worldY = mm.minY + (localY - mm.offsetY) / mm.scale;
+      // 화면 중앙이 해당 world 좌표에 오도록 이동
+      const canvasElement = this.$refs.milestoneCanvas;
+      if (!canvasElement) return;
+      const cRect = canvasElement.getBoundingClientRect();
+      const svgCenterX = (cRect.width || this.canvasWidth) / 2;
+      const svgCenterY = (cRect.height || this.canvasHeight) / 2;
+      this.translate.x = svgCenterX - worldX;
+      this.translate.y = svgCenterY - worldY + (this.defaultCenterYOffset || 0);
+      // 뷰포트 저장 (전체보기 모드 유지 일관성)
+      this.saveViewportForCurrentMode && this.saveViewportForCurrentMode();
     },
     // 스톤 관련 메서드들
     async onStoneClick(stone, event) {
@@ -4883,6 +5009,35 @@ export default {
 
 .milestone-svg {
   cursor: inherit;
+}
+
+/* 전체보기 전용 미니맵 */
+.milestone-minimap {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 5;
+}
+.minimap-svg { display: block; }
+.minimap-bg {
+  fill: rgba(0,0,0,0.55);
+}
+.minimap-node {
+  fill: #B8C7C0;
+  rx: 1; ry: 1;
+}
+.minimap-connection {
+  stroke: #D2D9D5;
+  stroke-opacity: 0.6;
+  stroke-width: 1.2;
+}
+.minimap-viewport {
+  fill: rgba(255, 221, 68, 0.08);
+  stroke: #FFDD44;
+  stroke-width: 1.5;
 }
 
 /* SVG 스톤 그룹 */
