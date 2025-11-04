@@ -1,19 +1,18 @@
 <script setup>
-import { onMounted, onBeforeUnmount, defineEmits, defineProps, watch, ref } from "vue";
+import { onMounted, onBeforeUnmount, watch, ref } from "vue";
 
 const props = defineProps({
   events: { type: Array, default: () => [] },
   viewType: { type: String, default: "dayGridMonth" },
   initialDate: { type: [String, Date], default: undefined },
 });
-const emit = defineEmits(["openStoneModal"]);
 
-// 캘린더 DOM & 인스턴스
+const emit = defineEmits(["event-click"]);
+
 const calEl = ref(null);
 let calendar = null;
 
 onMounted(() => {
-  // CDN 전역 객체 방어
   const FC = window.FullCalendar;
   if (!FC || !FC.Calendar) {
     console.error("[CalendarBase] FullCalendar global not found. (CDN 로드 확인)");
@@ -21,24 +20,17 @@ onMounted(() => {
   }
 
   calendar = new FC.Calendar(calEl.value, {
-    // 외부에서 넘긴 뷰/날짜 반영
     initialView: props.viewType || "dayGridMonth",
     ...(props.initialDate ? { initialDate: props.initialDate } : {}),
-
-    // 이벤트 소스
     events: props.events ?? [],
     displayEventTime: false,
 
-    // 클릭 → 모달 오픈 이벤트 전달
-    // eventClick: (info) => {
-    //   emit("openStoneModal", {
-    //     id: info.event.id,
-    //     type: info.event.extendedProps?.type, // STONE / TASK 등
-    //   });
-    // },
     eventClick: (info) => {
       const eventData = info.event.extendedProps || {};
-      emit("openStoneModal", {
+      console.log("[CalendarBase] 클릭된 이벤트:", info.event);
+
+      // 상위 컴포넌트로 데이터 전달
+      emit("event-click", {
         ...eventData,
         id: info.event.id,
         title: info.event.title,
@@ -49,7 +41,7 @@ onMounted(() => {
   calendar.render();
 });
 
-// props.events 변경 시 반영
+// props 변경 감시
 watch(
   () => props.events,
   (newEvents) => {
@@ -62,7 +54,6 @@ watch(
   { deep: true }
 );
 
-// props.viewType 변경 시 뷰 전환
 watch(
   () => props.viewType,
   (v) => {
@@ -75,7 +66,6 @@ watch(
   }
 );
 
-// props.initialDate 변경 시 해당 날짜로 이동
 watch(
   () => props.initialDate,
   (d) => {
@@ -94,12 +84,10 @@ onBeforeUnmount(() => {
     calendar = null;
   }
 });
-
 </script>
 
 <template>
-  <!-- CDN global build는 자체 스타일을 포함하므로 별도 CSS import 불필요 -->
-  <div ref="calEl" id="calendar" style="padding: 20px;"></div>
+  <div ref="calEl" id="calendar"></div>
 </template>
 
 <style scoped>

@@ -355,13 +355,8 @@
     
     <!-- 다른 탭들 -->
     <div v-else class="other-tabs" :class="{ 'documents-tab-active': activeTab === 'documents' }">
-      <div v-if="activeTab === 'dashboard'" class="dashboard-container">
-        <ProjectDashboard 
-          :project-id="$route.query.id" 
-          @change-tab="handleTabChange"
-          @view-stone="handleViewStone"
-          @view-task="handleViewTask"
-        />
+      <div v-if="activeTab === 'dashboard'" class="dashboard-placeholder">
+        <div class="dashboard-box">대시보드 임시 화면</div>
       </div>
       <p v-if="activeTab === 'gantt'" class="placeholder-text">간트차트 컨텐츠</p>
       <div v-if="activeTab === 'documents'" class="project-drive-container">
@@ -369,8 +364,8 @@
       </div>
     </div>
     
-    <!-- 확대/축소 컨트롤 (마일스톤 탭에서만 표시) -->
-    <div v-if="activeTab === 'milestone'" class="zoom-controls">
+    <!-- 확대/축소 컨트롤 (ProjectList에 직접 추가) -->
+    <div class="zoom-controls">
       <button class="zoom-btn">
         <span class="zoom-icon zoom-in" @click="zoomIn" :class="{ disabled: zoomLevel >= zoomMax }">
           <img src="@/assets/icons/project/plus.svg" alt="zoom in" />
@@ -382,8 +377,8 @@
       </button>
     </div>
     
-    <!-- 모드 전환 버튼 (마일스톤 탭에서만 표시) -->
-    <div v-if="activeTab === 'milestone'" class="mode-controls">
+    <!-- 모드 전환 버튼 -->
+    <div class="mode-controls">
       <button 
         class="mode-btn" 
         :class="{ active: interactionMode === 'click' }"
@@ -884,7 +879,6 @@ import axios from 'axios';
 import * as d3 from 'd3';
 import StoneDetailModal from '@Project/StoneDetailModal.vue';
 import DriveMain from '@/views/Drive/DriveMain.vue';
-import ProjectDashboard from '@/views/Project/ProjectDashboard.vue';
 import { searchWorkspaceParticipants, getStoneDetail } from '@/services/stoneService.js';
 import pinIcon from '@/assets/icons/project/pin.svg';
 import pinOutlineIcon from '@/assets/icons/project/pin-outline.svg';
@@ -893,8 +887,7 @@ export default {
   name: 'ProjectList',
   components: {
     StoneDetailModal,
-    DriveMain,
-    ProjectDashboard
+    DriveMain
   },
   data() {
     return {
@@ -3673,21 +3666,6 @@ export default {
       } finally {
         this.closeDeleteModal();
       }
-    },
-    
-    // 대시보드 이벤트 핸들러
-    handleTabChange(tabName) {
-      this.activeTab = tabName;
-    },
-    
-    handleViewStone(stone) {
-      // 스톤 상세 보기 로직 (기존 onStoneClick과 유사하게 처리)
-      this.onStoneClick(stone);
-    },
-    
-    handleViewTask(task) {
-      // Task 상세 보기 로직 (필요시 구현)
-      console.log('Task 상세 보기:', task);
     }
   }
 };
@@ -3704,8 +3682,6 @@ export default {
   height: auto;
   overflow: hidden;
   background: #F5F5F5;
-  display: flex;
-  flex-direction: column;
 }
 
 .project-container.documents-tab-mode {
@@ -4673,12 +4649,6 @@ export default {
 .other-tabs {
   padding: 20px 50px;
   background: #F5F5F5;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-  height: 100%;
 }
 
 .other-tabs.documents-tab-active {
@@ -4688,18 +4658,6 @@ export default {
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
-}
-
-.dashboard-container {
-  width: 100%;
-  height: 100%;
-  flex: 1;
-  min-height: 0;
-  max-height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
 }
 
 .dashboard-placeholder {

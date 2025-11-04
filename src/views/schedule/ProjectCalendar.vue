@@ -1,33 +1,61 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
 import axios from "axios";
 import CalendarBase from "@/components/CalendarBase.vue";
 import StoneDetailModal from "@/views/Project/StoneDetailModal.vue";
+import { useRoute } from "vue-router";
 
-const router = useRouter();
-const workspaceId = localStorage.getItem("selectedWorkspaceId");
+const route = useRoute();
+const workspaceId = ref(
+  route.query.workspaceId || 
+  route.params.workspaceId || 
+  localStorage.getItem("selectedWorkspaceId") || ""
+);
+const showModal = ref(false);
+const selectedStoneId = ref(null);
+const projectId = ref('');
+
+
+console.log("🧭 workspaceId:", workspaceId.value);
+console.log("🧭 userId:", localStorage.getItem("id"));
 
 // ✅ 일정 배열
 const events = ref([]);
 const currentView = ref("dayGridMonth");
 const showSidebar = ref(false);
 const currentDate = ref(new Date());
-const selected = ref(null);
 
-// ✅ 모달 제어
-const showStoneModal = ref(false);
-const selectedStoneId = ref<string | null>(null);
+function openStoneModal(eventData) {
+  console.log("🖥️[ProjectCalendar] 클릭:", eventData);
+  selectedStoneId.value = eventData.stoneId || eventData.id;
+  // workspaceId.value = eventData.workspaceId;
+  // projectId.value = eventData.projectId;
+  showModal.value = true;
+}
+
+// // ✅ 모달 제어
+// const showStoneModal = ref(false);
+// // const selectedStoneId = ref<string | null>(null);
 
 // ✅ 참여 스톤 & 태스크 불러오기
 const fetchEvents = async () => {
+  const id = localStorage.getItem("id");
+
+  if (!workspaceId.value) {
+    console.error("❌ workspaceId가 없습니다. 요청 중단.");
+    return;
+  }
+
   try {
+    console.log("🔵 요청 URL:", `/workspace-service/workspace/${workspaceId.value}/my-stones`);
+
     const userId = localStorage.getItem("id");
+
     const [stoneRes, taskRes] = await Promise.all([
-      axios.get(`/workspace-service/workspace/${workspaceId}/my-stones`, {
+      axios.get(`/workspace-service/workspace/${workspaceId.value}/my-stones`, {
         headers: { "X-User-Id": userId },
       }),
-      axios.get(`/workspace-service/workspace/${workspaceId}/my-tasks`, {
+      axios.get(`/workspace-service/workspace/${workspaceId.value}/my-tasks`, {
         headers: { "X-User-Id": userId },
       }),
     ]);
@@ -85,20 +113,6 @@ function toggleVisibility(item) {
   item.visible = !item.visible;
 }
 
-// ✅ 모달 열기 (CalendarBase에서 emit)
-function handleOpenStoneModal(eventData: any) {
-  console.log("🟢 클릭된 일정:", eventData);
-  // 태스크 클릭 시 stoneId를 사용
-  const stoneId = eventData.stoneId || eventData.id;
-  if (!stoneId) return;
-
-  selectedStoneId.value = stoneId;
-  showStoneModal.value = true;
-}
-function closeStoneModal() {
-  showStoneModal.value = false;
-  selectedStoneId.value = null;
-}
 </script>
 
 <template>
@@ -125,18 +139,17 @@ function closeStoneModal() {
     <div class="calendar-container">
       <CalendarBase
         :events="events"
-        :viewType="currentView"
-        :initialDate="currentDate"
-        @openStoneModal="handleOpenStoneModal"
+        @event-click="openStoneModal"
       />
 
       <!-- ✅ 스톤 상세 모달 -->
       <StoneDetailModal
-        v-if="showStoneModal"
-        :is-visible="showStoneModal"
+        :is-visible="showModal"
+        :key="selectedStoneId"
         :stone-id="selectedStoneId"
         :workspace-id="workspaceId"
-        @close="closeStoneModal"
+        :project-id="projectId"
+        @close="showModal = false"
       />
     </div>
 
