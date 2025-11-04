@@ -92,38 +92,42 @@
     
     <!-- 일정 등록 모달 -->
     <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
-      <div class="modal">
-        <h3>일정 등록</h3>
+      <div class="modal-container">
+        <header class="modal-header">
+          <h2>일정 등록</h2>
+        </header>
 
-        <label>일정 이름</label>
-        <input v-model="form.calendarName" placeholder="일정 이름 입력" />
+        <div class="modal-body">
+          <label>일정 이름</label>
+          <input v-model="form.calendarName" placeholder="일정 이름 입력" />
 
-        <label>시작일</label>
-        <input type="datetime-local" v-model="form.startedAt" />
+          <label>시작일</label>
+          <input type="datetime-local" v-model="form.startedAt" />
 
-        <label>종료일</label>
-        <input type="datetime-local" v-model="form.endedAt" />
+          <label>종료일</label>
+          <input type="datetime-local" v-model="form.endedAt" />
 
-        <label>반복 주기</label>
-        <select v-model="form.repeatCycle">
-          <option value="NONE">없음</option>
-          <option value="DAILY">매일</option>
-          <option value="WEEKLY">매주</option>
-          <option value="MONTHLY">매월</option>
-        </select>
+          <label>반복 주기</label>
+          <select v-model="form.repeatCycle">
+            <option value="NONE">없음</option>
+            <option value="DAILY">매일</option>
+            <option value="WEEKLY">매주</option>
+            <option value="MONTHLY">매월</option>
+          </select>
 
-        <label>반복 종료일</label>
-        <input type="datetime-local" v-model="form.repeatEndAt" />
+          <label>반복 종료일</label>
+          <input type="datetime-local" v-model="form.repeatEndAt" />
 
-        <label>
-          <input type="checkbox" v-model="form.isShared" />
-          공유 여부
-        </label>
+          <label>
+            <input type="checkbox" v-model="form.isShared" />
+            공유 여부
+          </label>
+        </div>
 
-        <div class="modal-actions">
+        <footer class="modal-footer">
           <button class="cancel-btn" @click="showModal = false">취소</button>
           <button class="submit-btn" @click="createSchedule">등록</button>
-        </div>
+        </footer>
       </div>
     </div>
 
@@ -391,49 +395,106 @@ onMounted(async () => {
   z-index: 2000;
 }
 
-.modal {
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  width: 360px;
+/* ========= 일정 등록 ============ */
+/* ===== Overlay & Container ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(3px);
+}
+
+.modal-container {
+  width: 400px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: fadeIn 0.25s ease-out;
+  font-family: 'Pretendard', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Header ===== */
+.modal-header {
+  background: #fff8e1;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f2e3a5;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+/* ===== Body ===== */
+.modal-body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  animation: fadeIn 0.2s ease-in-out;
+  padding: 20px;
+}
 
-  /* ✅ FullCalendar보다 위에 오도록 */
-  z-index: 2001;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+.modal-body label {
+  font-weight: 600;
+  color: #444;
+  font-size: 14px;
 }
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-.modal input,
-.modal select {
-  padding: 6px;
+
+.modal-body input,
+.modal-body select {
   border: 1px solid #ddd;
-  border-radius: 6px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
 }
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 10px;
+
+/* ===== Footer ===== */
+.modal-footer {
+  padding: 12px 20px;
+  text-align: right;
+  background: #fafafa;
+  border-top: 1px solid #eee;
 }
-.cancel-btn {
-  background: #ddd;
+
+.cancel-btn,
+.submit-btn {
   border: none;
-  padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s;
 }
+
+.cancel-btn {
+  background: #f5f5f5;
+}
+.cancel-btn:hover {
+  background: #e8e8e8;
+}
+
+.submit-btn {
+  background: #ffcd4d;
+}
+.submit-btn:hover {
+  background: #ffd86c;
+}
+
+/* ===== Animation ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== 구독 ========== */
 .submit-btn {
   background: #ffd580;
   border: none;
