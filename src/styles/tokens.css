@@ -1,0 +1,41 @@
+:root {
+  /* Colors - Light Theme */
+  --bg: #F5F6F8;
+  --surface: #FFFFFF;
+  --surface-2: #F8F9FB;
+  
+  --brand: #FFCC33;
+  --brand-weak: #FFF4C2;
+  
+  --text-strong: #111418;
+  --text: #2C2F36;
+  --text-weak: #757B85;
+  
+  --success: #E6F6EA;
+  --success-ink: #166534;
+  --success-bg: #E6F6EA;
+  --success-text: #166534;
+  
+  --border: #E4E7EC;
+  --divider: #EEF0F3;
+  --chip: #F0F2F6;
+  --chip-bg: #F0F2F6;
+  --chip-text: #353A42;
+  
+  /* Radius */
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  
+  /* Grid/Gap */
+  --gap-xxs: 6px;
+  --gap-xs: 10px;
+  --gap-s: 12px;
+  --gap-m: 16px;
+  --gap-l: 20px;
+  --gap-xl: 24px;
+  
+  /* Shadow */
+  --soft-elev: 0 8px 24px rgba(16, 24, 40, 0.06);
+  --shadow-soft: 0 8px 24px rgba(16, 24, 40, 0.06);
+  --shadow-hover: 0 10px 28px rgba(16, 24, 40, 0.09);
+}
