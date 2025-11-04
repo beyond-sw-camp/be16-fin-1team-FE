@@ -323,9 +323,43 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
     min-width: 88px;
     padding: 0 10px;
     border-radius: 8px;
+    border: 1px solid #D1D5DB;
     cursor: pointer;
-    background: #FFE364; /* 프리뷰 버튼 노란색 */
-    color: #2A2828; /* 가독성 있는 어두운 텍스트 */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    color: #1C0F0F;
+    font-weight: 700;
+    position: absolute;
+    right: var(--badge-right);
+    bottom: var(--badge-bottom);
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* 오로라 효과 */
+.badge-unread.preview::before {
+    content: "";
+    position: absolute;
+    inset: -100%;
+    background: conic-gradient(
+        from 0deg,
+        rgba(0, 255, 255, 0.3),
+        rgba(255, 0, 255, 0.3),
+        rgba(255, 255, 0, 0.3),
+        rgba(0, 255, 255, 0.3)
+    );
+    filter: blur(20px);
+    animation: auroraFlow 6s linear infinite;
+    z-index: 0;
+}
+
+@keyframes auroraFlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 /* Vuetify v-table 기본 셀 패딩 오버라이드 (간격 축소) */

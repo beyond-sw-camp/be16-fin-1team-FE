@@ -14,11 +14,11 @@
         </div>
     </div>
     <!-- 요약 미리보기 다이얼로그 -->
-    <v-dialog v-model="isSummaryDialogOpen" max-width="520px">
+    <v-dialog v-model="isSummaryDialogOpen" max-width="360px">
         <v-card class="summary-card">
             <v-card-title class="text-h6 summary-title">요약 미리보기</v-card-title>
             <v-card-text class="summary-body" :key="summaryDialogVersion">
-                <div v-if="summaryDialogLoading" class="d-flex align-center justify-center" style="min-height:120px">
+                <div v-if="summaryDialogLoading" class="d-flex align-center justify-center" style="min-height:150px">
                     <v-progress-circular indeterminate :size="42" :width="4" color="#FFE364" />
                 </div>
                 <div v-else v-html="formatMultiline(summaryDialogText)" style="white-space: normal; line-height: 1.5;"></div>
@@ -235,9 +235,56 @@ export default {
 }
 
 /* Summary dialog styling */
-.summary-card{ --v-card-border-radius: 15px; border-radius: 15px !important; overflow: hidden; }
-.summary-title{ background: #FFE364; color: #1C0F0F; font-weight: 700; }
-.summary-body{ padding-top: 16px; }
+.summary-card{ 
+  --v-card-border-radius: 15px; 
+  border-radius: 15px !important; 
+  overflow: hidden;
+  min-height: 300px;
+}
+
+.summary-title{ 
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  color: #1C0F0F; 
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+/* 오로라 효과 */
+.summary-title::before {
+  content: "";
+  position: absolute;
+  inset: -100%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 255, 255, 0.3),
+    rgba(255, 0, 255, 0.3),
+    rgba(255, 255, 0, 0.3),
+    rgba(0, 255, 255, 0.3)
+  );
+  filter: blur(40px);
+  animation: summaryTitleAuroraFlow 8s linear infinite;
+  z-index: 0;
+}
+
+@keyframes summaryTitleAuroraFlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 타이틀 내용이 오로라 위에 보이도록 */
+.summary-title :deep(*) {
+  position: relative;
+  z-index: 1;
+}
+
+.summary-body{ 
+  padding: 20px 16px;
+  min-height: 180px;
+}
+
 .summary-actions{ padding: 12px 16px; }
 .summary-btn{ background: #FFE364 !important; color: #2A2828 !important; font-weight: 600; }
 </style>

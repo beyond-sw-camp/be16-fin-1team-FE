@@ -52,13 +52,13 @@
           </div>
         </div>
 
-        <!-- 차트 4: 여기에 차트 추가 -->
-        <div class="chart-card">
+        <!-- 차트 4: AI 차트 -->
+        <div class="chart-card ai-card">
           <div class="chart-header">
-            <h3 class="chart-title">차트 4</h3>
+            <h3 class="chart-title">AI 차트</h3>
           </div>
-          <div class="chart-body">
-            <!-- 차트 컴포넌트가 여기 들어갑니다 -->
+          <div class="chart-body ai-card-content">
+            <p class="ai-placeholder">AI 분석 데이터를 준비중입니다…</p>
           </div>
         </div>
 
@@ -82,13 +82,38 @@
           </div>
         </div>
 
-        <!-- 차트 6: 여기에 차트 추가 -->
+        <!-- 차트 6: AI 예상 완료일 -->
+        <div class="chart-card chart-wide ai-card">
+          <div class="chart-header">
+            <h3 class="chart-title">AI 예상 완료일</h3>
+          </div>
+          <div class="chart-body ai-card-content">
+            <p class="ai-placeholder">AI가 프로젝트의 예상 완료일을 계산하고 있습니다…</p>
+          </div>
+        </div>
+
+        <!-- 차트 7: 프로젝트 인사이트 -->
         <div class="chart-card chart-wide">
           <div class="chart-header">
-            <h3 class="chart-title">차트 6</h3>
+            <h3 class="chart-title">프로젝트 인사이트</h3>
           </div>
-          <div class="chart-body">
-            <!-- 차트 컴포넌트가 여기 들어갑니다 -->
+          <div class="chart-body insights-body">
+            <div class="insight-item">
+              <div class="insight-label">평균 태스크 완료 시간</div>
+              <div class="insight-value">-</div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-label">리스크 지수</div>
+              <div class="insight-value">-</div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-label">지연 task top3</div>
+              <div class="insight-value">-</div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-label">문서 개수 / 문서 용량</div>
+              <div class="insight-value">-</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1033,6 +1058,99 @@ export default {
 /* ✅ 실제 차트 캔버스가 붙는 영역 */
 .trend-chart-inner {
   min-width: 800px;
+}
+
+/* 🔮 AI 카드 오로라 효과 */
+.ai-card {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
+}
+
+/* 오로라 효과 */
+.ai-card::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 255, 255, 0.2),
+    rgba(255, 0, 255, 0.2),
+    rgba(255, 255, 0, 0.2),
+    rgba(0, 255, 255, 0.2)
+  );
+  filter: blur(80px);
+  animation: auroraFlow 8s linear infinite;
+  z-index: 0;
+}
+
+@keyframes auroraFlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* AI 카드 내용이 오로라 위에 보이도록 */
+.ai-card-content {
+  position: relative;
+  z-index: 1;
+}
+
+.ai-card .chart-header {
+  position: relative;
+  z-index: 1;
+}
+
+.ai-placeholder {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666666;
+  text-align: center;
+  margin: 0;
+}
+
+/* 인사이트 항목 스타일 */
+.insights-body {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  padding: 20px;
+  align-items: start;
+  justify-content: start;
+}
+
+.insight-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: #F9FAFB;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+  transition: all 0.2s ease;
+}
+
+.insight-item:hover {
+  background: #F3F4F6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.insight-label {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666666;
+  line-height: 1.4;
+}
+
+.insight-value {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1C0F0F;
 }
 
 /* 통계 카드 영역 */
