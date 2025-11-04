@@ -1876,9 +1876,28 @@ export default {
       }
     },
     editParticipants() {
-      console.log('참여자 수정 클릭:', this.stoneData)
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('👥 [참여자 수정] 버튼 클릭됨');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('📦 현재 stoneData:', this.stoneData);
+      console.log('📦 현재 currentStoneData:', this.currentStoneData);
+      console.log('📦 현재 loadedStoneData:', this.loadedStoneData);
+      console.log('🆔 스톤 ID:', this.currentStoneData?.stoneId || this.currentStoneData?.id);
+      console.log('📋 스톤 이름:', this.currentStoneData?.stoneName);
+      console.log('👥 현재 참여자:', this.currentStoneData?.participants);
+      console.log('📋 참여자 원본 데이터:', this.currentStoneData?.stoneParticipantDtoList);
+      console.log('🌐 workspaceId:', this.workspaceId);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
+      const stoneDataToEmit = this.stoneData || this.currentStoneData || this.loadedStoneData;
+      console.log('📤 emit할 데이터:', stoneDataToEmit);
+      console.log('📤 이벤트 이름: edit-participants');
+      
       // TODO: 참여자 수정 API 연동
-      this.$emit('edit-participants', this.stoneData)
+      this.$emit('edit-participants', stoneDataToEmit);
+      
+      console.log('✅ edit-participants 이벤트 emit 완료');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     },
     formatDateRange(startDate, endDate) {
       if (!startDate || !endDate) return '날짜 미설정'
