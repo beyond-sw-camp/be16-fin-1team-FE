@@ -2215,6 +2215,7 @@ export default {
                 documentLink: '바로가기',
                 chatCreation: false,
                 tasks: [],
+                milestone: projectDetail.projectMilestone || projectDetail.milestone || 0, // 진행률 추가
                 // 프로젝트 전용 데이터
                 projectId: stone.projectId || projectDetail.projectId || projectId,
                 projectName: projectDetail.projectName,
@@ -2265,6 +2266,7 @@ export default {
             chatCreation: stoneDetail.chatCreation,
             stoneStatus: stoneDetail.stoneStatus,
             stoneDescribe: stoneDetail.stoneDescribe, // 스톤 설명 추가
+            milestone: stoneDetail.milestone || stoneDetail.projectMilestone || 0, // 진행률 추가
             tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
               id: task.taskId || index + 1,
               name: task.taskName || '태스크',
@@ -2298,6 +2300,7 @@ export default {
           documentLink: '바로가기',
           chatCreation: false,
           tasks: [],
+          milestone: stone.milestone || 0, // 진행률 추가
           isProject: stone.isRoot || false
         };
         console.log('에러 처리 후 모달 표시 설정:', this.selectedStoneData);
@@ -2336,6 +2339,7 @@ export default {
             chatCreation: stoneDetail.chatCreation,
             stoneStatus: stoneDetail.stoneStatus,
             stoneDescribe: stoneDetail.stoneDescribe, // 스톤 설명 추가
+            milestone: stoneDetail.milestone || stoneDetail.projectMilestone || 0, // 진행률 추가
             tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
               id: task.taskId || index + 1,
               name: task.taskName || '태스크',
