@@ -343,6 +343,13 @@ export default {
       handler() { this._onMainStreamChanged(); },
       immediate: true,
     },
+    // 참여자 수 변경 시 부모에게 알림
+    participantCount: {
+      handler(newCount) {
+        this.$emit('participant-count-change', newCount);
+      },
+      immediate: true,
+    },
   },
 
   methods: {
@@ -734,6 +741,9 @@ export default {
     },
 
     async leaveSession() {
+      // 마지막 참여자인지 확인 (자기 자신만 남음)
+      const isLastParticipant = this.participantCount === 1;
+      
       try {
         // Await cleanup to avoid racing navigation/unmount with in-flight SDK ops
         await this.safeCleanup();
@@ -754,7 +764,7 @@ export default {
 
       // embedded 모드일 때는 부모 컴포넌트에 이벤트 전달, 아니면 라우팅
       if (this.embedded) {
-        this.$emit('leave');
+        this.$emit('leave', { isLastParticipant });
       } else {
         // Navigate back to main — guard routing to avoid uncaught exceptions
         try {

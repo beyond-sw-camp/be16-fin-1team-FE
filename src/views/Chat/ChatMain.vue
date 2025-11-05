@@ -6,33 +6,52 @@
                 <ChatRoomList embedded @select-room="handleSelectRoom" @preview-summary="handlePreviewSummary" :summaries-by-room-id="summariesByRoomId" :selected-room-id="selectedRoomId" />
             </div>
             <div class="chat-panel">
-                  <!-- 화상통화 모드 -->
-                  <div v-if="isVideoCallActive && selectedRoomId" :class="['video-chat-split', { 'with-chat': isChatSideOpen }]">
-                    <!-- 화상통화 카드 -->
-                    <v-container fluid :class="isChatSideOpen ? 'video-side' : ''">
-                      <v-row justify="center">
-                        <v-col cols="12" md="16" lg="16" xl="12">
-                          <v-card class="video-call-card">
-                            <div class="video-call-banner">
-                              <span class="video-call-banner-title">{{ selectedRoomTitle }} - 화상통화</span>
-                              <v-btn class="banner-btn-chat" variant="text" size="small" @click="toggleChatSide" icon>
-                                <img src="@/assets/icons/sidebar/chat.svg" alt="채팅 토글" class="chat-icon" />
-                              </v-btn>
-                            </div>
+                  <!-- 화상통화 + 채팅 통합 영역 -->
+                  <div v-if="selectedRoomId" class="content-wrapper">
+                    <!-- 화상통화 & 채팅 Split 뷰 -->
+                    <div :class="['video-chat-container', { 'split-mode': isVideoCallActive && isChatSideOpen, 'video-only': isVideoCallActive && !isChatSideOpen, 'chat-only': !isVideoCallActive }]">
+                      <!-- 화상통화 카드 -->
+                      <div v-show="isVideoCallActive" class="video-section">
+                        <v-container fluid>
+                          <v-row justify="center">
+                            <v-col cols="12" md="16" lg="16" xl="12">
+                              <v-card class="video-call-card">
+                                <div class="video-call-banner">
+                                  <v-btn class="banner-btn-back" variant="text" size="small" @click="handleBackFromVideoCall" icon>
+                                    <v-icon icon="mdi-chevron-left"></v-icon>
+                                  </v-btn>
+                                  <div class="video-call-banner-title">{{ selectedRoomTitle }} - 참여자 ({{ videoCallParticipantCount }})</div>
+                                  <v-btn v-if="!isChatSideOpen" class="banner-btn-chat" variant="text" size="small" @click="toggleChatSide" icon>
+                                    <img src="@/assets/icons/sidebar/chat.svg" alt="채팅 토글" class="chat-icon" />
+                                  </v-btn>
+                                </div>
                             <div class="video-call-body">
-                              <OpenViduCall :room-id="selectedRoomId" embedded @leave="handleLeaveVideoCall" />
+                              <OpenViduCall v-if="isVideoCallActive" :room-id="selectedRoomId" embedded @leave="handleLeaveVideoCall" @participant-count-change="handleParticipantCountChange" ref="openViduCall" />
                             </div>
-                          </v-card>
-                        </v-col>
-                      </v-row>
-                    </v-container>
-                    <!-- 채팅 사이드 패널 -->
-                    <div v-if="isChatSideOpen" class="chat-side-panel">
-                      <StompChatPage :key="selectedRoomId" embedded :room-id="selectedRoomId" :room-title="selectedRoomTitle" :participant-count="selectedRoomParticipantCount" @start-video-call="handleStartVideoCall" />
+                              </v-card>
+                            </v-col>
+                          </v-row>
+                        </v-container>
+                      </div>
+                      
+                      <!-- 채팅 패널 (항상 렌더링, v-show로 표시만 제어) -->
+                      <div v-show="!isVideoCallActive || isChatSideOpen" class="chat-section">
+                        <StompChatPage 
+                          ref="stompChatPage"
+                          :key="selectedRoomId" 
+                          embedded 
+                          :room-id="selectedRoomId" 
+                          :room-title="selectedRoomTitle" 
+                          :participant-count="selectedRoomParticipantCount" 
+                          :hide-header-buttons="isChatSideOpen"
+                          :show-close-button="isChatSideOpen"
+                          @start-video-call="handleStartVideoCall" 
+                          @close-chat="handleCloseChatPanel" 
+                        />
+                      </div>
                     </div>
                   </div>
-                  <!-- 채팅 모드 -->
-                  <StompChatPage v-else-if="selectedRoomId" :key="selectedRoomId" embedded :room-id="selectedRoomId" :room-title="selectedRoomTitle" :participant-count="selectedRoomParticipantCount" @start-video-call="handleStartVideoCall" />
+                  
                   <!-- 빈 상태 -->
                   <div v-else class="empty-state">
                     <div class="empty-icon" aria-hidden="true"></div>
@@ -85,6 +104,7 @@ export default {
             summaryDialogVersion: 0,
             isVideoCallActive: false,
             isChatSideOpen: false,
+            videoCallParticipantCount: 0,
         };
     },
     async created() {
@@ -157,13 +177,44 @@ export default {
         handleStartVideoCall() {
             this.isVideoCallActive = true;
             this.isChatSideOpen = false;
+            this.videoCallParticipantCount = 0;
         },
-        handleLeaveVideoCall() {
+        async handleLeaveVideoCall(payload) {
+            // 마지막 참여자가 나가는 경우 종료 메시지 전송
+            if (payload && payload.isLastParticipant) {
+                try {
+                    if (this.$refs.stompChatPage && typeof this.$refs.stompChatPage.sendVideoCallEndMessage === 'function') {
+                        await this.$refs.stompChatPage.sendVideoCallEndMessage();
+                    }
+                } catch (e) {
+                    console.error('sendVideoCallEndMessage failed:', e);
+                }
+            }
+            
             this.isVideoCallActive = false;
             this.isChatSideOpen = false;
+            this.videoCallParticipantCount = 0;
+        },
+        handleBackFromVideoCall() {
+            if (this.isChatSideOpen) {
+                // 채팅 패널이 열려있으면 채팅만 닫기
+                this.isChatSideOpen = false;
+            } else {
+                // 화상채팅만 떠있으면 화상채팅 종료
+                this.isVideoCallActive = false;
+                this.isChatSideOpen = false;
+                this.videoCallParticipantCount = 0;
+            }
         },
         toggleChatSide() {
             this.isChatSideOpen = !this.isChatSideOpen;
+        },
+        handleCloseChatPanel() {
+            // 채팅 사이드 패널 닫기
+            this.isChatSideOpen = false;
+        },
+        handleParticipantCountChange(count) {
+            this.videoCallParticipantCount = count;
         },
         async resubscribeSummary() {
             if (!this.summaryTopic) return;
@@ -254,37 +305,65 @@ export default {
   flex: 1 1 80%;
   overflow: auto;
 }
-.video-chat-split {
+.content-wrapper {
+  width: 100%;
+  height: 100%;
+}
+.video-chat-container {
   display: flex;
   width: 100%;
   height: 100%;
   gap: 0;
 }
-.video-chat-split.with-chat {
-  gap: 0;
+
+/* 채팅만 보이는 모드 */
+.video-chat-container.chat-only .video-section {
+  display: none;
+}
+.video-chat-container.chat-only .chat-section {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+/* 화상통화만 보이는 모드 */
+.video-chat-container.video-only {
+  padding-left: 0;
+}
+.video-chat-container.video-only .video-section {
+  width: 100%;
+}
+.video-chat-container.video-only .chat-section {
+  display: none;
+}
+
+/* 화상통화 + 채팅 동시 모드 */
+.video-chat-container.split-mode {
   padding-left: 24px;
 }
-.video-side {
+.video-chat-container.split-mode .video-section {
   flex: 0 0 65%;
+}
+.video-chat-container.split-mode .video-section .v-container {
   padding: 0 !important;
   margin: 0 !important;
 }
-.video-side .v-row {
+.video-chat-container.split-mode .video-section .v-row {
   margin: 0 !important;
   height: 100%;
 }
-.video-side .v-col {
+.video-chat-container.split-mode .video-section .v-col {
   padding: 24px 0 24px 0 !important;
   height: 100%;
 }
-.chat-side-panel {
+.video-chat-container.split-mode .chat-section {
   flex: 0 0 35%;
   overflow: auto;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
-.chat-side-panel .main-fill {
+.video-chat-container.split-mode .chat-section .main-fill {
   position: relative;
   top: 0;
   left: 0;
@@ -303,18 +382,13 @@ export default {
   height: calc(100vh - 64px - 80px);
   max-height: calc(100vh - 64px - 80px);
 }
-.video-chat-split.with-chat .video-call-card {
-  margin: 24px 0 24px 0;
-  height: calc(100vh - 64px - 80px);
-  max-height: calc(100vh - 64px - 80px);
-}
 .video-call-banner {
   height: 56px;
   background: #FFE364;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 40px 1fr 40px;
   align-items: center;
-  padding: 0 25px;
+  padding: 0 8px;
   flex-shrink: 0;
 }
 .video-call-banner-title {
@@ -322,11 +396,25 @@ export default {
   font-weight: 700;
   font-size: 18px;
   line-height: 22px;
+  text-align: center;
+}
+.banner-btn-back {
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  justify-self: start;
+}
+.banner-btn-back:focus,
+.banner-btn-back:focus-visible,
+.banner-btn-back:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 .banner-btn-chat {
   min-width: 32px;
   height: 32px;
   padding: 0;
+  justify-self: end;
 }
 .banner-btn-chat:focus,
 .banner-btn-chat:focus-visible,

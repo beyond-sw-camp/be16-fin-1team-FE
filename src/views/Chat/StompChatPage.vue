@@ -4,20 +4,23 @@
             <v-row justify="center">
                 <v-col cols="12" md="16" lg="16" xl="12">
                     <v-card class="chat-card">
-                        <div :class="['chat-banner', { 'with-user-panel': isUserPanelOpen, 'with-side-panel': (isUserPanelOpen || isDocsPanelOpen || isSearchOpen) }]"><!-- header shifts with panel -->
-                            <v-btn class="banner-btn back" variant="text" size="small" @click="refreshPage" icon>
+                        <div :class="['chat-banner', { 'with-user-panel': isUserPanelOpen, 'with-side-panel': (isUserPanelOpen || isDocsPanelOpen || isSearchOpen), 'minimal': hideHeaderButtons, 'with-close': showCloseButton }]"><!-- header shifts with panel -->
+                            <v-btn v-if="!hideHeaderButtons" class="banner-btn back" variant="text" size="small" @click="refreshPage" icon>
                                 <v-icon icon="mdi-chevron-left"></v-icon>
                             </v-btn>
                             <div class="banner-title">{{ computedTitle }}</div>
-                            <v-btn class="banner-btn video-call" variant="text" size="small" @click="startVideoCall" icon>
+                            <v-btn v-if="showCloseButton" class="banner-btn close-btn" variant="text" size="small" @click="closeChat" icon>
+                                <img src="@/assets/icons/user/close.svg" alt="close" class="menu-icon" />
+                            </v-btn>
+                            <v-btn v-if="!hideHeaderButtons && !showCloseButton" class="banner-btn video-call" variant="text" size="small" @click="startVideoCall" icon>
                                 <img src="@/assets/icons/OpenVidu/video-call-svgrepo-com.svg" alt="video call" class="menu-icon" />
                             </v-btn>
-                            <template v-if="(isUserPanelOpen || isDocsPanelOpen)">
+                            <template v-if="!hideHeaderButtons && !showCloseButton && (isUserPanelOpen || isDocsPanelOpen)">
                                 <v-btn class="banner-btn menu" variant="text" size="small" icon @click="closeUserPanel">
                                     <img src="@/assets/icons/user/close.svg" alt="close" class="menu-icon" />
                                 </v-btn>
                             </template>
-                            <template v-else>
+                            <template v-else-if="!hideHeaderButtons && !showCloseButton">
                                 <v-menu v-model="isHeaderMenuOpen" :close-on-content-click="true" offset-y>
                                     <template #activator="{ props }">
                                         <v-btn class="banner-btn menu" v-bind="props" variant="text" size="small" icon>
@@ -64,10 +67,34 @@
                                     </div>
                                     <div :class="['content', msg.senderId === senderId ? 'content-sent' : 'content-received']">
                                         <div v-if="msg.senderId !== senderId && isGroupStart(index)" class="name">{{ msg.senderName || msg.senderId }}</div>
-                                        <div v-if="(msg.message && msg.message.length) && msg.messageType !== 'FILE'" :class="['line', msg.senderId === senderId ? 'line-sent' : 'line-received']">
+                                        
+                                        <!-- VIDEO_CALL_START 타입 메시지 -->
+                                        <div v-if="msg.messageType === 'VIDEO_CALL_START'" class="line line-received">
+                                            <div class="video-call-notice">
+                                                <div class="notice-message">{{ msg.message }}</div>
+                                                <button class="join-video-btn" @click="joinVideoCall">
+                                                    <img src="@/assets/icons/OpenVidu/video-call-svgrepo-com.svg" alt="video" class="btn-icon" />
+                                                    <span>화상회의 입장</span>
+                                                </button>
+                                            </div>
+                                            <div v-if="isTimeGroupEnd(index)" class="time">{{ formatChatTime(msg.lastSendTime) }}</div>
+                                        </div>
+                                        
+                                        <!-- VIDEO_CALL_END 타입 메시지 -->
+                                        <div v-else-if="msg.messageType === 'VIDEO_CALL_END'" class="line line-received">
+                                            <div class="video-call-end-notice">
+                                                <div class="notice-message">{{ msg.message }}</div>
+                                            </div>
+                                            <div v-if="isTimeGroupEnd(index)" class="time">{{ formatChatTime(msg.lastSendTime) }}</div>
+                                        </div>
+                                        
+                                        <!-- 일반 텍스트 메시지 -->
+                                        <div v-else-if="(msg.message && msg.message.length) && msg.messageType !== 'FILE'" :class="['line', msg.senderId === senderId ? 'line-sent' : 'line-received']">
                                             <div class="bubble">{{ msg.message }}</div>
                                             <div v-if="isTimeGroupEnd(index)" class="time">{{ formatChatTime(msg.lastSendTime) }}</div>
                                         </div>
+                                        
+                                        <!-- 파일 메시지 -->
                                         <div v-if="showFiles(msg) && msg.messageType !== 'TEXT'" :class="['files', msg.senderId === senderId ? 'files-sent' : 'files-received']">
                                             <div v-for="(file, fIdx) in (msg.chatFileListDtoList || [])" :key="fIdx" class="file-item">
                                                 <template v-if="isImage(file?.fileUrl || file?.fileName)">
@@ -249,7 +276,9 @@ import axios from 'axios';
             },
             embedded: { type: Boolean, default: false },
             roomTitle: { type: String, default: '' },
-            participantCount: { type: [Number, String], default: 0 }
+            participantCount: { type: [Number, String], default: 0 },
+            hideHeaderButtons: { type: Boolean, default: false },
+            showCloseButton: { type: Boolean, default: false }
         },
         computed: {
             computedTitle() {
@@ -275,6 +304,7 @@ import axios from 'axios';
                 newMessage: "",
                 roomUnsub: null,
                 senderId: null,
+                senderName: '',
                 userDefault,
                 selectedFiles: [],
                 selectedPreviewUrls: [],
@@ -303,8 +333,9 @@ import axios from 'axios';
                 highlightIndex: -1,
             }
         },
-        created() {
+        async created() {
             this.senderId = localStorage.getItem("id");
+            await this.loadMyUserName();
         },
         watch: {
             roomId(){
@@ -626,13 +657,90 @@ import axios from 'axios';
                 this.isUserPanelOpen = false;
                 this.isDocsPanelOpen = false;
             },
-            startVideoCall() {
+            async startVideoCall() {
                 if (!this.roomId) {
                     alert('채팅방 정보를 찾을 수 없습니다.');
                     return;
                 }
+                
+                // STOMP 메시지 전송
+                const message = {
+                    roomId: this.roomId,
+                    senderId: this.senderId,
+                    senderName: this.senderName,
+                    message: `${this.senderName} 님이 화상회의를 시작하였습니다.`,
+                    lastSendTime: this.getNowLocalDateTime(),
+                    messageType: 'VIDEO_CALL_START',
+                    chatFileListDtoList: [],
+                };
+                
+                try {
+                    await stompManager.send(`/publish/${this.roomId}`, JSON.stringify(message));
+                    console.log('[VIDEO_CALL_START] message sent:', message);
+                } catch (e) {
+                    console.error('[VIDEO_CALL_START] send failed:', e);
+                }
+                
                 // 부모 컴포넌트에 화상통화 시작 이벤트 전달
                 this.$emit('start-video-call');
+            },
+            closeChat() {
+                // 부모 컴포넌트에 채팅 닫기 이벤트 전달
+                this.$emit('close-chat');
+            },
+            joinVideoCall() {
+                // 화상회의 입장 (화상통화 시작과 동일)
+                this.$emit('start-video-call');
+            },
+            async sendVideoCallEndMessage() {
+                if (!this.roomId) return;
+                
+                // STOMP 메시지 전송
+                const message = {
+                    roomId: this.roomId,
+                    senderId: this.senderId,
+                    senderName: this.senderName,
+                    message: '화상회의가 종료되었습니다.',
+                    lastSendTime: this.getNowLocalDateTime(),
+                    messageType: 'VIDEO_CALL_END',
+                    chatFileListDtoList: [],
+                };
+                
+                try {
+                    await stompManager.send(`/publish/${this.roomId}`, JSON.stringify(message));
+                    console.log('[VIDEO_CALL_END] message sent:', message);
+                } catch (e) {
+                    console.error('[VIDEO_CALL_END] send failed:', e);
+                }
+            },
+            async loadMyUserName() {
+                try {
+                    const id = localStorage.getItem('id');
+                    if (!id) {
+                        this.senderName = '사용자';
+                        return;
+                    }
+                    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                    const { data } = await axios.get(`${baseURL}/user-service/user/${id}`);
+                    const user = data?.result;
+                    if (user && user.name) {
+                        this.senderName = user.name;
+                        // localStorage에도 저장
+                        localStorage.setItem('name', user.name);
+                    } else {
+                        // 폴백
+                        this.senderName = localStorage.getItem("name") 
+                            || localStorage.getItem("userName") 
+                            || localStorage.getItem("email") 
+                            || '사용자';
+                    }
+                } catch (e) {
+                    console.warn('loadMyUserName 실패:', e);
+                    this.senderName = localStorage.getItem("name") 
+                        || localStorage.getItem("userName") 
+                        || localStorage.getItem("email") 
+                        || '사용자';
+                }
             },
             async fetchParticipants(){
                 try {
@@ -754,6 +862,8 @@ import axios from 'axios';
 }
 .chat-card{ --v-card-border-radius: 15px; border-radius: 15px !important; overflow: hidden; margin: 24px 0; border: 1px solid #E5E5E5; --chat-accent: #FFE364; --banner-height: 56px; }
 .chat-banner{ height: var(--banner-height); background: var(--chat-accent); display: grid; grid-template-columns: 40px 1fr 40px 40px; align-items: center; position: sticky; top: 0; z-index: 2; }
+.chat-banner.minimal{ grid-template-columns: 1fr; justify-items: center; }
+.chat-banner.with-close{ grid-template-columns: 1fr auto; }
 .search-banner{ grid-template-columns: 40px 1fr 40px; }
 .chat-banner.with-user-panel, .chat-banner.with-side-panel{ margin-right: 280px; transition: margin-right 200ms ease; }
 .banner-title{ color: #1C0F0F; font-weight: 700; font-size: 18px; line-height: 22px; text-align: center; }
@@ -761,6 +871,7 @@ import axios from 'axios';
 .banner-btn.back{ justify-self: start; }
 .banner-btn.video-call{ justify-self: end; }
 .banner-btn.menu{ justify-self: end; }
+.banner-btn.close-btn{ justify-self: end; }
 .menu-icon{ width: 24px; height: 24px; display: block; }
 
 /* 헤더 좌우 버튼 포커스 테두리 제거 */
@@ -813,6 +924,64 @@ import axios from 'axios';
 .chat-row .line-sent .time{ margin-right: 0; }
 .chat-row .line-received .time{ margin-left: 0; }
 .content-sent{ align-items: flex-end; }
+
+/* VIDEO_CALL_START 메시지 스타일 */
+.video-call-notice {
+  background: #E3F2FD;
+  border: 1px solid #90CAF9;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+.notice-message {
+  font-size: 14px;
+  color: #1976D2;
+  font-weight: 600;
+}
+.join-video-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #1976D2;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.join-video-btn:hover {
+  background: #1565C0;
+}
+.join-video-btn:focus {
+  outline: none;
+}
+.join-video-btn .btn-icon {
+  width: 18px;
+  height: 18px;
+  filter: invert(100%) brightness(2);
+}
+
+/* VIDEO_CALL_END 메시지 스타일 */
+.video-call-end-notice {
+  background: #FAFAFA;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.video-call-end-notice .notice-message {
+  font-size: 14px;
+  color: #757575;
+  font-weight: 600;
+}
 
 /* Date separator */
 .date-sep{ display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin: 12px 0; }
