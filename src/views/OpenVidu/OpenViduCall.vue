@@ -37,7 +37,7 @@
             </div>
 
             <div class="control-btn" @click="toggleScreenShare">
-              <img :src="screenShareIcon" class="control-icon" />
+              <img :src="isScreenShareEnabled ? screenShareIconOff : screenShareIconOn" class="control-icon" />
             </div>
 
             <div class="control-btn" @click="leaveSession">
@@ -94,6 +94,7 @@ import micOffFill from '@/assets/icons/OpenVidu/mic-off-fill.svg';
 import vidOnFill from '@/assets/icons/OpenVidu/video-on-fill.svg';
 import vidOffFill from '@/assets/icons/OpenVidu/video-off-fill.svg';
 import shareScreenFill from '@/assets/icons/OpenVidu/share-box-fill.svg';
+import shareScreenOff from '@/assets/icons/OpenVidu/share-box-off.svg';
 import shutDownLine from '@/assets/icons/OpenVidu/shut-down-line.svg';
 import fullScreeenIn from '@/assets/icons/OpenVidu/fullscreen-line.svg';
 import fullScreeenOut from '@/assets/icons/OpenVidu/fullscreen-exit-line.svg';
@@ -179,8 +180,9 @@ export default {
       videoIconOn: vidOnFill, // 비디오 켜짐 아이콘
       videoIconOff: vidOffFill, // 비디오 꺼짐 아이콘
 
-      // 화면 공유 아이콘(단일 아이콘으로 토글)
-      screenShareIcon: shareScreenFill,
+      // 화면 공유 아이콘
+      screenShareIconOn: shareScreenFill, // 화면 공유 시작
+      screenShareIconOff: shareScreenOff, // 화면 공유 중지
 
       fullScreenIconIn: fullScreeenIn, // 전체화면 진입 아이콘
       fullScreenIconOut: fullScreeenOut, // 전체화면 종료 아이콘
