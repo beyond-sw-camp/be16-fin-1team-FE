@@ -343,7 +343,7 @@
             <!-- 문서함 컨테이너 -->
             <div class="stone-drive-wrapper">
               <div class="stone-drive-container">
-                <DriveMain v-if="currentStoneData?.stoneId || currentStoneData?.id" :stone-id="currentStoneData?.stoneId || currentStoneData?.id" />
+                <DriveMain v-if="currentStoneData?.stoneId || currentStoneData?.id" :stone-id="currentStoneData?.stoneId || currentStoneData?.id" :disable-routing="true" />
               </div>
             </div>
           </div>

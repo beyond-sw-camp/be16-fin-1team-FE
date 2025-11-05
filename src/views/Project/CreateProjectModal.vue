@@ -88,6 +88,7 @@
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { showSnackbar } from '@/services/snackbar.js';
 
 export default {
   name: 'CreateProjectModal',
@@ -273,12 +274,41 @@ export default {
             });
           });
         } else {
-          alert('프로젝트 생성에 실패했습니다.');
+          const errorMessage = response.data.statusMessage || '프로젝트 생성에 실패했습니다.';
+          showSnackbar(errorMessage, { color: 'error' });
+          this.closeModal();
         }
       } catch (error) {
         console.error('프로젝트 생성 실패:', error);
-        const errorMessage = error.response?.data?.statusMessage || '프로젝트 생성에 실패했습니다.';
-        alert(errorMessage);
+        let errorMessage = '프로젝트 생성에 실패했습니다.';
+        
+        if (error.response) {
+          const statusCode = error.response.status;
+          errorMessage = error.response.data?.statusMessage || error.message || errorMessage;
+          
+          // 권한 관련 에러인지 확인 (400 에러이거나 메시지에 '권한'이 포함된 경우)
+          const isPermissionError = statusCode === 400 || 
+                                    errorMessage.includes('권한') || 
+                                    errorMessage.includes('접근');
+          
+          if (isPermissionError) {
+            // 권한 에러인 경우 스낵바로 메시지 표시하고 모달 닫기
+            showSnackbar(errorMessage, { color: 'error' });
+            this.closeModal();
+          } else {
+            // 기타 서버 에러
+            showSnackbar(errorMessage, { color: 'error' });
+            this.closeModal();
+          }
+        } else if (error.request) {
+          errorMessage = '서버에 연결할 수 없습니다. 네트워크를 확인해주세요.';
+          showSnackbar(errorMessage, { color: 'error' });
+          this.closeModal();
+        } else {
+          errorMessage = error.message || errorMessage;
+          showSnackbar(errorMessage, { color: 'error' });
+          this.closeModal();
+        }
       } finally {
         this.isLoading = false;
       }

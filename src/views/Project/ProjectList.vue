@@ -2187,6 +2187,10 @@ export default {
       }
       console.log('스톤 클릭:', stone);
       
+      // 모달을 먼저 닫고 데이터 초기화 (이전 상태 클리어)
+      this.showStoneDetailModal = false;
+      this.selectedStoneData = null;
+      
       try {
         this.isLoadingStoneDetail = true;
         
@@ -2241,12 +2245,26 @@ export default {
               return;
             } else {
               console.error('프로젝트 상세 조회 실패:', response.data.statusMessage);
-              alert('프로젝트 정보를 불러오는데 실패했습니다.');
+              const errorMessage = response.data.statusMessage || '프로젝트 정보를 불러오는데 실패했습니다.';
+              this.showStoneDetailModal = false;
+              this.selectedStoneData = null;
+              showSnackbar(errorMessage, { color: 'error' });
               return;
             }
           } catch (projectError) {
             console.error('프로젝트 상세 조회 API 호출 실패:', projectError);
-            alert('프로젝트 정보를 불러오는데 실패했습니다.');
+            const errorMessage = projectError.response?.data?.statusMessage || 
+                                projectError.message || 
+                                '프로젝트 정보를 불러오는데 실패했습니다.';
+            
+            // 권한 관련 에러인지 확인
+            const isPermissionError = projectError.response?.status === 400 || 
+                                     errorMessage.includes('권한') || 
+                                     errorMessage.includes('접근');
+            
+            this.showStoneDetailModal = false;
+            this.selectedStoneData = null;
+            showSnackbar(errorMessage, { color: 'error' });
             return;
           }
         }
@@ -2290,30 +2308,33 @@ export default {
           console.log('showStoneDetailModal 상태:', this.showStoneDetailModal);
         } else {
           console.error('스톤 상세 조회 실패:', response.statusMessage);
-          alert(response.statusMessage || '스톤 정보를 불러오는데 실패했습니다.');
+          const errorMessage = response.statusMessage || '스톤 정보를 불러오는데 실패했습니다.';
+          
+          // 모달을 닫고 데이터 초기화
+          this.showStoneDetailModal = false;
+          this.selectedStoneData = null;
+          showSnackbar(errorMessage, { color: 'error' });
         }
       } catch (error) {
         console.error('스톤 상세 조회 API 호출 실패:', error);
         const errorMessage = error.message || '스톤 정보를 불러오는데 실패했습니다.';
-        alert(errorMessage);
         
-        // 에러 발생 시 기본 데이터로 모달 표시
-        this.selectedStoneData = {
-          stoneId: stone.id,
-          stoneName: stone.name,
-          startTime: stone.startTime || '2025-09-12',
-          endTime: stone.endTime || '2025-09-17',
-          manager: '김올빗',
-          participants: '비어 있음',
-          documentLink: '바로가기',
-          chatCreation: false,
-          tasks: [],
-          milestone: stone.milestone || 0, // 진행률 추가
-          isProject: stone.isRoot || false
-        };
-        console.log('에러 처리 후 모달 표시 설정:', this.selectedStoneData);
-        this.showStoneDetailModal = true;
-        console.log('showStoneDetailModal 상태:', this.showStoneDetailModal);
+        // 권한 관련 에러인지 확인 (400 에러이거나 메시지에 '권한'이 포함된 경우)
+        const isPermissionError = error.response?.status === 400 || 
+                                  errorMessage.includes('권한') || 
+                                  errorMessage.includes('접근');
+        
+        // 모든 에러에서 모달을 닫고 데이터 초기화
+        this.showStoneDetailModal = false;
+        this.selectedStoneData = null;
+        
+        if (isPermissionError) {
+          // 권한 에러인 경우 스낵바로 메시지 표시
+          showSnackbar(errorMessage, { color: 'error' });
+        } else {
+          // 기타 에러인 경우 스낵바로 메시지 표시
+          showSnackbar(errorMessage, { color: 'error' });
+        }
       } finally {
         this.isLoadingStoneDetail = false;
       }
@@ -2368,9 +2389,25 @@ export default {
           });
         } else {
           console.error('스톤 상세 조회 실패:', response.statusMessage);
+          showSnackbar(response.statusMessage || '스톤 정보를 불러오는데 실패했습니다.', { color: 'error' });
         }
       } catch (error) {
         console.error('스톤 상세 조회 API 호출 실패:', error);
+        const errorMessage = error.message || '스톤 정보를 불러오는데 실패했습니다.';
+        
+        // 권한 관련 에러인지 확인 (400 에러이거나 메시지에 '권한'이 포함된 경우)
+        const isPermissionError = error.response?.status === 400 || 
+                                  errorMessage.includes('권한') || 
+                                  errorMessage.includes('접근');
+        
+        if (isPermissionError) {
+          // 권한 에러인 경우 스낵바로 메시지 표시하고 모달 닫기
+          showSnackbar(errorMessage, { color: 'error' });
+          this.showStoneDetailModal = false;
+        } else {
+          // 기타 에러인 경우 스낵바로 메시지 표시
+          showSnackbar(errorMessage, { color: 'error' });
+        }
       } finally {
         this.isLoadingStoneDetail = false;
       }
@@ -3454,20 +3491,44 @@ export default {
         );
         
         if (response.data.statusCode === 201) {
-          alert('스톤이 성공적으로 생성되었습니다.');
+          showSnackbar('스톤이 성공적으로 생성되었습니다.', { color: 'success' });
           this.closeCreateStoneModal();
           // 스톤 목록 새로고침
           await this.loadStones(projectId);
         } else {
-          alert(`스톤 생성에 실패했습니다. (${response.data.statusCode}: ${response.data.statusMessage})`);
+          const errorMessage = response.data.statusMessage || `스톤 생성에 실패했습니다. (${response.data.statusCode})`;
+          showSnackbar(errorMessage, { color: 'error' });
+          this.closeCreateStoneModal();
         }
       } catch (error) {
+        let errorMessage = '스톤 생성에 실패했습니다.';
+        
         if (error.response) {
-          alert(`서버 오류: ${error.response.status} - ${error.response.data?.statusMessage || error.message}`);
+          const statusCode = error.response.status;
+          errorMessage = error.response.data?.statusMessage || error.message || errorMessage;
+          
+          // 권한 관련 에러인지 확인 (400 에러이거나 메시지에 '권한'이 포함된 경우)
+          const isPermissionError = statusCode === 400 || 
+                                    errorMessage.includes('권한') || 
+                                    errorMessage.includes('접근');
+          
+          if (isPermissionError) {
+            // 권한 에러인 경우 스낵바로 메시지 표시하고 모달 닫기
+            showSnackbar(errorMessage, { color: 'error' });
+            this.closeCreateStoneModal();
+          } else {
+            // 기타 서버 에러
+            showSnackbar(errorMessage, { color: 'error' });
+            this.closeCreateStoneModal();
+          }
         } else if (error.request) {
-          alert('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
+          errorMessage = '서버에 연결할 수 없습니다. 네트워크를 확인해주세요.';
+          showSnackbar(errorMessage, { color: 'error' });
+          this.closeCreateStoneModal();
         } else {
-          alert(`요청 오류: ${error.message}`);
+          errorMessage = error.message || errorMessage;
+          showSnackbar(errorMessage, { color: 'error' });
+          this.closeCreateStoneModal();
         }
       }
     },
