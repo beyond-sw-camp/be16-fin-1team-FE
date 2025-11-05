@@ -660,6 +660,9 @@ export default {
         return;
       }
 
+      // 하이라이트할 파일 ID를 query parameter로 전달
+      const query = result.id ? { highlightItemId: result.id } : {};
+
       // parentId가 null이면 루트 경로의 문서함으로 이동
       if (!result.parentId) {
         this.$router.push({
@@ -667,7 +670,8 @@ export default {
           params: {
             rootType: result.rootType,
             rootId: result.rootId
-          }
+          },
+          query
         });
       } else {
         // parentId가 있으면 해당 폴더로 이동
@@ -677,7 +681,8 @@ export default {
             rootType: result.rootType,
             rootId: result.rootId,
             folderId: result.parentId
-          }
+          },
+          query
         });
       }
     },

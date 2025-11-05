@@ -125,48 +125,40 @@
                   :class="{ 'filter-menu-item-active': typeFilter === 'all' }"
                   class="filter-menu-item"
                 >
-                  <v-list-item-icon class="mr-3">
-                    <v-icon small>mdi-filter-variant</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title>전체</v-list-item-title>
-                  </v-list-item-content>
+                  <template #prepend>
+                    <v-icon small class="mr-3">mdi-filter-variant</v-icon>
+                  </template>
+                  전체
                 </v-list-item>
                 <v-list-item
                   @click="typeFilter = 'folder'"
                   :class="{ 'filter-menu-item-active': typeFilter === 'folder' }"
                   class="filter-menu-item"
                 >
-                  <v-list-item-icon class="mr-3">
-                    <v-icon small>mdi-folder</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title>폴더</v-list-item-title>
-                  </v-list-item-content>
+                  <template #prepend>
+                    <v-icon small class="mr-3">mdi-folder</v-icon>
+                  </template>
+                  폴더
                 </v-list-item>
                 <v-list-item
                   @click="typeFilter = 'document'"
                   :class="{ 'filter-menu-item-active': typeFilter === 'document' }"
                   class="filter-menu-item"
                 >
-                  <v-list-item-icon class="mr-3">
-                    <v-icon small>mdi-file-document</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title>문서</v-list-item-title>
-                  </v-list-item-content>
+                  <template #prepend>
+                    <v-icon small class="mr-3">mdi-file-document</v-icon>
+                  </template>
+                  문서
                 </v-list-item>
                 <v-list-item
                   @click="typeFilter = 'file'"
                   :class="{ 'filter-menu-item-active': typeFilter === 'file' }"
                   class="filter-menu-item"
                 >
-                  <v-list-item-icon class="mr-3">
-                    <v-icon small>mdi-file</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-content>
-                    <v-list-item-title>파일</v-list-item-title>
-                  </v-list-item-content>
+                  <template #prepend>
+                    <v-icon small class="mr-3">mdi-file</v-icon>
+                  </template>
+                  파일
                 </v-list-item>
               </v-list>
             </v-menu>
@@ -254,6 +246,7 @@
                 :hide-default-footer="true"
                 fixed-header
                 :height="tableHeight"
+                :row-class="getRowClass"
               >
             <template v-slot:header.name>
               <div class="d-flex align-center clickable-header" @click="handleSort('name')">
@@ -286,7 +279,10 @@
             <template v-slot:item.name="{ item }">
               <div 
                 class="d-flex align-center py-2 clickable-row" 
-                :class="{ 'drag-over': dragOverItem && dragOverItem.id === item.id }"
+                :class="{ 
+                  'drag-over': dragOverItem && dragOverItem.id === item.id,
+                  'highlighted-item': highlightItemId && (item.id === highlightItemId || item.documentId === highlightItemId || item.fileId === highlightItemId)
+                }"
                 :draggable="item.type !== 'PROJECT' && item.type !== 'STONE'"
                 @click="handleItemClick(item)"
                 @dragstart="onDragStart($event, item)"
@@ -549,51 +545,37 @@
         </v-card-text>
         <v-card-text class="pa-4" v-else-if="itemInfo">
           <v-list dense>
-            <v-list-item v-if="itemInfo.name">
-              <v-list-item-content>
-                <v-list-item-title class="info-label">이름</v-list-item-title>
-                <v-list-item-subtitle class="info-value">{{ itemInfo.name }}</v-list-item-subtitle>
-              </v-list-item-content>
-            </v-list-item>
+            <v-list-item v-if="itemInfo.name" :title="'이름'" :subtitle="itemInfo.name" />
             
-            <v-list-item v-if="itemInfo.folderName || itemInfo.parentFolderName">
-              <v-list-item-content>
-                <v-list-item-title class="info-label">
-                  {{ infoItem?.type === 'folder' ? '상위 폴더' : '폴더' }}
-                </v-list-item-title>
-                <v-list-item-subtitle class="info-value">
-                  {{ itemInfo.folderName || itemInfo.parentFolderName || '루트' }}
-                </v-list-item-subtitle>
-              </v-list-item-content>
-            </v-list-item>
+            <v-list-item 
+              v-if="itemInfo.folderName || itemInfo.parentFolderName"
+              :title="infoItem?.type === 'folder' ? '상위 폴더' : '폴더'"
+              :subtitle="itemInfo.folderName || itemInfo.parentFolderName || '루트'"
+            />
             
-            <v-list-item v-if="itemInfo.fileSize">
-              <v-list-item-content>
-                <v-list-item-title class="info-label">크기</v-list-item-title>
-                <v-list-item-subtitle class="info-value">{{ formatFileSize(itemInfo.fileSize) }}</v-list-item-subtitle>
-              </v-list-item-content>
-            </v-list-item>
+            <v-list-item 
+              v-if="itemInfo.fileSize"
+              title="크기"
+              :subtitle="formatFileSize(itemInfo.fileSize)"
+            />
             
-            <v-list-item v-if="itemInfo.creatorName">
-              <v-list-item-content>
-                <v-list-item-title class="info-label">생성자</v-list-item-title>
-                <v-list-item-subtitle class="info-value">{{ itemInfo.creatorName }}</v-list-item-subtitle>
-              </v-list-item-content>
-            </v-list-item>
+            <v-list-item 
+              v-if="itemInfo.creatorName"
+              title="생성자"
+              :subtitle="itemInfo.creatorName"
+            />
             
-            <v-list-item v-if="itemInfo.createdAt">
-              <v-list-item-content>
-                <v-list-item-title class="info-label">생성일</v-list-item-title>
-                <v-list-item-subtitle class="info-value">{{ formatDateTime(itemInfo.createdAt) }}</v-list-item-subtitle>
-              </v-list-item-content>
-            </v-list-item>
+            <v-list-item 
+              v-if="itemInfo.createdAt"
+              title="생성일"
+              :subtitle="formatDateTime(itemInfo.createdAt)"
+            />
             
-            <v-list-item v-if="itemInfo.updatedAt">
-              <v-list-item-content>
-                <v-list-item-title class="info-label">수정일</v-list-item-title>
-                <v-list-item-subtitle class="info-value">{{ formatDateTime(itemInfo.updatedAt) }}</v-list-item-subtitle>
-              </v-list-item-content>
-            </v-list-item>
+            <v-list-item 
+              v-if="itemInfo.updatedAt"
+              title="수정일"
+              :subtitle="formatDateTime(itemInfo.updatedAt)"
+            />
           </v-list>
         </v-card-text>
         <v-divider></v-divider>
@@ -718,6 +700,29 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn text @click="uploadDialog = false" :disabled="isUploading">닫기</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 중복 파일 확인 다이얼로그 -->
+    <v-dialog v-model="duplicateConfirmDialog" max-width="500" persistent>
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <v-icon color="warning" class="mr-2">mdi-alert</v-icon>
+          <span>중복 파일 발견</span>
+        </v-card-title>
+        <v-card-text>
+          <div class="mb-3">
+            <strong>"{{ duplicateFileName }}"</strong> 파일이 이미 폴더에 존재합니다.
+          </div>
+          <div class="text-body-2 grey--text">
+            이 파일을 건너뛰고 나머지 파일 업로드를 계속하시겠습니까?
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn text @click="cancelUpload">업로드 취소</v-btn>
+          <v-btn color="primary" depressed @click="skipAndContinue">건너뛰고 계속</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -846,6 +851,16 @@ export default {
       isResizing: false,
       resizeStartX: 0,
       resizeStartWidth: 0,
+
+      // 하이라이트할 아이템 ID (검색 결과에서 문서함 이동 시)
+      highlightItemId: null,
+
+      // 중복 파일 확인 다이얼로그
+      duplicateConfirmDialog: false,
+      duplicateFileName: '',
+      duplicateFileIndex: -1,
+      uploadCancelled: false,
+
     };
   },
 
@@ -1021,31 +1036,41 @@ export default {
   mounted() {
     console.log('[DriveMain] mounted. projectId:', this.projectId, 'stoneId:', this.stoneId);
     
-    // stoneId prop이 있으면 스톤 문서함 초기화
-    if (this.stoneId) {
-      this.initializeDrive(null, 'STONE', String(this.stoneId));
-    } else if (this.projectId) {
-      // projectId prop이 있으면 프로젝트 문서함 초기화
-      this.initializeDrive(null, 'PROJECT', this.projectId);
-    } else {
-      // 일반 모드: route 기반 초기화
-    console.log('[DriveMain] mounted. rootType/rootId:', this.$route.params?.rootType, this.$route.params?.rootId);
-    const { rootType, rootId, folderId } = this.$route.params;
+    // 하이라이트할 아이템 ID 확인 (query parameter)
+    this.highlightItemId = this.$route.query.highlightItemId || null;
+    console.log('[DriveMain] mounted - highlightItemId 설정:', this.highlightItemId, 'query:', this.$route.query);
     
-    if (rootType && rootId && folderId) {
-      // rootType/rootId/folder/folderId 형태로 접근한 경우 (폴더 내부)
-      this.initializeDrive(folderId, rootType, rootId);
-    } else if (rootType && rootId) {
-      // rootType/rootId 형태로 접근한 경우 (루트)
-      this.initializeDrive(null, rootType, rootId);
-    } else if (folderId) {
-      // 기존 folderId 형태로 접근한 경우 (deprecated)
-      this.initializeDrive(folderId);
-    } else {
-      // 기본 드라이브
-      this.initializeDrive(null, 'WORKSPACE', localStorage.getItem('selectedWorkspaceId'));
-      }
-    }
+    // 컴포넌트가 완전히 렌더링된 후에 초기화 (페이지 새로고침 시 스크롤이 작동하도록)
+    this.$nextTick(() => {
+      this.$nextTick(() => {
+        console.log('[DriveMain] mounted - $nextTick 완료, initializeDrive 호출 시작');
+        // stoneId prop이 있으면 스톤 문서함 초기화
+        if (this.stoneId) {
+          this.initializeDrive(null, 'STONE', String(this.stoneId));
+        } else if (this.projectId) {
+          // projectId prop이 있으면 프로젝트 문서함 초기화
+          this.initializeDrive(null, 'PROJECT', this.projectId);
+        } else {
+          // 일반 모드: route 기반 초기화
+          console.log('[DriveMain] mounted. rootType/rootId:', this.$route.params?.rootType, this.$route.params?.rootId);
+          const { rootType, rootId, folderId } = this.$route.params;
+          
+          if (rootType && rootId && folderId) {
+            // rootType/rootId/folder/folderId 형태로 접근한 경우 (폴더 내부)
+            this.initializeDrive(folderId, rootType, rootId);
+          } else if (rootType && rootId) {
+            // rootType/rootId 형태로 접근한 경우 (루트)
+            this.initializeDrive(null, rootType, rootId);
+          } else if (folderId) {
+            // 기존 folderId 형태로 접근한 경우 (deprecated)
+            this.initializeDrive(folderId);
+          } else {
+            // 기본 드라이브
+            this.initializeDrive(null, 'WORKSPACE', localStorage.getItem('selectedWorkspaceId'));
+          }
+        }
+      });
+    });
     
     // 테이블 높이 계산
     this.updateTableHeight();
@@ -1087,6 +1112,19 @@ export default {
         } else if (folderId) {
           // deprecated
           this.loadFolderContents(folderId);
+        }
+      },
+      deep: true
+    },
+    '$route.query': {
+      handler(newQuery) {
+        // 하이라이트할 아이템 ID 업데이트
+        this.highlightItemId = newQuery.highlightItemId || null;
+        // 파일이 이미 로드된 경우 하이라이트 처리
+        if (this.highlightItemId && this.items.length > 0) {
+          this.$nextTick(() => {
+            this.highlightAndScrollToItem(this.highlightItemId);
+          });
         }
       },
       deep: true
@@ -1659,6 +1697,11 @@ export default {
       // folderId가 있으면 폴더 내용 로드
       if (folderId && rootType && rootId) {
         console.log(`${rootType} 루트의 폴더 초기화:`, rootId, folderId);
+        // initializeDrive에서도 highlightItemId 확인
+        if (this.$route.query.highlightItemId) {
+          this.highlightItemId = this.$route.query.highlightItemId;
+          console.log('[DriveMain] initializeDrive - highlightItemId 설정:', this.highlightItemId);
+        }
         const key = `${rootType}:${rootId}`;
         // 같은 루트 내 폴더 이동 시 트리 재로딩을 건너뛰어 토글 상태 유지
         if (this.treeInitializedForKey !== key || !this.folderTree?.length) {
@@ -1672,6 +1715,11 @@ export default {
       // rootType과 rootId가 있으면 루트 API 사용
       if (rootType && rootId) {
         console.log(`${rootType} 루트 초기화:`, rootId);
+        // initializeDrive에서도 highlightItemId 확인
+        if (this.$route.query.highlightItemId) {
+          this.highlightItemId = this.$route.query.highlightItemId;
+          console.log('[DriveMain] initializeDrive (루트) - highlightItemId 설정:', this.highlightItemId);
+        }
         
         const key = `${rootType}:${rootId}`;
         // 트리뷰는 고정 - 로딩 표시는 트리가 없을 때만
@@ -1689,6 +1737,32 @@ export default {
             this.items = this.parseItems(response.result);
             this.currentFolderId = null;
             this.updateBreadcrumbs(null, response.result, rootType || this.currentRootType);
+            
+            // 하이라이트 스크롤 처리 (loadFolderContents와 동일한 로직)
+            if (this.highlightItemId) {
+              console.log('[DriveMain] initializeDrive (루트) - 하이라이트 스크롤 시도 시작');
+              const targetItem = this.items.find(item => 
+                item.id === this.highlightItemId || 
+                item.documentId === this.highlightItemId || 
+                item.fileId === this.highlightItemId
+              );
+              
+              if (targetItem) {
+                this.$nextTick(() => {
+                  this.$nextTick(() => {
+                    setTimeout(() => {
+                      this.highlightAndScrollToItem(this.highlightItemId);
+                    }, 100);
+                  });
+                });
+              } else {
+                this.$nextTick(() => {
+                  setTimeout(() => {
+                    this.highlightAndScrollToItem(this.highlightItemId);
+                  }, 300);
+                });
+              }
+            }
             
             // 트리뷰는 projectId/stoneId가 있으면 해당 루트부터, 없으면 워크스페이스부터
             // 같은 루트 내 이동 시 트리 재로딩을 건너뛰어 토글 상태 유지
@@ -2077,6 +2151,13 @@ export default {
     async loadFolderContents(folderId, rootType, rootId) {
       try {
         this.loading = true;
+        
+        // 라우팅 시 highlightItemId가 query에 있으면 다시 설정
+        if (this.$route.query.highlightItemId) {
+          this.highlightItemId = this.$route.query.highlightItemId;
+          console.log('[DriveMain] loadFolderContents - highlightItemId 설정:', this.highlightItemId);
+        }
+        
         let response;
         
         // rootType과 rootId 저장 (폴더 생성 시 필요)
@@ -2208,6 +2289,38 @@ export default {
           // 브레드크럼 업데이트
           if (folderId || items.length > 0) {
             this.updateBreadcrumbs(folderId, items, rootType || this.currentRootType);
+          }
+          
+          // 하이라이트할 아이템이 있으면 하이라이트 및 스크롤 처리
+          // items가 업데이트되고 DOM이 완전히 렌더링될 때까지 여러 번의 nextTick과 딜레이 사용
+          console.log('[DriveMain] loadFolderContents 완료 - highlightItemId 체크:', this.highlightItemId, 'items 개수:', this.items.length);
+          if (this.highlightItemId) {
+            console.log('[DriveMain] 하이라이트 스크롤 시도 시작 - highlightItemId:', this.highlightItemId);
+            // items에 하이라이트할 항목이 있는지 먼저 확인
+            const targetItem = this.items.find(item => 
+              item.id === this.highlightItemId || 
+              item.documentId === this.highlightItemId || 
+              item.fileId === this.highlightItemId
+            );
+            
+            if (targetItem) {
+              // 데이터가 있으면 DOM 렌더링을 기다린 후 스크롤
+              this.$nextTick(() => {
+                this.$nextTick(() => {
+                  // v-data-table 렌더링을 위한 추가 딜레이
+                  setTimeout(() => {
+                    this.highlightAndScrollToItem(this.highlightItemId);
+                  }, 100);
+                });
+              });
+            } else {
+              // 데이터가 없으면 재시도 로직에 맡김
+              this.$nextTick(() => {
+                setTimeout(() => {
+                  this.highlightAndScrollToItem(this.highlightItemId);
+                }, 300);
+              });
+            }
           }
         } else {
           this.items = [];
@@ -2842,6 +2955,242 @@ export default {
       )();
 
       return colorByGroup;
+    },
+
+    // 테이블 행 클래스 결정
+    getRowClass(item) {
+      if (!item || !this.highlightItemId) return '';
+      if (item.id === this.highlightItemId || 
+          item.documentId === this.highlightItemId || 
+          item.fileId === this.highlightItemId) {
+        return 'highlighted-row';
+      }
+      return '';
+    },
+
+    // 하이라이트 및 스크롤 처리
+    highlightAndScrollToItem(itemId, retryCount = 0) {
+      const maxRetries = 10; // 최대 10번 재시도
+      const retryDelay = 300; // 300ms 간격
+      
+      console.log('[DriveMain] highlightAndScrollToItem 시작, itemId:', itemId, 'retryCount:', retryCount);
+      
+      if (!itemId) {
+        console.log('[DriveMain] itemId가 없습니다.');
+        return;
+      }
+
+      // 먼저 하이라이트할 항목이 items 배열에 있는지 확인
+      const targetItem = this.items.find(item => 
+        item.id === itemId || 
+        item.documentId === itemId || 
+        item.fileId === itemId
+      );
+      
+      if (!targetItem && retryCount < maxRetries) {
+        console.log(`[DriveMain] 하이라이트할 항목을 찾을 수 없습니다. 재시도 중... (${retryCount + 1}/${maxRetries})`);
+        // 데이터가 아직 로드되지 않았을 수 있으므로 재시도
+        setTimeout(() => {
+          this.highlightAndScrollToItem(itemId, retryCount + 1);
+        }, retryDelay);
+        return;
+      }
+      
+      if (!targetItem) {
+        console.error('[DriveMain] 하이라이트할 항목을 찾을 수 없습니다. 최대 재시도 횟수 초과.');
+        return;
+      }
+      
+      console.log('[DriveMain] 하이라이트할 항목 찾음:', targetItem);
+
+      // DOM 렌더링 완료를 여러 단계로 기다림
+      this.$nextTick(() => {
+        console.log('[DriveMain] $nextTick 완료');
+        
+        setTimeout(() => {
+          console.log('[DriveMain] setTimeout 실행, tableContainer ref 확인 중...');
+          
+          const container = this.$refs.tableContainer;
+          console.log('[DriveMain] container:', container);
+          
+          if (!container) {
+            console.error('[DriveMain] tableContainer ref를 찾을 수 없습니다.');
+            console.log('[DriveMain] $refs:', this.$refs);
+            if (retryCount < maxRetries) {
+              setTimeout(() => {
+                this.highlightAndScrollToItem(itemId, retryCount + 1);
+              }, retryDelay);
+            }
+            return;
+          }
+
+          // 드래그 앤 드롭과 동일한 방식으로 스크롤 컨테이너 찾기
+          // v-data-table__wrapper가 스크롤 컨테이너 (드래그 앤 드롭에서 사용하는 방식)
+          let scrollWrapper = container.querySelector('.v-data-table__wrapper');
+          
+          // Vuetify 3의 경우
+          if (!scrollWrapper) {
+            scrollWrapper = container.querySelector('.v-table__wrapper');
+          }
+          
+          if (!scrollWrapper) {
+            console.error('[DriveMain] 스크롤 컨테이너를 찾을 수 없습니다.');
+            if (retryCount < maxRetries) {
+              console.log(`[DriveMain] 스크롤 컨테이너 찾기 재시도 (${retryCount + 1}/${maxRetries})`);
+              setTimeout(() => {
+                this.highlightAndScrollToItem(itemId, retryCount + 1);
+              }, retryDelay);
+            }
+            return;
+          }
+
+          console.log('[DriveMain] scrollWrapper 크기:', {
+            scrollHeight: scrollWrapper.scrollHeight,
+            clientHeight: scrollWrapper.clientHeight,
+            scrollTop: scrollWrapper.scrollTop
+          });
+
+          // 하이라이트된 행 찾기 - 여러 방법 시도
+          let targetRow = null;
+          
+          // 방법 1: highlighted-row 클래스를 가진 tr 찾기
+          targetRow = scrollWrapper.querySelector('tr.highlighted-row');
+          console.log('[DriveMain] 방법1 - tr.highlighted-row:', targetRow);
+          
+          // 방법 2: highlighted-item 클래스를 가진 div의 부모 tr 찾기
+          if (!targetRow) {
+            const highlightedDiv = scrollWrapper.querySelector('.highlighted-item');
+            console.log('[DriveMain] highlighted-item div:', highlightedDiv);
+            if (highlightedDiv) {
+              // 부모 tr 찾기
+              let parent = highlightedDiv.parentElement;
+              while (parent && parent.tagName !== 'TR' && parent !== scrollWrapper) {
+                parent = parent.parentElement;
+              }
+              if (parent && parent.tagName === 'TR') {
+                targetRow = parent;
+                console.log('[DriveMain] 방법2 - highlighted-item의 부모 tr:', targetRow);
+              }
+            }
+          }
+          
+          // 방법 3: tbody 내에서 찾기
+          if (!targetRow) {
+            const tbody = scrollWrapper.querySelector('tbody');
+            console.log('[DriveMain] tbody:', tbody);
+            
+            if (tbody) {
+              targetRow = tbody.querySelector('tr.highlighted-row');
+              if (!targetRow) {
+                const highlightedDiv = tbody.querySelector('.highlighted-item');
+                if (highlightedDiv) {
+                  let parent = highlightedDiv.parentElement;
+                  while (parent && parent.tagName !== 'TR' && parent !== tbody) {
+                    parent = parent.parentElement;
+                  }
+                  if (parent && parent.tagName === 'TR') {
+                    targetRow = parent;
+                    console.log('[DriveMain] 방법3 - tbody에서 highlighted-item의 부모 tr:', targetRow);
+                  }
+                }
+              }
+            }
+          }
+
+          // 모든 행 확인 (디버깅용)
+          const allRows = scrollWrapper.querySelectorAll('tr');
+          const allHighlightedDivs = scrollWrapper.querySelectorAll('.highlighted-item');
+          console.log('[DriveMain] 전체 행 개수:', allRows.length);
+          console.log('[DriveMain] highlighted-item div 개수:', allHighlightedDivs.length);
+          allRows.forEach((row, index) => {
+            if (row.classList.contains('highlighted-row')) {
+              console.log(`[DriveMain] 하이라이트된 행 발견 (인덱스 ${index}):`, row);
+            }
+          });
+          
+          if (!targetRow) {
+            // 데이터는 있지만 DOM이 아직 렌더링되지 않았을 수 있음
+            // items에는 있지만 DOM에 아직 없는 경우 재시도
+            if (retryCount < maxRetries) {
+              console.log(`[DriveMain] 하이라이트된 행을 찾을 수 없습니다. DOM 렌더링 대기 중... 재시도 (${retryCount + 1}/${maxRetries})`);
+              console.log('[DriveMain] 현재 렌더링된 행 수:', allRows.length, 'items 수:', this.items.length);
+              setTimeout(() => {
+                this.highlightAndScrollToItem(itemId, retryCount + 1);
+              }, retryDelay);
+              return;
+            }
+            
+            console.error('[DriveMain] 하이라이트된 행을 찾을 수 없습니다. 최대 재시도 횟수 초과. itemId:', itemId);
+            console.log('[DriveMain] highlightItemId:', this.highlightItemId);
+            console.log('[DriveMain] items:', this.items.map(item => ({
+              id: item.id,
+              documentId: item.documentId,
+              fileId: item.fileId,
+              name: item.name
+            })));
+            console.log('[DriveMain] scrollWrapper HTML 일부:', scrollWrapper.innerHTML.substring(0, 500));
+            return;
+          }
+
+          console.log('[DriveMain] 타겟 행 찾음:', targetRow);
+          console.log('[DriveMain] 타겟 행 위치:', {
+            offsetTop: targetRow.offsetTop,
+            offsetHeight: targetRow.offsetHeight,
+            getBoundingClientRect: targetRow.getBoundingClientRect()
+          });
+
+          // 스크롤 위치 계산 및 실행 (드래그 앤 드롭과 동일한 방식)
+          console.log('[DriveMain] 스크롤 계산 시작...');
+          
+          // 드래그 앤 드롭처럼 직접 scrollTop 설정
+          // tbody를 기준으로 한 상대 위치 계산
+          const tbody = targetRow.closest('tbody');
+          let rowOffsetTop = 0;
+          
+          if (tbody) {
+            // tbody 내에서의 상대 위치 계산
+            let element = targetRow;
+            while (element && element !== tbody) {
+              rowOffsetTop += element.offsetTop;
+              element = element.offsetParent;
+            }
+          } else {
+            // tbody가 없으면 scrollWrapper를 기준으로 계산
+            const wrapperRect = scrollWrapper.getBoundingClientRect();
+            const rowRect = targetRow.getBoundingClientRect();
+            rowOffsetTop = scrollWrapper.scrollTop + (rowRect.top - wrapperRect.top);
+          }
+          
+          // 현재 스크롤 위치
+          const currentScroll = scrollWrapper.scrollTop;
+          
+          // 중앙으로 배치하기 위한 목표 스크롤 위치
+          const rowHeight = targetRow.offsetHeight;
+          const wrapperHeight = scrollWrapper.clientHeight;
+          const desiredScroll = Math.max(0, rowOffsetTop - (wrapperHeight / 2) + (rowHeight / 2));
+          
+          console.log('[DriveMain] 스크롤 계산:', {
+            rowOffsetTop,
+            currentScroll,
+            rowHeight,
+            wrapperHeight,
+            desiredScroll
+          });
+
+          // 드래그 앤 드롭처럼 직접 scrollTop 설정 (부드러운 스크롤)
+          try {
+            scrollWrapper.scrollTo({ 
+              top: desiredScroll, 
+              behavior: 'smooth' 
+            });
+          } catch (e) {
+            // Safari 등 일부 브라우저 호환
+            scrollWrapper.scrollTop = desiredScroll;
+          }
+          
+          console.log('[DriveMain] 스크롤 실행 완료');
+        }, 300); // 테이블 렌더링 완료를 위한 딜레이
+      });
     },
 
     // 아이템 클릭
@@ -3510,6 +3859,28 @@ export default {
       return map[ext] || 'mdi-file-outline';
     },
 
+    // 현재 폴더 내에서 업로드 대상 파일들과 이름이 겹치는 파일명 목록
+    getDuplicateFileNames(files) {
+      try {
+        const existingNames = new Set(
+          (this.items || [])
+            .filter(it => it && (it.type === 'file' || it.type === 'document') && typeof it.name === 'string')
+            .map(it => it.name.trim().toLowerCase())
+        );
+        const duplicates = [];
+        (files || []).forEach(f => {
+          const name = (f && f.name ? String(f.name) : '').trim();
+          if (!name) return;
+          if (existingNames.has(name.toLowerCase()) && !duplicates.includes(name)) {
+            duplicates.push(name);
+          }
+        });
+        return duplicates;
+      } catch (_) {
+        return [];
+      }
+    },
+
     async uploadSelectedFiles() {
       if (this.selectedFiles.length === 0) return;
 
@@ -3519,34 +3890,130 @@ export default {
         return;
       }
 
+      this.uploadCancelled = false;
       this.isUploading = true;
       const files = this.selectedFiles.map(it => it.file);
       try {
-        await this.uploadFiles(files);
-        this.clearSelectedFiles();
+        await this.uploadFilesSequentially(files);
+        if (!this.uploadCancelled) {
+          this.clearSelectedFiles();
+        }
       } finally {
         this.isUploading = false;
       }
     },
 
-    async uploadFiles(files) {
+    // 파일을 순차적으로 업로드 (중복 파일 발견 시 확인)
+    async uploadFilesSequentially(files) {
       if (!files || files.length === 0) return;
 
-      try {
-        // 현재 폴더 ID 결정
-        const folderId = this.currentFolderId || this.currentRootId || localStorage.getItem('selectedWorkspaceId');
-        
-        // rootId와 rootType 설정
-        const rootId = this.currentRootId || localStorage.getItem('selectedWorkspaceId');
-        const rootType = this.currentRootType || 'WORKSPACE';
-        
-        // 파일 배열로 변환 (이미 배열일 수 있음)
-        const fileArray = Array.isArray(files) ? files : Array.from(files);
-        
-        // 한 번에 모든 파일 업로드
-        const response = await driveService.uploadFile(folderId, fileArray, rootId, rootType);
-        
-        showSnackbar(response.statusMessage || `${files.length}개 파일이 업로드되었습니다.`, 'success');
+      const fileArray = Array.isArray(files) ? files : Array.from(files);
+      const folderId = this.currentFolderId || this.currentRootId || localStorage.getItem('selectedWorkspaceId');
+      const rootId = this.currentRootId || localStorage.getItem('selectedWorkspaceId');
+      const rootType = this.currentRootType || 'WORKSPACE';
+      
+      const uploadedFiles = [];
+      const skippedFiles = [];
+      
+      // 현재 폴더의 파일명 목록 (업데이트를 위해)
+      const existingNames = new Set(
+        (this.items || [])
+          .filter(it => it && (it.type === 'file' || it.type === 'document') && typeof it.name === 'string')
+          .map(it => it.name.trim().toLowerCase())
+      );
+
+      for (let i = 0; i < fileArray.length; i++) {
+        // 업로드 취소 확인
+        if (this.uploadCancelled) {
+          break;
+        }
+
+        const file = fileArray[i];
+        const fileName = file.name.trim();
+        const fileNameLower = fileName.toLowerCase();
+
+        // 중복 체크
+        if (existingNames.has(fileNameLower)) {
+          // 중복 파일 발견 - 사용자 확인 대기
+          this.duplicateFileName = fileName;
+          this.duplicateFileIndex = i;
+          this.duplicateConfirmDialog = true;
+          
+          // 사용자 응답 대기 (Promise를 사용하여 동기적으로 대기)
+          await new Promise((resolve) => {
+            const checkResponse = () => {
+              if (!this.duplicateConfirmDialog) {
+                // 다이얼로그가 닫혔으면 (사용자가 결정했으면)
+                resolve();
+              } else {
+                setTimeout(checkResponse, 100);
+              }
+            };
+            checkResponse();
+          });
+
+          // 업로드 취소 확인
+          if (this.uploadCancelled) {
+            break;
+          }
+
+          // 건너뛰기로 결정했으면 다음 파일로
+          skippedFiles.push(fileName);
+          continue;
+        }
+
+        // 파일 업로드
+        try {
+          const response = await driveService.uploadFile(folderId, [file], rootId, rootType);
+          uploadedFiles.push(fileName);
+          
+          // 업로드된 파일명을 existingNames에 추가 (다음 파일 검사 시 반영)
+          existingNames.add(fileNameLower);
+          
+          // 업로드 중 폴더 새로고침 (선택적 - 너무 자주 호출하면 성능 이슈 가능)
+          // await this.loadFolderContents(this.currentFolderId, this.currentRootType, this.currentRootId);
+        } catch (error) {
+          console.error(`파일 업로드 실패: ${fileName}`, error);
+          const errorData = error.response?.data || {};
+          const errorMessage = errorData.statusMessage || '파일 업로드에 실패했습니다.';
+          
+          // 중복 파일명 추출
+          let duplicateFiles = [];
+          if (errorData.duplicateFiles && Array.isArray(errorData.duplicateFiles)) {
+            duplicateFiles = errorData.duplicateFiles;
+          } else if (errorData.conflictingFiles && Array.isArray(errorData.conflictingFiles)) {
+            duplicateFiles = errorData.conflictingFiles;
+          } else if (errorData.duplicateFileNames && Array.isArray(errorData.duplicateFileNames)) {
+            duplicateFiles = errorData.duplicateFileNames;
+          } else if (errorMessage.includes('중복') || errorMessage.includes('duplicate')) {
+            const filePattern = /["']([^"']+\.[^"']+)["']/g;
+            const matches = errorMessage.match(filePattern);
+            if (matches) {
+              duplicateFiles = matches.map(m => m.replace(/["']/g, ''));
+            }
+          }
+          
+          // 중복 파일이면 건너뛰기, 아니면 에러 표시
+          if (duplicateFiles.length > 0 && duplicateFiles.includes(fileName)) {
+            skippedFiles.push(fileName);
+          } else {
+            showSnackbar(`"${fileName}" 업로드 실패: ${errorMessage}`, { color: 'error' });
+          }
+        }
+      }
+
+      // 업로드 완료 메시지
+      if (uploadedFiles.length > 0) {
+        showSnackbar(`${uploadedFiles.length}개 파일이 업로드되었습니다.`, { color: 'success' });
+      }
+      
+      if (skippedFiles.length > 0) {
+        const list = skippedFiles.slice(0, 5).map(n => `"${n}"`).join(', ');
+        const more = skippedFiles.length > 5 ? ` 외 ${skippedFiles.length - 5}개` : '';
+        showSnackbar(`건너뛴 파일: ${list}${more}`, { color: 'warning' });
+      }
+
+      if (!this.uploadCancelled) {
         this.uploadDialog = false;
         
         // 파일 입력 초기화
@@ -3560,12 +4027,21 @@ export default {
         } else {
           await this.loadFolderContents(this.currentFolderId);
         }
-      } catch (error) {
-        console.error('파일 업로드 실패:', error);
-        const errorMessage = error.response?.data?.statusMessage || '파일 업로드에 실패했습니다.';
-        showSnackbar(errorMessage, 'error');
-        throw error; // rethrow so finally in uploadSelectedFiles runs
       }
+    },
+
+    // 중복 파일 확인 다이얼로그 - 업로드 취소
+    cancelUpload() {
+      this.uploadCancelled = true;
+      this.duplicateConfirmDialog = false;
+      this.isUploading = false;
+      showSnackbar('업로드가 취소되었습니다.', { color: 'warning' });
+    },
+
+    // 중복 파일 확인 다이얼로그 - 건너뛰고 계속
+    skipAndContinue() {
+      this.duplicateConfirmDialog = false;
+      // uploadFilesSequentially의 루프가 계속 진행됨
     },
 
     // 드래그 앤 드롭 - 아이템 이동 (폴더, 문서, 파일)
@@ -4649,6 +5125,30 @@ export default {
 .clickable-row.drag-over {
   background-color: #e3f2fd !important;
   border-left: 4px solid #1976d2;
+}
+
+.clickable-row.highlighted-item {
+  background-color: #fff3cd !important;
+  border-left: 3px solid #ffc107 !important;
+  animation: highlightPulse 2s ease-in-out;
+}
+
+@keyframes highlightPulse {
+  0%, 100% {
+    background-color: #fff3cd;
+  }
+  50% {
+    background-color: #ffe69c;
+  }
+}
+
+/* 테이블 행 전체 하이라이트 */
+.drive-table :deep(.highlighted-row) {
+  background-color: #fff3cd !important;
+}
+
+.drive-table :deep(.highlighted-row:hover) {
+  background-color: #ffe69c !important;
 }
 
 .clickable-row {
