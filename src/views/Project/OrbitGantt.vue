@@ -83,29 +83,46 @@
 
           <!-- 바 -->
           <g
-            v-for="b in visibleBars"
+            v-for="(b, i) in visibleBars"
             :key="b.key"
             @mouseenter="showTooltip(b, $event)"
             @mouseleave="hideTooltip"
             @click="toggleCollapse(b)"
           >
-            <rect :x="b.x" :y="b.y" :width="b.w" :height="barHeight" rx="6" :fill="b.color" class="bar" />
+            <!-- 색상 계산 -->
+            <rect
+              :x="b.x"
+              :y="b.y"
+              :width="b.w"
+              :height="barHeight"
+              rx="6"
+              :fill="getBarColor(b, i).base"
+              :stroke="getBarColor(b, i).border"
+              class="bar"
+              :data-task="b.isTask"
+            />
+
+            <!-- 진행률 -->
             <rect
               :x="b.x"
               :y="b.y"
               :width="Math.max(2, b.w * (b.progress / 100))"
               :height="barHeight"
               rx="6"
-              :fill="b.colorDark"
+              :fill="getBarColor(b, i).progress"
               class="bar-progress"
             />
-            <text :x="b.x + 8" :y="b.y + barHeight - 6" class="bar-label">
-              <tspan>{{ b.name }}</tspan>
-              <tspan v-if="b.hasChildren" class="collapse-icon">
-                {{ collapsedSet.has(b.id) ? " ▶" : " ▼" }}
-              </tspan>
+
+            <!-- 바 오른쪽 텍스트 -->
+            <text
+              :x="b.x + b.w + 10"
+              :y="b.y + barHeight / 1.5"
+              class="bar-label"
+            >
+              {{ b.name }}
             </text>
           </g>
+
         </svg>
 
         <!-- 툴팁 -->
@@ -213,6 +230,36 @@ const days = computed(() => {
 
 /* === 색상 팔레트 === */
 const colorPalette = ["#FFD93D", "#8CC0DE", "#C68FE6", "#6ECB63", "#FF9F68"];
+
+// === 색상 자동 분배 (Phase별) ===
+const phaseColors = [
+  { base: "#E3D3FF", light: "#F4ECFF", border: "#BFA3FF", progress: "#9B6BFF" }, // 보라
+  { base: "#BFDFFF", light: "#E5F3FF", border: "#8CC4FF", progress: "#4C9AFF" }, // 파랑
+  { base: "#FFD1E3", light: "#FFE8F2", border: "#FF9EBE", progress: "#FF5A8A" }, // 분홍
+  { base: "#FFF3C2", light: "#FFF9E3", border: "#FFE37E", progress: "#FFD93D" }, // 노랑
+];
+
+// index에 따라 자동 배정
+function getBarColor(b, index) {
+  const phaseIndex = index % phaseColors.length;
+  const color = phaseColors[phaseIndex];
+
+  // 스톤(상위) vs 태스크(하위)
+  if (!b.isTask) {
+    return {
+      base: color.base,
+      border: color.border,
+      progress: color.progress,
+    };
+  } else {
+    return {
+      base: color.light,
+      border: color.border,
+      progress: color.progress,
+    };
+  }
+}
+
 
 /* === 데이터 === */
 const stones = ref([]);
@@ -580,32 +627,37 @@ watch(
   fill: #fcfcfc;
 }
 
-/* === 바 스타일 (주요 수정 부분) === */
+/* === 바 (스톤/태스크 구분) === */
 .bar {
-  fill: #fffbe5; /* Orbit 블루톤 (상위 스톤 기본색) */
-  stroke: rgba(76, 154, 255, 0.4);
-  stroke-width: 0.8;
   rx: 6;
+  transition: transform 0.2s ease, opacity 0.2s ease;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05));
-  transition: fill 0.2s ease, transform 0.2s ease;
 }
+
 .bar:hover {
-  fill: #d3e4ff;
-  transform: scale(1.01);
+  transform: scale(1.02);
+  opacity: 0.95;
 }
 
-/* 진행률 바 */
 .bar-progress {
-  fill: #ffff4c;
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
-/* 텍스트 */
 .bar-label {
   fill: #333;
   font-size: 12px;
   font-weight: 500;
   pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: start;
+}
+
+/* Phase 구분을 더 자연스럽게 보이게 */
+.grid-row.odd {
+  fill: #fafafa;
+}
+.grid-row.even {
+  fill: #fff;
 }
 
 /* 접기 아이콘 */
