@@ -216,6 +216,16 @@ const createSchedule = async () => {
     alert("✅ 일정이 등록되었습니다.");
     showModal.value = false;
 
+    // 일정 등록 후 form 초기화
+    form.value = {
+      calendarName: "",
+      startedAt: "",
+      endedAt: "",
+      repeatCycle: "NONE",
+      repeatEndAt: "",
+      isShared: true,
+    };
+    
     // 새 일정 반영
     await fetchSharedData();
     setTimeout(() => calendar?.render(), 200);
@@ -228,6 +238,21 @@ const createSchedule = async () => {
     alert("일정 등록 실패");
   }
 };
+
+// 모달 닫힐 때 form 초기화
+watch(showModal, (visible) => {
+  if (!visible) {
+    // 모달이 닫힐 때 폼 초기화
+    form.value = {
+      calendarName: "",
+      startedAt: "",
+      endedAt: "",
+      repeatCycle: "NONE",
+      repeatEndAt: "",
+      isShared: true,
+    };
+  }
+});
 
 // --- 공유 데이터 로드 ---
 const fetchSharedData = async () => {
