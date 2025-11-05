@@ -5,6 +5,119 @@
     </div>
     
     <div v-else class="dashboard-content">
+      <!-- 차트 영역 -->
+      <div class="charts-section">
+        <!-- 차트 1: 프로젝트 진행률 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">프로젝트 진행률</h3>
+          </div>
+          <div class="chart-body">
+            <apexchart
+              type="donut"
+              height="280"
+              :options="progressChartOptions"
+              :series="progressChartSeries"
+            />
+          </div>
+        </div>
+
+        <!-- 차트 2: 스톤 완료 현황 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">스톤 완료 현황</h3>
+          </div>
+          <div class="chart-body">
+            <apexchart
+              type="donut"
+              height="280"
+              :options="stoneDonutChartOptions"
+              :series="stoneDonutChartSeries"
+            />
+          </div>
+        </div>
+
+        <!-- 차트 3: 태스크 완료 현황 -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title">태스크 완료 현황</h3>
+          </div>
+          <div class="chart-body">
+            <apexchart
+              type="donut"
+              height="280"
+              :options="taskDonutChartOptions"
+              :series="taskDonutChartSeries"
+            />
+          </div>
+        </div>
+
+        <!-- 차트 4: AI 차트 -->
+        <div class="chart-card ai-card">
+          <div class="chart-header">
+            <h3 class="chart-title">AI 차트</h3>
+          </div>
+          <div class="chart-body ai-card-content">
+            <p class="ai-placeholder">AI 분석 데이터를 준비중입니다…</p>
+          </div>
+        </div>
+
+        <!-- 차트 5: 완료 추이 -->
+        <div class="chart-card chart-wide">
+          <div class="chart-header">
+            <h3 class="chart-title">스톤/태스크 완료 추이</h3>
+          </div>
+          <!-- ✅ 가로 스크롤 가능한 래퍼 + 내부 width 고정 -->
+          <div class="chart-body chart-body-scroll">
+            <div class="trend-chart-inner" :style="{ width: trendChartWidth }">
+              <apexchart
+                ref="trendChart"
+                type="area"
+                width="100%"
+                height="350"
+                :options="completionTrendChartOptions"
+                :series="completionTrendChartSeries"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 차트 6: AI 예상 완료일 -->
+        <div class="chart-card chart-wide ai-card">
+          <div class="chart-header">
+            <h3 class="chart-title">AI 예상 완료일</h3>
+          </div>
+          <div class="chart-body ai-card-content">
+            <p class="ai-placeholder">AI가 프로젝트의 예상 완료일을 계산하고 있습니다…</p>
+          </div>
+        </div>
+
+        <!-- 차트 7: 프로젝트 인사이트 -->
+        <div class="chart-card chart-wide">
+          <div class="chart-header">
+            <h3 class="chart-title">프로젝트 인사이트</h3>
+          </div>
+          <div class="chart-body insights-body">
+            <div class="insight-item">
+              <div class="insight-label">평균 태스크 완료 시간</div>
+              <div class="insight-value">-</div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-label">리스크 지수</div>
+              <div class="insight-value">-</div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-label">지연 task top3</div>
+              <div class="insight-value">-</div>
+            </div>
+            <div class="insight-item">
+              <div class="insight-label">문서 개수 / 문서 용량</div>
+              <div class="insight-value">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 통계 카드 영역 -->
       <div class="stats-grid">
         <div class="stat-card">
@@ -83,11 +196,13 @@
 import axios from 'axios';
 import ProjectPeopleOverviewTable from '@/components/project/ProjectPeopleOverviewTable.vue';
 import { getProjectPeopleOverview } from '@/services/projectService.js';
+import VueApexCharts from 'vue3-apexcharts';
 
 export default {
   name: "ProjectDashboard",
   components: {
-    ProjectPeopleOverviewTable
+    ProjectPeopleOverviewTable,
+    apexchart: VueApexCharts
   },
   props: {
     projectId: {
@@ -108,8 +223,479 @@ export default {
         progress: 0,
         totalTasks: 0,
         completedTasks: 0
+      },
+      // 더미 데이터 (완료 추이)
+      completionTrendData: {
+        projectStartDate: "2025-10-01",
+        today: "2025-12-31",
+        stoneCompletedList: [
+          { "date": "2025-10-03", "count": 1 },
+          { "date": "2025-10-10", "count": 2 },
+          { "date": "2025-10-17", "count": 1 },
+          { "date": "2025-10-25", "count": 3 },
+          { "date": "2025-11-02", "count": 2 },
+          { "date": "2025-11-10", "count": 2 },
+          { "date": "2025-11-18", "count": 1 },
+          { "date": "2025-11-27", "count": 2 },
+          { "date": "2025-12-05", "count": 2 },
+          { "date": "2025-12-12", "count": 3 },
+          { "date": "2025-12-19", "count": 1 },
+          { "date": "2025-12-28", "count": 2 }
+        ],
+        taskCompletedList: [
+          { "date": "2025-10-02", "count": 3 },
+          { "date": "2025-10-05", "count": 5 },
+          { "date": "2025-10-09", "count": 4 },
+          { "date": "2025-10-14", "count": 6 },
+          { "date": "2025-10-21", "count": 7 },
+          { "date": "2025-10-28", "count": 5 },
+          { "date": "2025-11-04", "count": 8 },
+          { "date": "2025-11-11", "count": 7 },
+          { "date": "2025-11-18", "count": 9 },
+          { "date": "2025-11-25", "count": 6 },
+          { "date": "2025-12-03", "count": 10 },
+          { "date": "2025-12-10", "count": 7 },
+          { "date": "2025-12-17", "count": 9 },
+          { "date": "2025-12-24", "count": 8 },
+          { "date": "2025-12-30", "count": 6 }
+        ]
+      },
+      // 프로젝트 진행률 차트 옵션
+      progressChartOptions: {
+        chart: {
+          type: 'donut',
+          fontFamily: 'Pretendard, sans-serif',
+          toolbar: {
+            show: false
+          }
+        },
+        tooltip: {
+          enabled: false
+        },
+        states: {
+          hover: {
+            filter: {
+              type: 'none'
+            }
+          },
+          active: {
+            filter: {
+              type: 'none'
+            }
+          }
+        },
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '65%',
+              labels: {
+                show: true,
+                name: {
+                  show: true,
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#666666',
+                  offsetY: -10
+                },
+                value: {
+                  show: true,
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#111827',
+                  offsetY: 5,
+                  formatter: function(val) {
+                    return val + '%';
+                  }
+                },
+                total: {
+                  show: true,
+                  label: '진행률',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#666666',
+                  formatter: function(w) {
+                    // 첫 번째 값(완료 퍼센트)을 가져오기
+                    return w.globals.seriesTotals[0] + '%';
+                  }
+                }
+              }
+            }
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        labels: ['완료', '미완료'],
+        colors: ['#FFE364', '#E5E7EB'],
+        legend: {
+          show: false
+        },
+        stroke: {
+          width: 0
+        }
+      },
+      // 스톤 완료 현황 도넛 차트 옵션
+      stoneDonutChartOptions: {
+        chart: {
+          type: 'donut',
+          fontFamily: 'Pretendard, sans-serif',
+          toolbar: {
+            show: false
+          }
+        },
+        tooltip: {
+          enabled: false
+        },
+        states: {
+          hover: {
+            filter: {
+              type: 'none'
+            }
+          },
+          active: {
+            filter: {
+              type: 'none'
+            }
+          }
+        },
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '65%',
+              labels: {
+                show: true,
+                name: {
+                  show: true,
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#666666',
+                  offsetY: -10
+                },
+                value: {
+                  show: true,
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#111827',
+                  offsetY: 5,
+                  formatter: function(val) {
+                    return val;
+                  }
+                },
+                total: {
+                  show: true,
+                  label: '총 스톤',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#666666',
+                  formatter: function(w) {
+                    return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                  }
+                }
+              }
+            }
+          }
+        },
+        dataLabels: {
+          enabled: true,
+          style: {
+            fontSize: '14px',
+            fontWeight: 700,
+            colors: ['#000']
+          },
+          dropShadow: {
+            enabled: false
+          }
+        },
+        labels: ['완료', '미완료'],
+        colors: ['#4ADE80', '#E5E7EB'],
+        legend: {
+          show: true,
+          position: 'bottom',
+          fontSize: '14px',
+          fontWeight: 600,
+          labels: {
+            colors: '#666666'
+          },
+          markers: {
+            width: 12,
+            height: 12,
+            radius: 2
+          }
+        },
+        stroke: {
+          width: 0
+        }
+      },
+      // 태스크 완료 현황 도넛 차트 옵션
+      taskDonutChartOptions: {
+        chart: {
+          type: 'donut',
+          fontFamily: 'Pretendard, sans-serif',
+          toolbar: {
+            show: false
+          }
+        },
+        tooltip: {
+          enabled: false
+        },
+        states: {
+          hover: {
+            filter: {
+              type: 'none'
+            }
+          },
+          active: {
+            filter: {
+              type: 'none'
+            }
+          }
+        },
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '65%',
+              labels: {
+                show: true,
+                name: {
+                  show: true,
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#666666',
+                  offsetY: -10
+                },
+                value: {
+                  show: true,
+                  fontSize: '28px',
+                  fontWeight: 700,
+                  color: '#111827',
+                  offsetY: 5,
+                  formatter: function(val) {
+                    return val;
+                  }
+                },
+                total: {
+                  show: true,
+                  label: '총 태스크',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#666666',
+                  formatter: function(w) {
+                    return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                  }
+                }
+              }
+            }
+          }
+        },
+        dataLabels: {
+          enabled: true,
+          style: {
+            fontSize: '14px',
+            fontWeight: 700,
+            colors: ['#000']
+          },
+          dropShadow: {
+            enabled: false
+          }
+        },
+        labels: ['완료', '미완료'],
+        colors: ['#3B82F6', '#E5E7EB'],
+        legend: {
+          show: true,
+          position: 'bottom',
+          fontSize: '14px',
+          fontWeight: 600,
+          labels: {
+            colors: '#666666'
+          },
+          markers: {
+            width: 12,
+            height: 12,
+            radius: 2
+          }
+        },
+        stroke: {
+          width: 0
+        }
+      },
+      // 완료 추이 차트 옵션
+      completionTrendChartOptions: {
+        chart: {
+          type: 'area',
+          fontFamily: 'Pretendard, sans-serif',
+          width: '100%',
+          toolbar: {
+            show: false
+          },
+          zoom: {
+            enabled: false
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 3
+        },
+        markers: {
+          size: 5,
+          colors: ['#81C784', '#64B5F6'],
+          strokeColors: '#fff',
+          strokeWidth: 2,
+          hover: {
+            size: 7
+          }
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            opacityFrom: 0.6,
+            opacityTo: 0.1,
+          }
+        },
+        legend: {
+          show: true,
+          position: 'top',
+          horizontalAlign: 'right',
+          fontSize: '14px',
+          fontWeight: 600,
+          labels: {
+            colors: '#666666'
+          },
+          markers: {
+            width: 12,
+            height: 12,
+            radius: 2
+          }
+        },
+        colors: ['#81C784', '#64B5F6'],
+        xaxis: {
+          type: 'datetime',
+          labels: {
+            format: 'MM/dd',
+            style: {
+              colors: '#666666',
+              fontSize: '12px'
+            }
+          },
+          axisBorder: {
+            show: true,
+            color: '#E5E7EB'
+          },
+          axisTicks: {
+            show: true,
+            color: '#E5E7EB'
+          }
+        },
+        yaxis: {
+          title: {
+            text: '완료 개수',
+            style: {
+              color: '#666666',
+              fontSize: '13px',
+              fontWeight: 600
+            }
+          },
+          labels: {
+            style: {
+              colors: '#666666',
+              fontSize: '12px'
+            },
+            formatter: function(val) {
+              return Math.floor(val);
+            }
+          },
+          forceNiceScale: true,
+          decimalsInFloat: 0
+        },
+        grid: {
+          borderColor: '#F5F5F5',
+          strokeDashArray: 4
+        },
+        tooltip: {
+          enabled: true,
+          shared: true,
+          intersect: false,
+          x: {
+            format: 'yyyy-MM-dd'
+          },
+          y: {
+            formatter: function(val) {
+              return val + '개';
+            }
+          }
+        },
+        responsive: [{
+          breakpoint: 10000,
+          options: {
+            chart: {
+              width: '100%'
+            }
+          }
+        }]
       }
     };
+  },
+  
+  computed: {
+    progressChartSeries() {
+      const progress = this.projectStats.progress || 0;
+      const remaining = 100 - progress;
+      return [progress, remaining];
+    },
+    stoneDonutChartSeries() {
+      const completed = this.projectStats.completedStones || 0;
+      const incomplete = (this.projectStats.totalStones || 0) - completed;
+      return [completed, incomplete];
+    },
+    taskDonutChartSeries() {
+      const completed = this.projectStats.completedTasks || 0;
+      const incomplete = (this.projectStats.totalTasks || 0) - completed;
+      return [completed, incomplete];
+    },
+    completionTrendChartSeries() {
+      // 스톤 완료 데이터
+      const stoneData = this.completionTrendData.stoneCompletedList.map(item => ({
+        x: new Date(item.date).getTime(),
+        y: item.count
+      }));
+      
+      // 태스크 완료 데이터
+      const taskData = this.completionTrendData.taskCompletedList.map(item => ({
+        x: new Date(item.date).getTime(),
+        y: item.count
+      }));
+      
+      return [
+        {
+          name: '스톤 완료',
+          data: stoneData
+        },
+        {
+          name: '태스크 완료',
+          data: taskData
+        }
+      ];
+    },
+    
+    // ✅ 추이 차트 가로 길이 계산 (기간 기반)
+    trendChartWidth() {
+      // 프로젝트 기간 기준으로 일 수 계산
+      const start = new Date(this.completionTrendData.projectStartDate);
+      const end = new Date(this.completionTrendData.today);
+      const diffMs = end - start;
+      const dayMs = 1000 * 60 * 60 * 24;
+      
+      const days = diffMs > 0 ? Math.floor(diffMs / dayMs) + 1 : 1;
+      
+      // 하루당 40px 정도로 잡고, 최소 800px은 보장
+      const pxPerDay = 40;
+      const minWidth = 800;
+      
+      const width = Math.max(days * pxPerDay, minWidth);
+      return width + 'px';
+    }
   },
   
   
@@ -326,7 +912,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style>
 .project-dashboard-container {
   width: 100%;
   height: 100%;
@@ -334,11 +920,13 @@ export default {
   padding: 30px;
   box-sizing: border-box;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: visible;
   background-color: #f5f5f5;
   display: flex;
   flex-direction: column;
   position: relative;
+  flex: 1 1 100%;
+  min-width: 0;
 }
 
 .project-dashboard-container::-webkit-scrollbar {
@@ -372,12 +960,202 @@ export default {
 }
 
 .dashboard-content {
-  max-width: 1400px;
+  max-width: none;
   margin: 0 auto;
   width: 100%;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   overflow: visible;
+}
+
+/* 차트 영역 */
+.charts-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+  width: 100%;
+  min-width: 0;
+}
+
+.chart-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-card:first-child,
+.chart-card:nth-child(2),
+.chart-card:nth-child(3) {
+  min-height: 400px;
+  max-height: 400px;
+}
+
+.chart-card.chart-wide {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  min-height: 450px;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+
+.chart-header {
+  margin-bottom: 20px;
+  padding-bottom: 0;
+}
+
+.chart-title {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #666666;
+  margin: 0;
+}
+
+.chart-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  width: 100%;
+}
+
+.chart-wide .chart-body {
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 10px 0;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
+  height: 100%;
+  min-height: 350px;
+  flex-grow: 1;
+  flex: 1;
+}
+
+.chart-wide .chart-body .apexcharts-canvas {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.chart-wide .chart-body svg {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+}
+
+.chart-wide .chart-body .apexcharts-graphical {
+  width: 100% !important;
+}
+
+/* ✅ 추이 그래프 가로 스크롤용 */
+.chart-body-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* ✅ 실제 차트 캔버스가 붙는 영역 */
+.trend-chart-inner {
+  min-width: 800px;
+}
+
+/* 🔮 AI 카드 오로라 효과 */
+.ai-card {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
+}
+
+/* 오로라 효과 */
+.ai-card::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 255, 255, 0.2),
+    rgba(255, 0, 255, 0.2),
+    rgba(255, 255, 0, 0.2),
+    rgba(0, 255, 255, 0.2)
+  );
+  filter: blur(80px);
+  animation: auroraFlow 8s linear infinite;
+  z-index: 0;
+}
+
+@keyframes auroraFlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* AI 카드 내용이 오로라 위에 보이도록 */
+.ai-card-content {
+  position: relative;
+  z-index: 1;
+}
+
+.ai-card .chart-header {
+  position: relative;
+  z-index: 1;
+}
+
+.ai-placeholder {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666666;
+  text-align: center;
+  margin: 0;
+}
+
+/* 인사이트 항목 스타일 */
+.insights-body {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  padding: 20px;
+  align-items: start;
+  justify-content: start;
+}
+
+.insight-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: #F9FAFB;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+  transition: all 0.2s ease;
+}
+
+.insight-item:hover {
+  background: #F3F4F6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.insight-label {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666666;
+  line-height: 1.4;
+}
+
+.insight-value {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1C0F0F;
 }
 
 /* 통계 카드 영역 */
@@ -492,4 +1270,3 @@ export default {
 }
 
 </style>
-
