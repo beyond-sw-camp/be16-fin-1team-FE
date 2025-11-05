@@ -539,6 +539,8 @@
                 class="form-input" 
                 v-model="newStone.startTime"
                 placeholder="시작일"
+                :min="getProjectStartDate()"
+                :max="getProjectEndDate()"
               />
               <span class="date-separator">~</span>
               <input 
@@ -546,6 +548,8 @@
                 class="form-input" 
                 v-model="newStone.endTime"
                 placeholder="종료일"
+                :min="newStone.startTime || getProjectStartDate()"
+                :max="getProjectEndDate()"
               />
             </div>
           </div>
@@ -2937,6 +2941,13 @@ export default {
       event.stopPropagation(); // 팬 모드 드래그 방지
       this.selectedParentStone = parentStone;
       this.newStone.parentStoneName = parentStone.name;
+      
+      // 오늘 날짜를 기본값으로 설정
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      this.newStone.startTime = todayStr;
+      this.newStone.endTime = todayStr;
+      
       this.showCreateStoneModal = true;
       console.log('모달 상태:', this.showCreateStoneModal);
     },
@@ -4135,6 +4146,18 @@ export default {
         return dateStr.split('T')[0]; // T 이전 부분만 추출
       }
       return dateStr;
+    },
+    
+    // 프로젝트 시작일 반환 (YYYY-MM-DD 형식)
+    getProjectStartDate() {
+      if (!this.projectDetail?.startTime) return '';
+      return this.formatDateForInput(this.projectDetail.startTime);
+    },
+    
+    // 프로젝트 종료일 반환 (YYYY-MM-DD 형식)
+    getProjectEndDate() {
+      if (!this.projectDetail?.endTime) return '';
+      return this.formatDateForInput(this.projectDetail.endTime);
     },
 
     formatDateForAPI(dateStr) {

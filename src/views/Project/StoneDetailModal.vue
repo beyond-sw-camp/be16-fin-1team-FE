@@ -452,6 +452,8 @@
               type="date" 
               class="form-input" 
               v-model="editForm.startDate"
+              :min="getProjectStartDate()"
+              :max="getProjectEndDate()"
             />
           </div>
           
@@ -461,6 +463,8 @@
               type="date" 
               class="form-input" 
               v-model="editForm.endDate"
+              :min="editForm.startDate || getProjectStartDate()"
+              :max="getProjectEndDate()"
             />
           </div>
           
@@ -781,6 +785,7 @@
 
 <script>
 import { deleteStone, modifyStoneManager, searchWorkspaceParticipants, modifyStone, getTaskList, createTask, getStoneParticipantList, modifyTask, deleteTask, completeTask, cancelTask, completeStone } from '@/services/stoneService.js';
+import axios from 'axios';
 import { showSnackbar } from '@/services/snackbar.js';
 import TaskDeleteConfirmModal from '@/components/modal/TaskDeleteConfirmModal.vue';
 import TaskCompleteConfirmModal from '@/components/modal/TaskCompleteConfirmModal.vue';
@@ -880,7 +885,8 @@ export default {
       cancelLoading: false,
       showStoneCompleteConfirmModal: false,
       stoneCompleteLoading: false,
-      loadedStoneData: null
+      loadedStoneData: null,
+      projectDetail: null // 프로젝트 상세 정보 (기간 제한용)
     }
   },
   computed: {
@@ -1133,9 +1139,20 @@ export default {
       this.showStoneCompleteConfirmModal = false;
     },
     
-    openEditModal() {
-      console.log('=== 스톤 수정 모달 열기 ===');
-      console.log('현재 stoneData:', this.stoneData);
+    async openEditModal() {
+      // 프로젝트 정보가 없으면 로드
+      if (!this.projectDetail) {
+        // projectId를 여러 방법으로 시도
+        const projectId = this.currentStoneData?.projectId 
+          || this.stoneData?.projectId 
+          || this.loadedStoneData?.projectId
+          || this.$route?.query?.id
+          || this.$route?.params?.id;
+        
+        if (projectId) {
+          await this.loadProjectDetail(projectId);
+        }
+      }
       
       // 현재 스톤 데이터로 폼 초기화
       this.editForm = {
@@ -1146,7 +1163,6 @@ export default {
         stoneDescribe: this.currentStoneData?.stoneDescribe || '' // 스톤 설명 초기화
       };
       
-      console.log('초기화된 editForm:', this.editForm);
       this.showEditModal = true;
     },
     
@@ -1169,10 +1185,59 @@ export default {
       return dateStr;
     },
     
-    async saveStoneEdit() {
-      console.log('=== 스톤 수정 저장 시작 ===');
-      console.log('현재 editForm:', this.editForm);
+    // 프로젝트 시작일 반환 (YYYY-MM-DD 형식)
+    getProjectStartDate() {
+      if (!this.projectDetail?.startTime) return '';
+      return this.formatDateForInput(this.projectDetail.startTime);
+    },
+    
+    // 프로젝트 종료일 반환 (YYYY-MM-DD 형식)
+    getProjectEndDate() {
+      if (!this.projectDetail?.endTime) return '';
+      return this.formatDateForInput(this.projectDetail.endTime);
+    },
+    
+    // 프로젝트 상세 정보 로드
+    async loadProjectDetail(projectId) {
+      if (!projectId) {
+        return false;
+      }
       
+      try {
+        const userId = localStorage.getItem('id');
+        // axios를 사용하여 ProjectList와 동일한 방식으로 호출
+        const response = await axios.get(
+          `http://localhost:8080/workspace-service/project/detail/${projectId}`,
+          {
+            headers: {
+              'X-User-Id': userId
+            }
+          }
+        );
+        
+        if (response.data.statusCode === 200 && response.data.result) {
+          const projectData = response.data.result;
+          // ProjectList와 동일한 구조로 저장
+          this.projectDetail = {
+            projectName: projectData.projectName || '',
+            projectDescription: projectData.projectDescription || '',
+            startTime: projectData.startTime || '',
+            endTime: projectData.endTime || '',
+            manager: projectData.projectManagerName || projectData.managerName || projectData.manager || '',
+            managerId: projectData.projectManagerId || projectData.managerId || '',
+            projectStatus: projectData.projectStatus || 'PROGRESS',
+            isChatCreation: projectData.isChatCreation || false
+          };
+          return true;
+        } else {
+          return false;
+        }
+      } catch (error) {
+        return false;
+      }
+    },
+    
+    async saveStoneEdit() {
       if (!this.editForm.stoneName.trim()) {
         showSnackbar('스톤명을 입력해주세요.', { color: 'error' });
         return;
@@ -1188,9 +1253,24 @@ export default {
         return;
       }
       
+      // 프로젝트 기간 검증
+      if (this.projectDetail) {
+        const projectStartDate = this.formatDateForInput(this.projectDetail.startTime);
+        const projectEndDate = this.formatDateForInput(this.projectDetail.endTime);
+        
+        if (projectStartDate && this.editForm.startDate < projectStartDate) {
+          showSnackbar(`시작일은 프로젝트 시작일(${projectStartDate}) 이후여야 합니다.`, { color: 'error' });
+          return;
+        }
+        
+        if (projectEndDate && this.editForm.endDate > projectEndDate) {
+          showSnackbar(`종료일은 프로젝트 종료일(${projectEndDate}) 이전이어야 합니다.`, { color: 'error' });
+          return;
+        }
+      }
+      
       try {
         this.isUpdating = true;
-        console.log('스톤 수정 API 호출 시작...');
         
         // 채팅방 생성이 비활성화된 경우 createChat을 false로 강제 설정
         if (this.isChatCreationDisabled) {
@@ -1212,12 +1292,8 @@ export default {
           stoneDescribe: this.editForm.stoneDescribe?.trim() || null // nullable
         });
         
-        console.log('=== 스톤 수정 API 응답 ===');
-        console.log('API 응답:', response);
-        
         // 백엔드에서 리턴된 수정된 스톤 ID 사용
         const updatedStoneId = response.result || stoneId;
-        console.log('수정된 스톤 ID:', updatedStoneId);
         
         showSnackbar('스톤이 성공적으로 수정되었습니다.', { color: 'success' });
         
@@ -2102,9 +2178,21 @@ export default {
       }
     },
     
-    // 스톤 데이터가 변경될 때 태스크 목록 다시 로드
+    // 스톤 데이터가 변경될 때 프로젝트 정보 로드 및 태스크 목록 다시 로드
     stoneData: {
       handler(newStoneData) {
+        // 프로젝트 정보 로드 (즉시 로드하여 모달이 열릴 때 준비되도록)
+        if (newStoneData && !this.projectDetail) {
+          const projectId = newStoneData.projectId 
+            || this.loadedStoneData?.projectId
+            || this.$route?.query?.id
+            || this.$route?.params?.id;
+          if (projectId) {
+            this.loadProjectDetail(projectId);
+          }
+        }
+        
+        // 태스크 목록 로드
         if (newStoneData && (newStoneData.stoneId || newStoneData.id)) {
           this.loadTaskList();
         }

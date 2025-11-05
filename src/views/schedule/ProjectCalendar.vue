@@ -409,6 +409,7 @@ async function openStoneModal(eventData) {
         stoneDescribe: stoneDetail.stoneDescribe,
         milestone: stoneDetail.milestone || stoneDetail.projectMilestone || 0, // 진행률 추가
         stoneParticipantDtoList: participants, // 참여자 원본 데이터도 포함
+        projectId: stoneDetail.projectId || eventData.projectId, // 프로젝트 ID 추가
         tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
           id: task.taskId || index + 1,
           name: task.taskName || '태스크',
@@ -462,6 +463,7 @@ const fetchEvents = async () => {
       type: "STONE",
       color: "#A3B8FF",
       stoneId: s.stoneId,
+      projectId: s.projectId, // 프로젝트 ID 추가
     }));
 
     const taskEvents = (taskRes.data.result || []).map((t) => ({
