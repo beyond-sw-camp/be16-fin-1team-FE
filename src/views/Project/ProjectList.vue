@@ -5564,7 +5564,7 @@ export default {
 
 /* 다른 탭들 */
 .other-tabs {
-  padding: 20px 50px;
+  padding: 20px 8px 20px 8px;
   background: #F5F5F5;
   flex: 1;
   display: flex;

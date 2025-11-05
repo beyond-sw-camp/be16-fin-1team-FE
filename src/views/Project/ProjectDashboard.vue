@@ -7,39 +7,76 @@
     <div v-else class="dashboard-content">
       <!-- 차트 영역 -->
       <div class="charts-section">
-        <!-- AI 차트 1 -->
+        <!-- AI 차트 1: 프로젝트 인사이트 (텍스트) -->
         <div class="chart-card ai-card">
           <div class="chart-header">
             <h3 class="chart-title">AI 프로젝트 인사이트</h3>
+            <p class="chart-subtitle">AI가 현재 진행 상황을 종합적으로 분석했습니다.</p>
           </div>
           <div class="chart-body ai-card-content">
-            <p class="ai-placeholder ai-loading-text">
-              AI 분석 데이터를 준비중입니다<span class="ai-dot ai-dot-1">.</span><span class="ai-dot ai-dot-2">.</span><span class="ai-dot ai-dot-3">.</span>
-            </p>
+            <div v-if="isAIDataLoading" class="ai-loading-container">
+              <p class="ai-placeholder ai-loading-text">
+                AI 분석 데이터를 준비중입니다<span class="ai-dot ai-dot-1">.</span><span class="ai-dot ai-dot-2">.</span><span class="ai-dot ai-dot-3">.</span>
+              </p>
+            </div>
+            <div v-else-if="aiAnalysisData.analysisReport" class="ai-report-text">
+              {{ aiAnalysisData.analysisReport }}
+            </div>
+            <div v-else class="ai-empty-state">
+              <p>분석 데이터를 불러올 수 없습니다.</p>
+            </div>
           </div>
         </div>
 
-        <!-- AI 차트 2 -->
+        <!-- AI 차트 2: 일정 예측 트렌드 (Line Chart) -->
         <div class="chart-card ai-card">
           <div class="chart-header">
             <h3 class="chart-title">AI 일정 예측 트렌드</h3>
+            <p class="chart-subtitle">AI가 분석한 예상 완료일 신뢰도 추세를 확인하세요.</p>
           </div>
           <div class="chart-body ai-card-content">
-            <p class="ai-placeholder ai-loading-text">
-              AI 분석 데이터를 준비중입니다<span class="ai-dot ai-dot-1">.</span><span class="ai-dot ai-dot-2">.</span><span class="ai-dot ai-dot-3">.</span>
-            </p>
+            <div v-if="isAIDataLoading" class="ai-loading-container">
+              <p class="ai-placeholder ai-loading-text">
+                AI 분석 데이터를 준비중입니다<span class="ai-dot ai-dot-1">.</span><span class="ai-dot ai-dot-2">.</span><span class="ai-dot ai-dot-3">.</span>
+              </p>
+            </div>
+            <div v-else-if="confidenceTrendChartSeries.length > 0" class="ai-chart-container">
+              <apexchart
+                type="line"
+                height="230"
+                :options="confidenceTrendChartOptions"
+                :series="confidenceTrendChartSeries"
+              />
+            </div>
+            <div v-else class="ai-empty-state">
+              <p>예측 데이터를 불러올 수 없습니다.</p>
+            </div>
           </div>
         </div>
 
-        <!-- AI 차트 3 -->
+        <!-- AI 차트 3: 리스크 진단 리포트 (Horizontal Bar Chart) -->
         <div class="chart-card ai-card">
           <div class="chart-header">
             <h3 class="chart-title">AI 리스크 진단 리포트</h3>
+            <p class="chart-subtitle">AI가 감지한 잠재적 일정 리스크 요인을 시각화했습니다.</p>
           </div>
           <div class="chart-body ai-card-content">
-            <p class="ai-placeholder ai-loading-text">
-              AI 분석 데이터를 준비중입니다<span class="ai-dot ai-dot-1">.</span><span class="ai-dot ai-dot-2">.</span><span class="ai-dot ai-dot-3">.</span>
-            </p>
+            <div v-if="isAIDataLoading" class="ai-loading-container">
+              <p class="ai-placeholder ai-loading-text">
+                AI 분석 데이터를 준비중입니다<span class="ai-dot ai-dot-1">.</span><span class="ai-dot ai-dot-2">.</span><span class="ai-dot ai-dot-3">.</span>
+              </p>
+            </div>
+            <div v-else-if="riskChartSeries.length > 0 && riskChartSeries[0].data.length > 0" class="ai-chart-container">
+              <apexchart
+                type="bar"
+                height="230"
+                :options="riskChartOptions"
+                :series="riskChartSeries"
+              />
+            </div>
+            <div v-else class="ai-empty-state">
+              <p>리스크 데이터를 불러올 수 없습니다.</p>
+            </div>
           </div>
         </div>
 
@@ -247,6 +284,13 @@ export default {
         progress: 0,
         totalTasks: 0,
         completedTasks: 0
+      },
+      // AI 분석 데이터
+      isAIDataLoading: true,
+      aiAnalysisData: {
+        analysisReport: null,
+        predictedCompletionTrend: [],
+        riskFactors: []
       },
       // 더미 데이터 (완료 추이)
       completionTrendData: {
@@ -584,8 +628,8 @@ export default {
         markers: {
           size: 5,
           colors: ['#81C784', '#64B5F6'],
-          strokeColors: '#fff',
-          strokeWidth: 2,
+          strokeColors: '#FFFFFF',
+          strokeWidth: 3,
           hover: {
             size: 7
           }
@@ -624,11 +668,11 @@ export default {
           },
           axisBorder: {
             show: true,
-            color: '#E5E7EB'
+            color: '#D1D5DB'
           },
           axisTicks: {
             show: true,
-            color: '#E5E7EB'
+            color: '#D1D5DB'
           }
         },
         yaxis: {
@@ -653,7 +697,7 @@ export default {
           decimalsInFloat: 0
         },
         grid: {
-          borderColor: '#F5F5F5',
+          borderColor: '#D1D5DB',
           strokeDashArray: 4
         },
         tooltip: {
@@ -738,6 +782,262 @@ export default {
       
       const width = Math.max(days * pxPerDay, minWidth);
       return width + 'px';
+    },
+    
+    // AI 일정 예측 트렌드 차트 (신뢰도 Line Chart)
+    confidenceTrendChartSeries() {
+      if (!this.aiAnalysisData.predictedCompletionTrend || this.aiAnalysisData.predictedCompletionTrend.length === 0) {
+        return [];
+      }
+      
+      const data = this.aiAnalysisData.predictedCompletionTrend.map(item => ({
+        x: new Date(item.date).getTime(),
+        y: (item.confidence * 100).toFixed(1)
+      }));
+      
+      return [{
+        name: '신뢰도',
+        data: data
+      }];
+    },
+    
+    confidenceTrendChartOptions() {
+      return {
+        chart: {
+          type: 'line',
+          fontFamily: 'Pretendard, sans-serif',
+          toolbar: {
+            show: false
+          },
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+            animateGradually: {
+              enabled: true,
+              delay: 150
+            },
+            dynamicAnimation: {
+              enabled: true,
+              speed: 350
+            }
+          }
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 4
+        },
+        markers: {
+          size: 6,
+          colors: ['#c084fc'],
+          strokeColors: '#FFFFFF',
+          strokeWidth: 3,
+          hover: {
+            size: 8
+          }
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shade: 'light',
+            type: 'vertical',
+            shadeIntensity: 0.5,
+            gradientToColors: ['#f9a8d4'],
+            opacityFrom: 0.7,
+            opacityTo: 0.3,
+          }
+        },
+        colors: ['#c084fc'],
+        dataLabels: {
+          enabled: false
+        },
+        xaxis: {
+          type: 'datetime',
+          labels: {
+            format: 'MM/dd',
+            style: {
+              colors: '#666666',
+              fontSize: '12px'
+            }
+          },
+          axisBorder: {
+            show: true,
+            color: '#D1D5DB'
+          },
+          axisTicks: {
+            show: true,
+            color: '#D1D5DB'
+          }
+        },
+        yaxis: {
+          min: 0,
+          max: 100,
+          title: {
+            text: '신뢰도 (%)',
+            style: {
+              color: '#666666',
+              fontSize: '13px',
+              fontWeight: 600
+            }
+          },
+          labels: {
+            style: {
+              colors: '#666666',
+              fontSize: '12px'
+            },
+            formatter: function(val) {
+              return val.toFixed(0) + '%';
+            }
+          }
+        },
+        grid: {
+          borderColor: '#D1D5DB',
+          strokeDashArray: 4
+        },
+        tooltip: {
+          enabled: true,
+          x: {
+            format: 'yyyy-MM-dd'
+          },
+          y: {
+            formatter: function(val) {
+              return val + '%';
+            },
+            title: {
+              formatter: function() {
+                return '신뢰도';
+              }
+            }
+          }
+        }
+      };
+    },
+    
+    // AI 리스크 차트 (Horizontal Bar Chart)
+    riskChartSeries() {
+      if (!this.aiAnalysisData.riskFactors || this.aiAnalysisData.riskFactors.length === 0) {
+        return [];
+      }
+      
+      const data = this.aiAnalysisData.riskFactors.map(item => ({
+        x: item.factor,
+        y: (item.riskLevel * 100).toFixed(1)
+      }));
+      
+      return [{
+        name: '위험도',
+        data: data
+      }];
+    },
+    
+    riskChartOptions() {
+      const colors = this.aiAnalysisData.riskFactors.map(item => 
+        item.riskLevel >= 0.7 ? '#fb7185' : 
+        item.riskLevel >= 0.4 ? '#fbbf24' : 
+        '#60a5fa'
+      );
+      
+      return {
+        chart: {
+          type: 'bar',
+          fontFamily: 'Pretendard, sans-serif',
+          toolbar: {
+            show: false
+          },
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800
+          }
+        },
+        plotOptions: {
+          bar: {
+            horizontal: true,
+            barHeight: '60%',
+            distributed: true,
+            dataLabels: {
+              position: 'top'
+            }
+          }
+        },
+        colors: colors,
+        dataLabels: {
+          enabled: true,
+          textAnchor: 'start',
+          style: {
+            colors: ['#333333'],
+            fontSize: '12px',
+            fontWeight: 600
+          },
+          formatter: function(val) {
+            return val + '%';
+          },
+          offsetX: 10,
+          dropShadow: {
+            enabled: false
+          }
+        },
+        xaxis: {
+          min: 0,
+          max: 100,
+          labels: {
+            style: {
+              colors: '#666666',
+              fontSize: '12px'
+            },
+            formatter: function(val) {
+              return val + '%';
+            }
+          },
+          title: {
+            text: '위험도 (%)',
+            style: {
+              color: '#666666',
+              fontSize: '13px',
+              fontWeight: 600
+            }
+          }
+        },
+        yaxis: {
+          labels: {
+            style: {
+              colors: '#666666',
+              fontSize: '12px'
+            },
+            align: 'left'
+          }
+        },
+        grid: {
+          borderColor: '#D1D5DB',
+          strokeDashArray: 4,
+          xaxis: {
+            lines: {
+              show: true
+            }
+          },
+          yaxis: {
+            lines: {
+              show: false
+            }
+          }
+        },
+        tooltip: {
+          enabled: true,
+          y: {
+            formatter: function(val) {
+              return val + '%';
+            },
+            title: {
+              formatter: function() {
+                return '위험도';
+              }
+            }
+          }
+        },
+        legend: {
+          show: false
+        }
+      };
     }
   },
   
@@ -745,6 +1045,7 @@ export default {
   async mounted() {
     await this.loadDashboardData();
     await this.loadPeopleOverview();
+    await this.loadAIAnalysis();
     this.logContainerHeights();
   },
   
@@ -803,6 +1104,43 @@ export default {
         }
       } catch (error) {
         console.error('대시보드 통계 로딩 실패:', error);
+      }
+    },
+    
+    async loadAIAnalysis() {
+      this.isAIDataLoading = true;
+      try {
+        const userId = localStorage.getItem('id');
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        
+        const response = await axios.get(
+          `${baseURL}/workspace-service/chatbot/project/${this.projectId}/dashboard`,
+          {
+            headers: {
+              'X-User-Id': userId
+            }
+          }
+        );
+        
+        if (response.data.statusCode === 200 && response.data.result) {
+          const aiData = response.data.result;
+          
+          console.log('📥 AI 데이터 수신 완료, 분석 중...');
+          
+          // 4초 지연 - AI가 분석하는 느낌
+          await new Promise(resolve => setTimeout(resolve, 4000));
+          
+          this.aiAnalysisData.analysisReport = aiData.analysisReport || null;
+          this.aiAnalysisData.predictedCompletionTrend = aiData.predictedCompletionTrend || [];
+          this.aiAnalysisData.riskFactors = aiData.riskFactors || [];
+          
+          console.log('✅ AI 분석 완료:', this.aiAnalysisData);
+        }
+      } catch (error) {
+        console.error('❌ AI 분석 데이터 로딩 실패:', error);
+        // 에러 시에도 4초 지연 없이 바로 로딩 해제
+      } finally {
+        this.isAIDataLoading = false;
       }
     },
     
@@ -960,10 +1298,11 @@ export default {
   width: 100%;
   height: 100%;
   max-height: 100%;
-  padding: 30px;
+  max-width: 100%;
+  padding: 0px 8px 30px 8px;
   box-sizing: border-box;
   overflow-y: auto;
-  overflow-x: visible;
+  overflow-x: hidden;
   background-color: #f5f5f5;
   display: flex;
   flex-direction: column;
@@ -977,17 +1316,23 @@ export default {
 }
 
 .project-dashboard-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: transparent;
   border-radius: 4px;
 }
 
 .project-dashboard-container::-webkit-scrollbar-thumb {
-  background: #888;
+  background: transparent;
   border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+/* 스크롤 시에만 스크롤바 표시 */
+.project-dashboard-container:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .project-dashboard-container::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .loading-container {
@@ -1003,8 +1348,8 @@ export default {
 }
 
 .dashboard-content {
-  max-width: none;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   width: 100%;
   flex: 1;
   min-height: 0;
@@ -1015,9 +1360,9 @@ export default {
 /* 차트 영역 */
 .charts-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 24px;
-  margin-bottom: 40px;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+  margin-bottom: 30px;
   width: 100%;
   min-width: 0;
 }
@@ -1032,22 +1377,39 @@ export default {
   flex-direction: column;
 }
 
+/* 1행: AI 카드 3개 - 각각 4칸씩 (더 넓게) */
 .chart-card:nth-child(1),
 .chart-card:nth-child(2),
-.chart-card:nth-child(3),
+.chart-card:nth-child(3) {
+  grid-column: span 4;
+  min-height: 350px;
+  max-height: 350px;
+}
+
+/* 2행: 도넛 차트 4개 - 각각 3칸씩 */
 .chart-card:nth-child(4),
 .chart-card:nth-child(5),
-.chart-card:nth-child(6) {
+.chart-card:nth-child(6),
+.chart-card:nth-child(7) {
+  grid-column: span 3;
   min-height: 400px;
   max-height: 400px;
 }
 
-.chart-card.chart-wide {
+/* 넓은 카드 (8번 이후만 적용) */
+.chart-card.chart-wide:nth-child(n+8) {
   grid-column: 1 / -1 !important;
   width: 100% !important;
   min-height: 450px;
   margin: 0 !important;
   box-sizing: border-box;
+}
+
+/* 7번 카드 (완료 추이)는 2행에 배치 */
+.chart-card:nth-child(7) {
+  grid-column: span 3;
+  min-height: 400px;
+  max-height: 400px;
 }
 
 .chart-header {
@@ -1061,6 +1423,16 @@ export default {
   font-size: 18px;
   color: #666666;
   margin: 0;
+}
+
+.chart-subtitle {
+  font-family: 'Pretendard', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  color: #666666;
+  margin: 6px 0 0 0;
+  padding-left: 8px;
+  line-height: 1.4;
 }
 
 .chart-body {
@@ -1115,9 +1487,12 @@ export default {
 .ai-card {
   position: relative;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.95);
+  background: #FFFFFF;
   backdrop-filter: blur(20px);
-  box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 0 25px rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 /* 오로라 효과 */
@@ -1151,6 +1526,7 @@ export default {
 .ai-card .chart-header {
   position: relative;
   z-index: 1;
+  margin-bottom: 16px;
 }
 
 .ai-placeholder {
@@ -1217,6 +1593,54 @@ export default {
   }
 }
 
+/* AI 로딩 컨테이너 */
+.ai-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  min-height: 150px;
+}
+
+/* AI 분석 리포트 텍스트 */
+.ai-report-text {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #333333;
+  padding: 20px;
+  text-align: left;
+  white-space: pre-line;
+  overflow-y: auto;
+  max-height: 250px;
+}
+
+/* AI 차트 컨테이너 */
+.ai-chart-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+/* AI Empty State */
+.ai-empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  min-height: 150px;
+}
+
+.ai-empty-state p {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  color: #999999;
+  text-align: center;
+}
+
 /* 인사이트 항목 스타일 */
 .insights-body {
   display: grid;
@@ -1263,8 +1687,8 @@ export default {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
