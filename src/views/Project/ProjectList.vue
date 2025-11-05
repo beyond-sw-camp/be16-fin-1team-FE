@@ -449,7 +449,9 @@
           @view-task="handleViewTask"
         />
       </div>
-      <p v-if="activeTab === 'gantt'" class="placeholder-text">간트차트 컨텐츠</p>
+      <div v-if="activeTab === 'gantt'" class="gantt-section">
+        <OrbitGantt :stones="stones" />
+      </div>
       <div v-if="activeTab === 'documents'" class="project-drive-container">
         <DriveMain :project-id="$route.query.id" />
       </div>
@@ -539,6 +541,8 @@
                 class="form-input" 
                 v-model="newStone.startTime"
                 placeholder="시작일"
+                :min="getProjectStartDate()"
+                :max="getProjectEndDate()"
               />
               <span class="date-separator">~</span>
               <input 
@@ -546,6 +550,8 @@
                 class="form-input" 
                 v-model="newStone.endTime"
                 placeholder="종료일"
+                :min="newStone.startTime || getProjectStartDate()"
+                :max="getProjectEndDate()"
               />
             </div>
           </div>
@@ -597,21 +603,21 @@
             ></textarea>
           </div>
           
-          <div class="form-group">
-            <label class="form-label">
+          <div class="form-group form-group-inline">
+            <label class="form-label form-label-inline">
               채팅방 생성
               <span v-if="isChatCreationDisabled" class="disabled-text">(이미 채팅방이 생성되어 있습니다)</span>
+              <div class="checkbox-wrapper">
+                <input 
+                  type="checkbox" 
+                  class="form-checkbox" 
+                  v-model="newStone.createChat"
+                  id="createChat"
+                  :disabled="isChatCreationDisabled"
+                />
+                <label for="createChat" class="checkbox-label" :class="{ 'disabled': isChatCreationDisabled }"></label>
+              </div>
             </label>
-            <div class="checkbox-wrapper">
-              <input 
-                type="checkbox" 
-                class="form-checkbox" 
-                v-model="newStone.createChat"
-                id="createChat"
-                :disabled="isChatCreationDisabled"
-              />
-              <label for="createChat" class="checkbox-label" :class="{ 'disabled': isChatCreationDisabled }"></label>
-            </div>
           </div>
         </div>
         
@@ -979,13 +985,15 @@ import { searchWorkspaceParticipants, getStoneDetail } from '@/services/stoneSer
 import { showSnackbar } from '@/services/snackbar.js';
 import pinIcon from '@/assets/icons/project/pin.svg';
 import pinOutlineIcon from '@/assets/icons/project/pin-outline.svg';
+import OrbitGantt from "@/components/project/OrbitGantt.vue";
 
 export default {
   name: 'ProjectList',
   components: {
     StoneDetailModal,
     DriveMain,
-    ProjectDashboard
+    ProjectDashboard,
+    OrbitGantt,
   },
   data() {
     return {
@@ -2179,6 +2187,10 @@ export default {
       }
       console.log('스톤 클릭:', stone);
       
+      // 모달을 먼저 닫고 데이터 초기화 (이전 상태 클리어)
+      this.showStoneDetailModal = false;
+      this.selectedStoneData = null;
+      
       try {
         this.isLoadingStoneDetail = true;
         
@@ -2215,6 +2227,7 @@ export default {
                 documentLink: '바로가기',
                 chatCreation: false,
                 tasks: [],
+                milestone: projectDetail.projectMilestone || projectDetail.milestone || 0, // 진행률 추가
                 // 프로젝트 전용 데이터
                 projectId: stone.projectId || projectDetail.projectId || projectId,
                 projectName: projectDetail.projectName,
@@ -2232,12 +2245,26 @@ export default {
               return;
             } else {
               console.error('프로젝트 상세 조회 실패:', response.data.statusMessage);
-              alert('프로젝트 정보를 불러오는데 실패했습니다.');
+              const errorMessage = response.data.statusMessage || '프로젝트 정보를 불러오는데 실패했습니다.';
+              this.showStoneDetailModal = false;
+              this.selectedStoneData = null;
+              showSnackbar(errorMessage, { color: 'error' });
               return;
             }
           } catch (projectError) {
             console.error('프로젝트 상세 조회 API 호출 실패:', projectError);
-            alert('프로젝트 정보를 불러오는데 실패했습니다.');
+            const errorMessage = projectError.response?.data?.statusMessage || 
+                                projectError.message || 
+                                '프로젝트 정보를 불러오는데 실패했습니다.';
+            
+            // 권한 관련 에러인지 확인
+            const isPermissionError = projectError.response?.status === 400 || 
+                                     errorMessage.includes('권한') || 
+                                     errorMessage.includes('접근');
+            
+            this.showStoneDetailModal = false;
+            this.selectedStoneData = null;
+            showSnackbar(errorMessage, { color: 'error' });
             return;
           }
         }
@@ -2265,6 +2292,7 @@ export default {
             chatCreation: stoneDetail.chatCreation,
             stoneStatus: stoneDetail.stoneStatus,
             stoneDescribe: stoneDetail.stoneDescribe, // 스톤 설명 추가
+            milestone: stoneDetail.milestone || stoneDetail.projectMilestone || 0, // 진행률 추가
             tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
               id: task.taskId || index + 1,
               name: task.taskName || '태스크',
@@ -2280,29 +2308,33 @@ export default {
           console.log('showStoneDetailModal 상태:', this.showStoneDetailModal);
         } else {
           console.error('스톤 상세 조회 실패:', response.statusMessage);
-          alert(response.statusMessage || '스톤 정보를 불러오는데 실패했습니다.');
+          const errorMessage = response.statusMessage || '스톤 정보를 불러오는데 실패했습니다.';
+          
+          // 모달을 닫고 데이터 초기화
+          this.showStoneDetailModal = false;
+          this.selectedStoneData = null;
+          showSnackbar(errorMessage, { color: 'error' });
         }
       } catch (error) {
         console.error('스톤 상세 조회 API 호출 실패:', error);
         const errorMessage = error.message || '스톤 정보를 불러오는데 실패했습니다.';
-        alert(errorMessage);
         
-        // 에러 발생 시 기본 데이터로 모달 표시
-        this.selectedStoneData = {
-          stoneId: stone.id,
-          stoneName: stone.name,
-          startTime: stone.startTime || '2025-09-12',
-          endTime: stone.endTime || '2025-09-17',
-          manager: '김올빗',
-          participants: '비어 있음',
-          documentLink: '바로가기',
-          chatCreation: false,
-          tasks: [],
-          isProject: stone.isRoot || false
-        };
-        console.log('에러 처리 후 모달 표시 설정:', this.selectedStoneData);
-        this.showStoneDetailModal = true;
-        console.log('showStoneDetailModal 상태:', this.showStoneDetailModal);
+        // 권한 관련 에러인지 확인 (400 에러이거나 메시지에 '권한'이 포함된 경우)
+        const isPermissionError = error.response?.status === 400 || 
+                                  errorMessage.includes('권한') || 
+                                  errorMessage.includes('접근');
+        
+        // 모든 에러에서 모달을 닫고 데이터 초기화
+        this.showStoneDetailModal = false;
+        this.selectedStoneData = null;
+        
+        if (isPermissionError) {
+          // 권한 에러인 경우 스낵바로 메시지 표시
+          showSnackbar(errorMessage, { color: 'error' });
+        } else {
+          // 기타 에러인 경우 스낵바로 메시지 표시
+          showSnackbar(errorMessage, { color: 'error' });
+        }
       } finally {
         this.isLoadingStoneDetail = false;
       }
@@ -2336,6 +2368,7 @@ export default {
             chatCreation: stoneDetail.chatCreation,
             stoneStatus: stoneDetail.stoneStatus,
             stoneDescribe: stoneDetail.stoneDescribe, // 스톤 설명 추가
+            milestone: stoneDetail.milestone || stoneDetail.projectMilestone || 0, // 진행률 추가
             tasks: (stoneDetail.taskResDtoList || []).map((task, index) => ({
               id: task.taskId || index + 1,
               name: task.taskName || '태스크',
@@ -2356,9 +2389,25 @@ export default {
           });
         } else {
           console.error('스톤 상세 조회 실패:', response.statusMessage);
+          showSnackbar(response.statusMessage || '스톤 정보를 불러오는데 실패했습니다.', { color: 'error' });
         }
       } catch (error) {
         console.error('스톤 상세 조회 API 호출 실패:', error);
+        const errorMessage = error.message || '스톤 정보를 불러오는데 실패했습니다.';
+        
+        // 권한 관련 에러인지 확인 (400 에러이거나 메시지에 '권한'이 포함된 경우)
+        const isPermissionError = error.response?.status === 400 || 
+                                  errorMessage.includes('권한') || 
+                                  errorMessage.includes('접근');
+        
+        if (isPermissionError) {
+          // 권한 에러인 경우 스낵바로 메시지 표시하고 모달 닫기
+          showSnackbar(errorMessage, { color: 'error' });
+          this.showStoneDetailModal = false;
+        } else {
+          // 기타 에러인 경우 스낵바로 메시지 표시
+          showSnackbar(errorMessage, { color: 'error' });
+        }
       } finally {
         this.isLoadingStoneDetail = false;
       }
@@ -2933,6 +2982,13 @@ export default {
       event.stopPropagation(); // 팬 모드 드래그 방지
       this.selectedParentStone = parentStone;
       this.newStone.parentStoneName = parentStone.name;
+      
+      // 오늘 날짜를 기본값으로 설정
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      this.newStone.startTime = todayStr;
+      this.newStone.endTime = todayStr;
+      
       this.showCreateStoneModal = true;
       console.log('모달 상태:', this.showCreateStoneModal);
     },
@@ -3435,20 +3491,44 @@ export default {
         );
         
         if (response.data.statusCode === 201) {
-          alert('스톤이 성공적으로 생성되었습니다.');
+          showSnackbar('스톤이 성공적으로 생성되었습니다.', { color: 'success' });
           this.closeCreateStoneModal();
           // 스톤 목록 새로고침
           await this.loadStones(projectId);
         } else {
-          alert(`스톤 생성에 실패했습니다. (${response.data.statusCode}: ${response.data.statusMessage})`);
+          const errorMessage = response.data.statusMessage || `스톤 생성에 실패했습니다. (${response.data.statusCode})`;
+          showSnackbar(errorMessage, { color: 'error' });
+          this.closeCreateStoneModal();
         }
       } catch (error) {
+        let errorMessage = '스톤 생성에 실패했습니다.';
+        
         if (error.response) {
-          alert(`서버 오류: ${error.response.status} - ${error.response.data?.statusMessage || error.message}`);
+          const statusCode = error.response.status;
+          errorMessage = error.response.data?.statusMessage || error.message || errorMessage;
+          
+          // 권한 관련 에러인지 확인 (400 에러이거나 메시지에 '권한'이 포함된 경우)
+          const isPermissionError = statusCode === 400 || 
+                                    errorMessage.includes('권한') || 
+                                    errorMessage.includes('접근');
+          
+          if (isPermissionError) {
+            // 권한 에러인 경우 스낵바로 메시지 표시하고 모달 닫기
+            showSnackbar(errorMessage, { color: 'error' });
+            this.closeCreateStoneModal();
+          } else {
+            // 기타 서버 에러
+            showSnackbar(errorMessage, { color: 'error' });
+            this.closeCreateStoneModal();
+          }
         } else if (error.request) {
-          alert('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
+          errorMessage = '서버에 연결할 수 없습니다. 네트워크를 확인해주세요.';
+          showSnackbar(errorMessage, { color: 'error' });
+          this.closeCreateStoneModal();
         } else {
-          alert(`요청 오류: ${error.message}`);
+          errorMessage = error.message || errorMessage;
+          showSnackbar(errorMessage, { color: 'error' });
+          this.closeCreateStoneModal();
         }
       }
     },
@@ -4131,6 +4211,18 @@ export default {
         return dateStr.split('T')[0]; // T 이전 부분만 추출
       }
       return dateStr;
+    },
+    
+    // 프로젝트 시작일 반환 (YYYY-MM-DD 형식)
+    getProjectStartDate() {
+      if (!this.projectDetail?.startTime) return '';
+      return this.formatDateForInput(this.projectDetail.startTime);
+    },
+    
+    // 프로젝트 종료일 반환 (YYYY-MM-DD 형식)
+    getProjectEndDate() {
+      if (!this.projectDetail?.endTime) return '';
+      return this.formatDateForInput(this.projectDetail.endTime);
     },
 
     formatDateForAPI(dateStr) {
@@ -6331,6 +6423,18 @@ export default {
   gap: 8px;
 }
 
+.form-group-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group-inline .form-label {
+  margin-bottom: 0;
+  flex: 0 0 auto;
+}
+
 .form-label {
   font-family: 'Pretendard', sans-serif;
   font-style: normal;
@@ -6339,6 +6443,21 @@ export default {
   line-height: 17px;
   color: #374151;
   margin-bottom: 6px;
+}
+
+.form-label.form-label-inline {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.form-label-inline .disabled-text {
+  margin-right: 0;
+}
+
+.form-label-inline .checkbox-wrapper {
+  margin-left: 0;
 }
 
 .form-input {

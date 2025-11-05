@@ -2,9 +2,12 @@
 import { onMounted, onBeforeUnmount, watch, ref } from "vue";
 
 const props = defineProps({
-  events: { type: Array, default: () => [] },
-  viewType: { type: String, default: "dayGridMonth" },
-  initialDate: { type: [String, Date], default: undefined },
+  events: Array,
+  initialDate: Date,
+  viewType: {
+    type: String,
+    default: "dayGridMonth",
+  },
 });
 
 const emit = defineEmits(["event-click"]);
@@ -57,12 +60,9 @@ watch(
 
 watch(
   () => props.viewType,
-  (v) => {
-    if (!calendar || !v) return;
-    try {
-      calendar.changeView(v);
-    } catch (e) {
-      console.warn("[CalendarBase] changeView 실패:", v, e);
+  (newView) => {
+    if (calendar) {
+      calendar.changeView(newView);
     }
   }
 );

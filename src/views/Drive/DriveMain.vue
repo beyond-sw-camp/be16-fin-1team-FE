@@ -738,6 +738,10 @@ export default {
     stoneId: {
       type: [String, Number],
       default: null
+    },
+    disableRouting: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -1707,17 +1711,20 @@ export default {
           
           // 접근 권한 에러 등의 경우 이전 페이지로 이동
           const errorMessage = error.response?.data?.statusMessage || '접근 권한이 없거나 문서함을 불러올 수 없습니다.';
-          showSnackbar(errorMessage, 'error');
+          showSnackbar(errorMessage, { color: 'error' });
           
-          // 워크스페이스 드라이브 루트로 리디렉션
-          const workspaceId = localStorage.getItem('selectedWorkspaceId');
-          this.$router.replace({ 
-            name: 'driveRoot',
-            params: { 
-              rootType: 'WORKSPACE',
-              rootId: workspaceId
-            }
-          });
+          // 모달 내부에서 사용되는 경우 라우팅하지 않음
+          if (!this.disableRouting) {
+            // 워크스페이스 드라이브 루트로 리디렉션
+            const workspaceId = localStorage.getItem('selectedWorkspaceId');
+            this.$router.replace({ 
+              name: 'driveRoot',
+              params: { 
+                rootType: 'WORKSPACE',
+                rootId: workspaceId
+              }
+            });
+          }
         } finally {
           this.loading = false;
           this.loadingTree = false;

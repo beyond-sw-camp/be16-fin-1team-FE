@@ -134,7 +134,7 @@
     <!-- 일정 조회 모달 -->
     <ScheduleDetailModal
       v-model:visible="isDetailModalOpen"
-      :eventId="selectedEventId"
+      :scheduleId="selectedEventId"
       @updated="fetchSharedData"
       @deleted="fetchSharedData"
     />

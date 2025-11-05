@@ -21,7 +21,7 @@
             @keydown.enter="onEnterKey"
             @focus="onSearchFocus"
             @blur="onSearchBlur"
-            placeholder="검색" 
+            placeholder="문서명, 작업명, 파일 내용 등으로 검색" 
             class="search-field" 
           />
           <!-- Tab 키 힌트와 미리보기 -->
@@ -612,6 +612,7 @@ export default {
         FILE: 'mdi-file-outline',
         STONE: 'mdi-folder-star-outline',
         PROJECT: 'mdi-folder-outline',
+        TASK: 'mdi-folder-outline',
       };
       return iconMap[docType] || 'mdi-file-outline';
     },
@@ -623,6 +624,7 @@ export default {
         FILE: '#ff9800',
         STONE: '#9c27b0',
         PROJECT: '#1976d2',
+        TASK: '#1976d2',
       };
       return colorMap[docType] || '#757575';
     },
@@ -634,6 +636,7 @@ export default {
         FILE: '[파일]',
         STONE: '[스톤]',
         PROJECT: '[프로젝트]',
+        TASK: '[작업]',
       };
       return labelMap[docType] || docType;
     },

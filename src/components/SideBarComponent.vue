@@ -48,7 +48,7 @@
       </div>
       
       <!-- 내 일정 -->
-      <div class="nav-item" @click="navigateToSchedule">
+      <div class="nav-item" :class="{ active: currentRoute.startsWith('/schedule') }" @click="navigateToSchedule">
         <img src="@/assets/icons/sidebar/schedule.svg" alt="내 일정" class="nav-icon" />
         <div class="nav-text">내 일정</div>
       </div>
@@ -416,6 +416,9 @@ export default {
         if (driveResponse.statusCode === 200 && driveResponse.result !== undefined) {
           this.currentStorage = driveResponse.result || 0;
         }
+        
+        // 워크스페이스 스토어에 스토리지 정보 저장 (다른 컴포넌트에서 사용할 수 있도록)
+        this.workspaceStore.setStorageInfo(this.currentStorage, this.maxStorage);
         
         console.log('스토리지 정보 업데이트:', { 
           current: this.formatStorage(this.currentStorage), 
