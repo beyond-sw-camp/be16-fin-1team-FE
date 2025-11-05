@@ -7,7 +7,43 @@
     <div v-else class="dashboard-content">
       <!-- 차트 영역 -->
       <div class="charts-section">
-        <!-- 차트 1: 프로젝트 진행률 -->
+        <!-- AI 차트 1 -->
+        <div class="chart-card ai-card">
+          <div class="chart-header">
+            <h3 class="chart-title">AI 프로젝트 인사이트</h3>
+          </div>
+          <div class="chart-body ai-card-content">
+            <p class="ai-placeholder ai-loading-text">
+              AI 분석 데이터를 준비중입니다<span class="ai-dot ai-dot-1">.</span><span class="ai-dot ai-dot-2">.</span><span class="ai-dot ai-dot-3">.</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- AI 차트 2 -->
+        <div class="chart-card ai-card">
+          <div class="chart-header">
+            <h3 class="chart-title">AI 일정 예측 트렌드</h3>
+          </div>
+          <div class="chart-body ai-card-content">
+            <p class="ai-placeholder ai-loading-text">
+              AI 분석 데이터를 준비중입니다<span class="ai-dot ai-dot-1">.</span><span class="ai-dot ai-dot-2">.</span><span class="ai-dot ai-dot-3">.</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- AI 차트 3 -->
+        <div class="chart-card ai-card">
+          <div class="chart-header">
+            <h3 class="chart-title">AI 리스크 진단 리포트</h3>
+          </div>
+          <div class="chart-body ai-card-content">
+            <p class="ai-placeholder ai-loading-text">
+              AI 분석 데이터를 준비중입니다<span class="ai-dot ai-dot-1">.</span><span class="ai-dot ai-dot-2">.</span><span class="ai-dot ai-dot-3">.</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- 차트 4: 프로젝트 진행률 -->
         <div class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">프로젝트 진행률</h3>
@@ -22,7 +58,7 @@
           </div>
         </div>
 
-        <!-- 차트 2: 스톤 완료 현황 -->
+        <!-- 차트 5: 스톤 완료 현황 -->
         <div class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">스톤 완료 현황</h3>
@@ -37,7 +73,7 @@
           </div>
         </div>
 
-        <!-- 차트 3: 태스크 완료 현황 -->
+        <!-- 차트 6: 태스크 완료 현황 -->
         <div class="chart-card">
           <div class="chart-header">
             <h3 class="chart-title">태스크 완료 현황</h3>
@@ -52,17 +88,7 @@
           </div>
         </div>
 
-        <!-- 차트 4: AI 차트 -->
-        <div class="chart-card ai-card">
-          <div class="chart-header">
-            <h3 class="chart-title">AI 차트</h3>
-          </div>
-          <div class="chart-body ai-card-content">
-            <p class="ai-placeholder">AI 분석 데이터를 준비중입니다…</p>
-          </div>
-        </div>
-
-        <!-- 차트 5: 완료 추이 -->
+        <!-- 차트 7: 완료 추이 -->
         <div class="chart-card chart-wide">
           <div class="chart-header">
             <h3 class="chart-title">스톤/태스크 완료 추이</h3>
@@ -82,17 +108,19 @@
           </div>
         </div>
 
-        <!-- 차트 6: AI 예상 완료일 -->
+        <!-- 차트 8: AI 예상 완료일 -->
         <div class="chart-card chart-wide ai-card">
           <div class="chart-header">
             <h3 class="chart-title">AI 예상 완료일</h3>
           </div>
           <div class="chart-body ai-card-content">
-            <p class="ai-placeholder">AI가 프로젝트의 예상 완료일을 계산하고 있습니다…</p>
+            <p class="ai-placeholder ai-loading-text">
+              AI가 프로젝트의 예상 완료일을 계산하고 있습니다<span class="ai-dot ai-dot-1">.</span><span class="ai-dot ai-dot-2">.</span><span class="ai-dot ai-dot-3">.</span>
+            </p>
           </div>
         </div>
 
-        <!-- 차트 7: 프로젝트 인사이트 -->
+        <!-- 차트 9: 프로젝트 인사이트 -->
         <div class="chart-card chart-wide">
           <div class="chart-header">
             <h3 class="chart-title">프로젝트 인사이트</h3>
@@ -103,11 +131,7 @@
               <div class="insight-value">-</div>
             </div>
             <div class="insight-item">
-              <div class="insight-label">리스크 지수</div>
-              <div class="insight-value">-</div>
-            </div>
-            <div class="insight-item">
-              <div class="insight-label">지연 task top3</div>
+              <div class="insight-label">지연 태스크 수</div>
               <div class="insight-value">-</div>
             </div>
             <div class="insight-item">
@@ -323,12 +347,31 @@ export default {
           }
         },
         dataLabels: {
-          enabled: false
+          enabled: true,
+          style: {
+            fontSize: '14px',
+            fontWeight: 700,
+            colors: ['#000']
+          },
+          dropShadow: {
+            enabled: false
+          }
         },
         labels: ['완료', '미완료'],
         colors: ['#FFE364', '#E5E7EB'],
         legend: {
-          show: false
+          show: true,
+          position: 'bottom',
+          fontSize: '14px',
+          fontWeight: 600,
+          labels: {
+            colors: '#666666'
+          },
+          markers: {
+            width: 12,
+            height: 12,
+            radius: 2
+          }
         },
         stroke: {
           width: 0
@@ -989,9 +1032,12 @@ export default {
   flex-direction: column;
 }
 
-.chart-card:first-child,
+.chart-card:nth-child(1),
 .chart-card:nth-child(2),
-.chart-card:nth-child(3) {
+.chart-card:nth-child(3),
+.chart-card:nth-child(4),
+.chart-card:nth-child(5),
+.chart-card:nth-child(6) {
   min-height: 400px;
   max-height: 400px;
 }
@@ -1111,15 +1157,70 @@ export default {
   font-family: 'Pretendard', sans-serif;
   font-size: 16px;
   font-weight: 500;
-  color: #666666;
   text-align: center;
   margin: 0;
+  position: relative;
+}
+
+/* AI 로딩 텍스트 shimmer 효과 */
+.ai-loading-text {
+  background: linear-gradient(
+    90deg,
+    #7dd3fc 0%,
+    #c084fc 25%,
+    #f9a8d4 50%,
+    #c084fc 75%,
+    #7dd3fc 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: aiTextShimmer 3s ease-in-out infinite;
+}
+
+@keyframes aiTextShimmer {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+/* AI 점(...) 깜빡임 */
+.ai-dot {
+  opacity: 0;
+  animation: aiDotBlink 1.5s ease-in-out infinite;
+}
+
+.ai-dot-1 {
+  animation-delay: 0s;
+}
+
+.ai-dot-2 {
+  animation-delay: 0.3s;
+}
+
+.ai-dot-3 {
+  animation-delay: 0.6s;
+}
+
+@keyframes aiDotBlink {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
 }
 
 /* 인사이트 항목 스타일 */
 .insights-body {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   padding: 20px;
   align-items: start;
