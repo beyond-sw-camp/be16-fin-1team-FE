@@ -636,126 +636,119 @@
     
     <!-- 사용자 선택 모달 -->
     <div v-if="showUserSelectModal" class="modal-overlay" @click="closeUserSelectModal">
-      <div class="user-select-modal" @click.stop>
-        <div class="modal-header">
-          <h2 class="modal-title">
-            {{ userSelectType === 'assignee' ? '담당자 선택' : userSelectType === 'project-manager' ? '프로젝트 담당자 선택' : '참여자 선택' }}
-          </h2>
-        </div>
-        
-        <div class="modal-body">
-          <!-- 1. 사용자 그룹 섹션 -->
-          <div class="search-section">
-            <h3 class="section-title">사용자 그룹</h3>
+      <div class="user-select-modal-container" @click.stop>
+        <!-- 헤더 -->
+        <header class="user-select-modal-header">
+          <h2>참여자 선택</h2>
+          <p>워크스페이스 내 사용자를 검색하여 참여자로 추가할 수 있습니다.</p>
+        </header>
+
+        <!-- 본문 -->
+        <div class="user-select-modal-body">
+          <!-- 왼쪽: 사용자 그룹 -->
+          <div class="user-select-section group-section">
+            <h3>사용자 그룹</h3>
+            <p class="hint-text">그룹을 선택하여 멤버를 추가할 수 있습니다.</p>
+
             <div class="group-list">
-              <div 
-                v-for="group in userGroupList" 
-                :key="group.groupId"
-                class="group-item"
-                @click="selectGroup(group.groupName)"
-              >
-                <span class="group-name">{{ group.groupName }}</span>
-                <span class="group-count">{{ group.participantCount }}명</span>
-                <button 
-                  class="btn-add-group"
-                  @click.stop="addGroupToSelected(group.groupName)"
+              <template v-if="userGroupList.length > 0">
+                <div
+                  v-for="group in userGroupList"
+                  :key="group.groupId"
+                  class="group-item"
                 >
-                  추가
-                </button>
-              </div>
-              <div v-if="userGroupList.length === 0" class="no-groups">
-                그룹이 없습니다.
-              </div>
+                  <div class="group-info">
+                    <span class="group-name">{{ group.groupName }}</span>
+                    <span class="group-count">({{ group.participantCount }}명)</span>
+                  </div>
+                  <button
+                    class="group-add-btn"
+                    @click="addGroupToSelected(group.groupName)"
+                  >
+                    추가
+                  </button>
+                </div>
+              </template>
+              <div v-else class="empty-msg">그룹이 없습니다.</div>
             </div>
           </div>
-          
-          <!-- 2. 이메일 검색 섹션 -->
-          <div class="search-section">
-            <h3 class="section-title">이메일 검색</h3>
-            <div class="search-group">
-              <input 
-                type="text" 
-                class="search-input"
+
+          <!-- 중간: 새 참여자 추가 -->
+          <div class="user-select-section add-section">
+            <h3>새 참여자 추가</h3>
+
+            <div class="search-wrapper">
+              <input
                 v-model="userSearchKeyword"
+                lang="en"
                 @keyup.enter="searchUsers"
-                placeholder="이메일로 검색..."
+                placeholder="이메일로 검색"
+                class="search-input"
               />
-              <button class="btn-search" @click="searchUsers">
-                검색
-              </button>
+              <button @click="searchUsers" class="search-btn">검색</button>
             </div>
-          </div>
-          
-          <!-- 3. 이메일 검색 결과 섹션 -->
-          <div class="search-section">
-            <h3 class="section-title">이메일 검색 결과</h3>
+
             <div class="user-list">
-              <div 
-                v-for="user in emailSearchResults" 
-                :key="user.id"
-                class="user-item search-result-item"
-              >
-                <div class="user-info search-result-info" @click="selectUser(user)">
-                  <span class="user-name">{{ user.name }}</span>
-                  <span class="user-email">{{ user.email }}</span>
-                </div>
-                <button class="btn-add-user" @click="selectUser(user)">
-                  추가
-                </button>
-              </div>
-              <div v-if="emailSearchResults.length === 0" class="no-results">
-                검색 결과가 없습니다.
-              </div>
-            </div>
-          </div>
-          
-          <!-- 4. 선택된 사용자 섹션 -->
-          <div class="search-section">
-            <h3 class="section-title">선택된 사용자</h3>
-            <div v-if="allSelectedUsers.length > 0" class="selected-group-members">
-              <div 
-                v-for="member in allSelectedUsers" 
-                :key="member.id"
-                class="selected-member-item"
-              >
-                <div class="user-info">
-                  <div class="user-name">{{ member.name }}</div>
-                  <div class="user-email">{{ member.email }}</div>
-                </div>
-                <button 
-                  class="btn-remove-member" 
-                  @click="removeMember(member.id)"
+              <template v-if="emailSearchResults.length > 0">
+                <div
+                  v-for="user in emailSearchResults"
+                  :key="user.id"
+                  class="user-row"
                 >
-                  ×
-                </button>
-              </div>
-              <button class="btn-clear-all" @click="clearAllMembers">
-                전체 해제
-              </button>
+                  <label>
+                    <input
+                      type="checkbox"
+                      :checked="allSelectedUsers.find(u => u.id === user.id) !== undefined"
+                      @change="toggleUserSelection(user)"
+                      class="checkbox"
+                    />
+                    <span class="user-text">
+                      <span class="user-name">{{ user.name }}</span>
+                      <span class="user-email">({{ user.email }})</span>
+                    </span>
+                  </label>
+                </div>
+              </template>
+              <div v-else class="empty-msg">검색 결과가 없습니다.</div>
             </div>
-            <div v-else-if="selectedUser" class="selected-user-item">
-              <div class="user-info">
-                <div class="user-name">{{ selectedUser.name }}</div>
-                <div class="user-email">{{ selectedUser.email }}</div>
-              </div>
-              <button class="btn-remove-selection" @click="removeSelectedUser">
-                선택 해제
-              </button>
-            </div>
-            <div v-else class="no-selection">
-              사용자를 선택해주세요.
+
+            <button class="add-btn" @click="addSelectedUsers">＋ 참여자 추가</button>
+          </div>
+
+          <!-- 오른쪽: 선택된 참여자 리스트 -->
+          <div class="user-select-section list-section">
+            <h3>선택된 참여자 리스트</h3>
+            <p class="hint-text">현재 선택된 참여자 목록입니다.</p>
+
+            <div class="subscription-list">
+              <template v-if="allSelectedUsers.length > 0">
+                <div
+                  v-for="user in allSelectedUsers"
+                  :key="user.id"
+                  class="subscriber-item"
+                >
+                  <div class="subscriber-info">
+                    <span class="subscriber-name">{{ user.name }}</span>
+                    <span class="user-email">({{ user.email }})</span>
+                  </div>
+                  <img
+                    src="@/assets/icons/calendar/trash-can.svg"
+                    alt="삭제"
+                    class="trash-icon"
+                    @click="removeMember(user.id)"
+                  />
+                </div>
+              </template>
+              <div v-else class="empty-list">현재 선택된 참여자가 없습니다.</div>
             </div>
           </div>
         </div>
-        
-          <div class="modal-footer">
-            <button class="btn-confirm" @click="confirmUserSelection">
-              확인
-            </button>
-            <button class="btn-cancel" @click="closeUserSelectModal">
-              취소
-            </button>
-          </div>
+
+        <!-- 푸터 -->
+        <footer class="user-select-modal-footer">
+          <button class="btn-confirm" @click="confirmUserSelection">확인</button>
+          <button class="close-btn" @click="closeUserSelectModal">닫기</button>
+        </footer>
       </div>
     </div>
 
@@ -3842,6 +3835,38 @@ export default {
       }
     },
     
+    // 체크박스로 사용자 선택 토글
+    toggleUserSelection(user) {
+      const existingIndex = this.allSelectedUsers.findIndex(u => u.id === user.id);
+      if (existingIndex === -1) {
+        this.allSelectedUsers.push(user);
+      } else {
+        this.allSelectedUsers.splice(existingIndex, 1);
+      }
+    },
+    
+    // 선택된 사용자들을 추가
+    addSelectedUsers() {
+      // 체크박스로 선택된 사용자 확인
+      const selectedFromResults = this.emailSearchResults.filter(user => 
+        this.allSelectedUsers.find(u => u.id === user.id) !== undefined
+      );
+      
+      if (selectedFromResults.length === 0) {
+        return;
+      }
+      
+      // 참여자 필드 업데이트
+      if (this.userSelectType === 'participants') {
+        const memberNames = this.allSelectedUsers.map(member => member.name);
+        this.newStone.participants = memberNames.join(', ');
+      }
+      
+      // 성공 메시지 표시
+      const addedCount = selectedFromResults.length;
+      showSnackbar(`${addedCount}명의 참여자가 추가되었습니다.`, { color: 'success' });
+    },
+    
     // 선택된 사용자 해제
     removeSelectedUser() {
       this.selectedUser = null;
@@ -3976,6 +4001,10 @@ export default {
         if (response.data.statusCode === 200) {
           const members = response.data.result.members.content || [];
           
+          if (members.length === 0) {
+            return;
+          }
+          
           // API 응답을 사용자 목록 형식으로 변환
           const newMembers = members.map(member => ({
             id: member.userId,
@@ -3985,10 +4014,12 @@ export default {
           }));
           
           // 기존 선택된 사용자들과 중복 제거하면서 추가
+          let addedCount = 0;
           newMembers.forEach(member => {
             const existingIndex = this.allSelectedUsers.findIndex(user => user.id === member.id);
             if (existingIndex === -1) {
               this.allSelectedUsers.push(member);
+              addedCount++;
             }
           });
           
@@ -3996,6 +4027,11 @@ export default {
           if (this.userSelectType === 'participants') {
             const memberNames = this.allSelectedUsers.map(member => member.name);
             this.newStone.participants = memberNames.join(', ');
+          }
+          
+          // 성공 메시지 표시 (추가된 멤버가 있을 때만)
+          if (addedCount > 0) {
+            showSnackbar(`'${selectedGroup.groupName}' 그룹에서 ${addedCount}명의 참여자가 추가되었습니다.`, { color: 'success' });
           }
           
           console.log('전체 선택된 사용자들:', this.allSelectedUsers);
@@ -4132,7 +4168,6 @@ export default {
     // 스톤 참여자 변경
     async updateStoneParticipants() {
       if (!this.selectedStoneForParticipants || this.allSelectedUsers.length === 0) {
-        alert('선택된 스톤이나 참여자가 없습니다.');
         return;
       }
       
@@ -4161,7 +4196,7 @@ export default {
         
         if (response.data.statusCode === 200) {
           console.log('스톤 참여자 변경 성공:', response.data);
-          alert('참여자가 성공적으로 변경되었습니다.');
+          showSnackbar('참여자가 성공적으로 변경되었습니다.', { color: 'success' });
           
           // 스톤 상세 모달 닫기
           this.closeStoneDetailModal();
@@ -4173,12 +4208,9 @@ export default {
           }
         } else {
           console.error('스톤 참여자 변경 실패:', response.data);
-          alert('참여자 변경에 실패했습니다.');
         }
       } catch (error) {
         console.error('스톤 참여자 변경 API 호출 실패:', error);
-        const errorMessage = error.response?.data?.statusMessage || error.message || '참여자 변경 중 오류가 발생했습니다.';
-        alert(errorMessage);
       }
     },
 
@@ -6046,25 +6078,364 @@ export default {
   background: #E6B800;
 }
 
-/* 사용자 선택 모달 스타일 */
-.user-select-modal {
-  width: 500px;
-  min-height: 400px;
-  max-height: 80vh;
-  background: #F5F5F5;
-  border: 1px solid #000000;
-  box-shadow: 4px 4px 32px rgba(0, 0, 0, 0.25), -4px -4px 32px rgba(0, 0, 0, 0.25);
+/* 사용자 선택 모달 스타일 - 구독 관리 모달과 동일한 디자인 */
+.user-select-modal-container {
+  width: 1100px;
+  height: 600px;
+  background: #ffffff;
   border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: fadeIn 0.25s ease-out;
+  font-family: 'Pretendard', sans-serif;
   display: flex;
   flex-direction: column;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.user-select-modal-header {
+  background: #fff8e1;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f2e3a5;
+}
+
+.user-select-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+}
+
+.user-select-modal-header p {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #777;
+}
+
+.user-select-modal-body {
+  display: flex;
+  gap: 20px;
+  padding: 20px 24px;
+  background: #fffdf9;
+  flex: 1;
+  overflow: hidden;
+}
+
+.user-select-section {
+  flex: 1;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 16px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.user-select-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 10px;
+}
+
+.hint-text {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 10px;
+}
+
+.search-wrapper {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.search-wrapper .search-input {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.search-wrapper .search-input:focus {
+  border-color: #ffcd4d;
+  outline: none;
+}
+
+.search-wrapper .search-btn {
+  background: #ffcd4d;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.search-wrapper .search-btn:hover {
+  background: #ffd86c;
+}
+
+.user-select-section .user-list,
+.user-select-section .subscription-list {
+  flex: 1;
   overflow-y: auto;
+  border: 1px solid #f3f3f3;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fffefc;
+  scrollbar-width: thin;
+  scrollbar-color: #ffde7d transparent;
+}
+
+.user-select-section .user-list::-webkit-scrollbar,
+.user-select-section .subscription-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.user-select-section .user-list::-webkit-scrollbar-thumb,
+.user-select-section .subscription-list::-webkit-scrollbar-thumb {
+  background: #ffd86c;
+  border-radius: 4px;
+}
+
+.user-select-section .user-list::-webkit-scrollbar-track,
+.user-select-section .subscription-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.user-select-section .user-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.user-select-section .user-row:hover {
+  background: #fff8e6;
+}
+
+.user-select-section .user-name {
+  color: #2a2828;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+.user-select-section .user-text {
+  font-size: 14px;
+}
+
+.user-select-section .user-email {
+  color: #999;
+  font-size: 13px;
+}
+
+.user-select-section .subscriber-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 4px;
+  border-bottom: 1px solid #f4f4f4;
+}
+
+.user-select-section .subscriber-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-select-section .subscriber-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: #2a2828;
+}
+
+.user-select-section .trash-icon {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.user-select-section .trash-icon:hover {
+  opacity: 1;
+}
+
+.user-select-section .add-btn {
+  margin-top: 12px;
+  background: #ffcd4d;
+  border: none;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.user-select-section .add-btn:hover {
+  background: #ffd86c;
+}
+
+.user-select-modal-footer {
+  padding: 12px 20px;
+  text-align: right;
+  background: #fafafa;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.user-select-modal-footer .btn-confirm {
+  background: #ffcd4d;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+  width: 80px;
+  height: 40px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.user-select-modal-footer .btn-confirm:hover {
+  background: #ffd86c;
+}
+
+.user-select-modal-footer .close-btn {
+  background: #f5f5f5;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+  width: 80px;
+  height: 40px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.user-select-modal-footer .close-btn:hover {
+  background: #e8e8e8;
+}
+
+.user-select-section .empty-msg,
+.user-select-section .empty-list {
+  padding: 40px 20px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+/* 사용자 그룹 섹션 스타일 */
+.user-select-section .group-list {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #f3f3f3;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fffefc;
+  scrollbar-width: thin;
+  scrollbar-color: #ffde7d transparent;
+}
+
+.user-select-section .group-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.user-select-section .group-list::-webkit-scrollbar-thumb {
+  background: #ffd86c;
+  border-radius: 4px;
+}
+
+.user-select-section .group-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.user-select-section .group-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #f4f4f4;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.user-select-section .group-item:hover {
+  background: #fff8e6;
+}
+
+.user-select-section .group-item:last-child {
+  border-bottom: none;
+}
+
+.user-select-section .group-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.user-select-section .group-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: #2a2828;
+}
+
+.user-select-section .group-count {
+  font-size: 13px;
+  color: #999;
+}
+
+.user-select-section .group-add-btn {
+  background: #ffcd4d;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  color: #1C0F0F;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.user-select-section .group-add-btn:hover {
+  background: #ffd86c;
 }
 
 .search-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .search-group {
@@ -6098,26 +6469,28 @@ export default {
 }
 
 /* 그룹 목록 스타일 */
-.group-list {
-  max-height: 120px;
+.group-list-container {
+  min-height: 120px;
+  max-height: 200px;
   overflow-y: auto;
-  border: 1px solid #DDDDDD;
   border-radius: 8px;
   background: #FFFFFF;
+  padding: 12px;
 }
 
 .group-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 8px 12px;
   cursor: pointer;
   border-bottom: 1px solid #F5F5F5;
   transition: background-color 0.2s ease;
+  border-radius: 4px;
 }
 
 .group-item:hover {
-  background-color: #F8F8F8;
+  background-color: #FFF8E6;
 }
 
 .group-item:last-child {
@@ -6162,8 +6535,8 @@ export default {
   background: #E6B800;
 }
 
-.no-groups {
-  padding: 20px;
+.empty-message {
+  padding: 40px 20px;
   text-align: center;
   color: #999999;
   font-family: 'Pretendard', sans-serif;
@@ -6176,7 +6549,7 @@ export default {
   border-radius: 8px;
   padding: 0 16px;
   font-family: 'Pretendard', sans-serif;
-  font-size: 16px;
+  font-size: 14px;
   background: #FFFFFF;
   flex: 1;
 }
@@ -6187,19 +6560,18 @@ export default {
 }
 
 .btn-search {
-  height: 40px;
-  padding: 0 12px;
+  height: 48px;
+  padding: 0 20px;
   background: #F4CE53;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-family: 'Pretendard', sans-serif;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 14px;
   color: #1C0F0F;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  margin-left: 8px;
-  min-width: 50px;
+  min-width: 80px;
   flex-shrink: 0;
 }
 
@@ -6219,11 +6591,14 @@ export default {
   padding: 12px;
 }
 
-/* 이메일 검색 결과 섹션의 user-list */
-.search-section .user-list {
-  display: block;
-  padding: 8px;
-  gap: 0;
+/* 검색 결과 컨테이너 */
+.search-results-container {
+  min-height: 120px;
+  max-height: 200px;
+  overflow-y: auto;
+  border-radius: 8px;
+  background: #FFFFFF;
+  padding: 12px;
 }
 
 .user-item {
@@ -6238,18 +6613,26 @@ export default {
 }
 
 /* 이메일 검색 결과 전용 스타일 */
-.search-result-item {
+.search-results-container .search-result-item {
   width: 100%;
-  padding: 3px 8px;
-  margin-bottom: 0;
+  padding: 12px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #F5F5F5;
+  border: 1px solid #DDDDDD;
+  border-radius: 8px;
+  background: #FFFFFF;
+  transition: background-color 0.2s ease;
 }
 
-.search-result-item:last-child {
-  border-bottom: none;
+.search-results-container .search-result-item:last-child {
+  margin-bottom: 0;
+}
+
+.search-results-container .search-result-item:hover {
+  background-color: #FFF8E6;
+  border-color: #F4CE53;
 }
 
 .search-result-info {
@@ -6345,7 +6728,7 @@ export default {
 /* 섹션 제목 스타일 */
 .section-title {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 16px;
   color: #1C0F0F;
   margin: 0 0 12px 0;
@@ -6353,25 +6736,27 @@ export default {
   border-bottom: 2px solid #F4CE53;
 }
 
-/* 검색 결과 없음 메시지 */
-.no-results {
-  padding: 20px;
-  text-align: center;
-  color: #999999;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-}
-
-/* 선택된 사용자 없음 메시지 */
-.no-selection {
-  padding: 20px;
-  text-align: center;
-  color: #999999;
-  font-family: 'Pretendard', sans-serif;
-  font-size: 14px;
-  background: #F8F8F8;
+/* 선택된 사용자 컨테이너 */
+.selected-users-container {
+  min-height: 120px;
+  max-height: 200px;
+  overflow-y: auto;
   border: 1px dashed #DDDDDD;
   border-radius: 8px;
+  background: #FFFFFF;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selected-users-container.empty-selection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999999;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
 }
 
 .selected-user-item {
@@ -6379,78 +6764,58 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: #F8F8F8;
-  border: 2px solid #F4CE53;
+  background: #FFFFFF;
+  border: 1px solid #DDDDDD;
   border-radius: 8px;
 }
 
 .btn-remove-selection {
   height: 32px;
-  padding: 0 12px;
-  background: #FF6B6B;
-  border: none;
-  border-radius: 6px;
+  padding: 0 16px;
+  background: #F5F5F5;
+  border: 1px solid #DDDDDD;
+  border-radius: 8px;
   font-family: 'Pretendard', sans-serif;
   font-weight: 600;
-  font-size: 12px;
-  color: #FFFFFF;
+  font-size: 14px;
+  color: #1C0F0F;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .btn-remove-selection:hover {
-  background: #FF5252;
-}
-
-/* 선택된 그룹 멤버들 스타일 */
-.selected-group-members {
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid #DDDDDD;
-  border-radius: 8px;
-  background: #FFFFFF;
-  padding: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  background: #E8E8E8;
 }
 
 .selected-member-item {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 6px;
-  background: #F8F8F8;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #FFFFFF;
   border: 1px solid #DDDDDD;
-  border-radius: 4px;
-  flex: 0 0 auto;
-  min-width: 120px;
-}
-
-.selected-member-item:last-child {
-  margin-bottom: 0;
+  border-radius: 8px;
+  width: 100%;
 }
 
 .btn-remove-member {
-  position: absolute;
-  top: 2px;
-  right: 2px;
   background: none;
   border: none;
   font-family: 'Pretendard', sans-serif;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 18px;
   color: #FF6B6B;
   cursor: pointer;
   padding: 0;
-  width: 14px;
-  height: 14px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: color 0.2s ease;
-  z-index: 1;
+  flex-shrink: 0;
 }
 
 .btn-remove-member:hover {
@@ -6459,22 +6824,21 @@ export default {
 
 .btn-clear-all {
   width: 100%;
-  height: 28px;
+  height: 36px;
   margin-top: 8px;
-  background: #FF6B6B;
-  border: none;
-  border-radius: 4px;
+  background: #F5F5F5;
+  border: 1px solid #DDDDDD;
+  border-radius: 8px;
   font-family: 'Pretendard', sans-serif;
   font-weight: 600;
-  font-size: 12px;
-  color: #FFFFFF;
+  font-size: 14px;
+  color: #1C0F0F;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  flex: 1 1 100%;
 }
 
 .btn-clear-all:hover {
-  background: #FF5252;
+  background: #E8E8E8;
 }
 
 /* 프로젝트 수정 모달 스타일 */

@@ -557,7 +557,7 @@
               <div 
                 class="assignee-display" 
                 :class="{ 'disabled': isPersonalWorkspace }"
-                @click="isPersonalWorkspace ? null : openTaskAssigneeModal"
+                @click="handleAssigneeClick"
               >
                 <div class="assignee-info">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1456,6 +1456,12 @@ export default {
         assigneeUserId: null,
         assigneeName: ''
       };
+    },
+    
+    handleAssigneeClick() {
+      if (!this.isPersonalWorkspace) {
+        this.openTaskAssigneeModal();
+      }
     },
     
     async openTaskAssigneeModal() {
