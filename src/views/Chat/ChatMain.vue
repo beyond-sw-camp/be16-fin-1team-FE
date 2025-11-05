@@ -21,9 +21,12 @@
                                     <v-icon icon="mdi-chevron-left"></v-icon>
                                   </v-btn>
                                   <div class="video-call-banner-title">{{ selectedRoomTitle }} - 참여자 ({{ videoCallParticipantCount }})</div>
-                                  <v-btn v-if="!isChatSideOpen" class="banner-btn-chat" variant="text" size="small" @click="toggleChatSide" icon>
-                                    <img src="@/assets/icons/sidebar/chat.svg" alt="채팅 토글" class="chat-icon" />
-                                  </v-btn>
+                                  <div v-if="!isChatSideOpen" class="chat-toggle-btn-wrapper">
+                                    <v-btn class="banner-btn-chat" variant="text" size="small" @click="toggleChatSide" icon>
+                                      <img src="@/assets/icons/sidebar/chat.svg" alt="채팅 토글" class="chat-icon" />
+                                    </v-btn>
+                                    <div v-if="unreadChatCount > 0" class="chat-unread-badge">{{ unreadChatCount > 99 ? '99+' : unreadChatCount }}</div>
+                                  </div>
                                 </div>
                             <div class="video-call-body">
                               <OpenViduCall v-if="isVideoCallActive" :room-id="selectedRoomId" embedded @leave="handleLeaveVideoCall" @participant-count-change="handleParticipantCountChange" ref="openViduCall" />
@@ -46,7 +49,8 @@
                           :hide-header-buttons="isChatSideOpen"
                           :show-close-button="isChatSideOpen"
                           @start-video-call="handleStartVideoCall" 
-                          @close-chat="handleCloseChatPanel" 
+                          @close-chat="handleCloseChatPanel"
+                          @new-message="handleNewMessage" 
                         />
                       </div>
                     </div>
@@ -105,6 +109,7 @@ export default {
             isVideoCallActive: false,
             isChatSideOpen: false,
             videoCallParticipantCount: 0,
+            unreadChatCount: 0,
         };
     },
     async created() {
@@ -178,6 +183,7 @@ export default {
             this.isVideoCallActive = true;
             this.isChatSideOpen = false;
             this.videoCallParticipantCount = 0;
+            this.unreadChatCount = 0; // 화상회의 시작 시 카운트 초기화
         },
         async handleLeaveVideoCall(payload) {
             // 마지막 참여자가 나가는 경우 종료 메시지 전송
@@ -194,20 +200,50 @@ export default {
             this.isVideoCallActive = false;
             this.isChatSideOpen = false;
             this.videoCallParticipantCount = 0;
+            
+            // 화상회의 상태 복원 (나갔지만 회의가 계속 진행 중이면 알림 다시 표시)
+            this.$nextTick(() => {
+                if (this.$refs.stompChatPage && typeof this.$refs.stompChatPage.restoreVideoCallActiveState === 'function') {
+                    this.$refs.stompChatPage.restoreVideoCallActiveState();
+                }
+            });
         },
-        handleBackFromVideoCall() {
+        async handleBackFromVideoCall() {
             if (this.isChatSideOpen) {
                 // 채팅 패널이 열려있으면 채팅만 닫기
                 this.isChatSideOpen = false;
             } else {
                 // 화상채팅만 떠있으면 화상채팅 종료
-                this.isVideoCallActive = false;
-                this.isChatSideOpen = false;
-                this.videoCallParticipantCount = 0;
+                // OpenViduCall의 leaveSession()을 호출하여 정상적인 종료 프로세스 실행
+                if (this.$refs.openViduCall && typeof this.$refs.openViduCall.leaveSession === 'function') {
+                    await this.$refs.openViduCall.leaveSession();
+                } else {
+                    // fallback: OpenViduCall이 없으면 직접 상태 정리
+                    this.isVideoCallActive = false;
+                    this.isChatSideOpen = false;
+                    this.videoCallParticipantCount = 0;
+                    
+                    // 화상회의 상태 복원
+                    this.$nextTick(() => {
+                        if (this.$refs.stompChatPage && typeof this.$refs.stompChatPage.restoreVideoCallActiveState === 'function') {
+                            this.$refs.stompChatPage.restoreVideoCallActiveState();
+                        }
+                    });
+                }
             }
         },
         toggleChatSide() {
             this.isChatSideOpen = !this.isChatSideOpen;
+            
+            // 채팅창을 열 때 스크롤을 맨 아래로 & 읽지 않은 메시지 카운트 초기화
+            if (this.isChatSideOpen) {
+                this.unreadChatCount = 0; // 채팅창 열면 카운트 초기화
+                this.$nextTick(() => {
+                    if (this.$refs.stompChatPage && typeof this.$refs.stompChatPage.scrollToBottom === 'function') {
+                        this.$refs.stompChatPage.scrollToBottom();
+                    }
+                });
+            }
         },
         handleCloseChatPanel() {
             // 채팅 사이드 패널 닫기
@@ -215,6 +251,16 @@ export default {
         },
         handleParticipantCountChange(count) {
             this.videoCallParticipantCount = count;
+        },
+        handleNewMessage(message) {
+            // 화상채팅이 활성화되어 있고, 채팅창이 닫혀있을 때만 카운트 증가
+            if (this.isVideoCallActive && !this.isChatSideOpen) {
+                // 자신이 보낸 메시지는 카운트하지 않음
+                const myId = localStorage.getItem('id');
+                if (message && message.senderId !== myId) {
+                    this.unreadChatCount += 1;
+                }
+            }
         },
         async resubscribeSummary() {
             if (!this.summaryTopic) return;
@@ -426,6 +472,42 @@ export default {
   width: 24px;
   height: 24px;
   display: block;
+}
+.chat-toggle-btn-wrapper {
+  position: relative;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chat-unread-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  background: #EF5350;
+  color: #FFFFFF;
+  border-radius: 9px;
+  border: 2px solid #FFE364;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  z-index: 10;
+  animation: chatBadgePulse 2s ease-in-out infinite;
+}
+@keyframes chatBadgePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
 }
 .video-call-body {
   flex: 1 1 auto;

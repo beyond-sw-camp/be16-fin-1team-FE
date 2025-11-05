@@ -12,9 +12,12 @@
                             <v-btn v-if="showCloseButton" class="banner-btn close-btn" variant="text" size="small" @click="closeChat" icon>
                                 <img src="@/assets/icons/user/close.svg" alt="close" class="menu-icon" />
                             </v-btn>
-                            <v-btn v-if="!hideHeaderButtons && !showCloseButton" class="banner-btn video-call" variant="text" size="small" @click="startVideoCall" icon>
-                                <img src="@/assets/icons/OpenVidu/video-call-svgrepo-com.svg" alt="video call" class="menu-icon" />
-                            </v-btn>
+                            <div v-if="!hideHeaderButtons && !showCloseButton" class="video-call-btn-wrapper" ref="videoCallBtn">
+                                <v-btn class="banner-btn video-call" variant="text" size="small" @click="startVideoCall" icon>
+                                    <img src="@/assets/icons/OpenVidu/video-call-svgrepo-com.svg" alt="video call" class="menu-icon" />
+                                </v-btn>
+                                <div v-if="isVideoCallActive" class="video-call-badge"></div>
+                            </div>
                             <template v-if="!hideHeaderButtons && !showCloseButton && (isUserPanelOpen || isDocsPanelOpen)">
                                 <v-btn class="banner-btn menu" variant="text" size="small" icon @click="closeUserPanel">
                                     <img src="@/assets/icons/user/close.svg" alt="close" class="menu-icon" />
@@ -69,10 +72,14 @@
                                         <div v-if="msg.senderId !== senderId && isGroupStart(index)" class="name">{{ msg.senderName || msg.senderId }}</div>
                                         
                                         <!-- VIDEO_CALL_START 타입 메시지 -->
-                                        <div v-if="msg.messageType === 'VIDEO_CALL_START'" class="line line-received">
+                                        <div v-if="msg.messageType === 'VIDEO_CALL_START'" :class="['line', msg.senderId === senderId ? 'line-sent' : 'line-received']">
                                             <div class="video-call-notice">
                                                 <div class="notice-message">{{ msg.message }}</div>
-                                                <button class="join-video-btn" @click="joinVideoCall">
+                                                <button 
+                                                    class="join-video-btn" 
+                                                    @click="joinVideoCall"
+                                                    :disabled="!isVideoCallEntryActive(index)"
+                                                >
                                                     <img src="@/assets/icons/OpenVidu/video-call-svgrepo-com.svg" alt="video" class="btn-icon" />
                                                     <span>화상회의 입장</span>
                                                 </button>
@@ -81,7 +88,7 @@
                                         </div>
                                         
                                         <!-- VIDEO_CALL_END 타입 메시지 -->
-                                        <div v-else-if="msg.messageType === 'VIDEO_CALL_END'" class="line line-received">
+                                        <div v-else-if="msg.messageType === 'VIDEO_CALL_END'" :class="['line', msg.senderId === senderId ? 'line-sent' : 'line-received']">
                                             <div class="video-call-end-notice">
                                                 <div class="notice-message">{{ msg.message }}</div>
                                             </div>
@@ -259,6 +266,30 @@
                 </v-card-actions>
             </v-card>
         </v-dialog>
+        
+        <!-- 화상회의 확인 모달 -->
+        <v-dialog v-model="isVideoCallConfirmOpen" max-width="400px" persistent>
+            <v-card class="video-call-confirm-card">
+                <v-card-title class="text-h6 video-call-confirm-title">화상회의</v-card-title>
+                <v-card-text class="video-call-confirm-body">
+                    {{ videoCallConfirmMessage }}
+                </v-card-text>
+                <v-card-actions class="video-call-confirm-actions">
+                    <v-spacer></v-spacer>
+                    <v-btn class="video-call-cancel-btn" variant="text" @click="cancelVideoCall">취소</v-btn>
+                    <v-btn class="video-call-confirm-btn" variant="flat" @click="confirmVideoCall">예</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+        
+        <!-- 화상회의 말풍선 (body에 Teleport) -->
+        <Teleport to="body">
+            <div v-if="isVideoCallActive && !hideHeaderButtons && !showCloseButton && tooltipPosition" 
+                 class="video-call-tooltip-portal"
+                 :style="{ top: tooltipPosition.top + 'px', left: tooltipPosition.left + 'px' }">
+                화상회의가 진행 중입니다.
+            </div>
+        </Teleport>
     </div>
 </template>
 
@@ -331,11 +362,45 @@ import axios from 'axios';
                 searching: false,
                 searchVersion: 0,
                 highlightIndex: -1,
+                // video call notification
+                isVideoCallActive: false,
+                tooltipPosition: null,
+                // video call confirmation modal
+                isVideoCallConfirmOpen: false,
+                videoCallConfirmMessage: '',
+                videoCallConfirmAction: null, // 'start' or 'join'
+            }
+        },
+        computed: {
+            computedTitle() {
+                if (this.roomTitle) {
+                    return `${this.roomTitle} (${this.participantCount})`;
+                }
+                return '채팅';
+            },
+            groupedFiles(){
+                const groups = {};
+                for (const f of (this.filesList||[])){
+                    const d = new Date(f.createAt);
+                    const date = isNaN(d) ? String(f.createAt).slice(0,10) : `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+                    if(!groups[date]) groups[date] = [];
+                    groups[date].push(f);
+                }
+                return Object.entries(groups).sort((a,b)=> a[0]<b[0] ? 1 : -1).map(([date, items])=>({ date, items }));
             }
         },
         async created() {
             this.senderId = localStorage.getItem("id");
             await this.loadMyUserName();
+        },
+        mounted() {
+            this.updateTooltipPosition();
+            window.addEventListener('resize', this.updateTooltipPosition);
+            window.addEventListener('scroll', this.updateTooltipPosition, true);
+        },
+        beforeUnmount() {
+            window.removeEventListener('resize', this.updateTooltipPosition);
+            window.removeEventListener('scroll', this.updateTooltipPosition, true);
         },
         watch: {
             roomId(){
@@ -343,16 +408,16 @@ import axios from 'axios';
                 this.isUserPanelOpen = false;
                 this.isDocsPanelOpen = false;
                 this.isHeaderMenuOpen = false;
+            },
+            isVideoCallActive() {
+                this.$nextTick(() => {
+                    this.updateTooltipPosition();
+                });
             }
         },
         beforeRouteLeave(to, from, next) {
             this.teardownRoomSubscription();
             next();
-        },
-        beforeUnmount() {
-            this.teardownRoomSubscription();
-            if (this._offClose) { try { this._offClose(); } catch(_) {} this._offClose = null; }
-            if (this._reconnectTimer) { clearInterval(this._reconnectTimer); this._reconnectTimer = null; }
         },
         methods: {
             getNowLocalDateTime() {
@@ -473,6 +538,24 @@ import axios from 'axios';
                     const { data } = await axios.get(`${baseURL}/chat-service/chat/room/${this.roomId}/history`);
                     const list = data?.result || [];
                     this.messages = Array.isArray(list) ? list.map(this.normalizeMessage) : [];
+                    
+                    // 기록에서 마지막 화상회의 상태 확인
+                    let lastVideoCallStart = -1;
+                    let lastVideoCallEnd = -1;
+                    
+                    for (let i = this.messages.length - 1; i >= 0; i--) {
+                        if (this.messages[i].messageType === 'VIDEO_CALL_START' && lastVideoCallStart === -1) {
+                            lastVideoCallStart = i;
+                        }
+                        if (this.messages[i].messageType === 'VIDEO_CALL_END' && lastVideoCallEnd === -1) {
+                            lastVideoCallEnd = i;
+                        }
+                        if (lastVideoCallStart !== -1 && lastVideoCallEnd !== -1) break;
+                    }
+                    
+                    // START가 더 최근이면 화상회의 진행 중
+                    this.isVideoCallActive = lastVideoCallStart > lastVideoCallEnd;
+                    
                     this.scrollToBottom();
                 } catch (e) {
                     console.warn('load history failed', e);
@@ -481,7 +564,19 @@ import axios from 'axios';
             async connectWebsocket() {
                 const topic = `/topic/${this.roomId}`;
                 this.roomUnsub = await stompManager.subscribe(topic, (message) => {
-                    this.messages.push(this.normalizeMessage(message));
+                    const normalized = this.normalizeMessage(message);
+                    this.messages.push(normalized);
+                    
+                    // VIDEO_CALL_START/END 메시지 감지
+                    if (normalized.messageType === 'VIDEO_CALL_START') {
+                        this.isVideoCallActive = true;
+                    } else if (normalized.messageType === 'VIDEO_CALL_END') {
+                        this.isVideoCallActive = false;
+                    }
+                    
+                    // 부모 컴포넌트에 새 메시지 알림
+                    this.$emit('new-message', normalized);
+                    
                     this.scrollToBottom();
                 });
                 // listen for connection close to trigger reconnect
@@ -657,29 +752,49 @@ import axios from 'axios';
                 this.isUserPanelOpen = false;
                 this.isDocsPanelOpen = false;
             },
-            async startVideoCall() {
+            startVideoCall() {
                 if (!this.roomId) {
                     alert('채팅방 정보를 찾을 수 없습니다.');
                     return;
                 }
                 
-                // STOMP 메시지 전송
-                const message = {
-                    roomId: this.roomId,
-                    senderId: this.senderId,
-                    senderName: this.senderName,
-                    message: `${this.senderName} 님이 화상회의를 시작하였습니다.`,
-                    lastSendTime: this.getNowLocalDateTime(),
-                    messageType: 'VIDEO_CALL_START',
-                    chatFileListDtoList: [],
-                };
-                
-                try {
-                    await stompManager.send(`/publish/${this.roomId}`, JSON.stringify(message));
-                    console.log('[VIDEO_CALL_START] message sent:', message);
-                } catch (e) {
-                    console.error('[VIDEO_CALL_START] send failed:', e);
+                // 화상회의 진행 중이면 '참여', 아니면 '시작'
+                if (this.isVideoCallActive) {
+                    this.videoCallConfirmMessage = '화상회의에 참여하시겠습니까?';
+                    this.videoCallConfirmAction = 'join';
+                } else {
+                    this.videoCallConfirmMessage = '화상회의를 시작하시겠습니까?';
+                    this.videoCallConfirmAction = 'start';
                 }
+                
+                // 확인 모달 열기
+                this.isVideoCallConfirmOpen = true;
+            },
+            
+            async executeStartVideoCall() {
+                // 이미 화상회의가 진행 중이면 메시지를 보내지 않고 바로 입장
+                if (!this.isVideoCallActive) {
+                    // STOMP 메시지 전송
+                    const message = {
+                        roomId: this.roomId,
+                        senderId: this.senderId,
+                        senderName: this.senderName,
+                        message: `${this.senderName} 님이 화상회의를 시작하였습니다.`,
+                        lastSendTime: this.getNowLocalDateTime(),
+                        messageType: 'VIDEO_CALL_START',
+                        chatFileListDtoList: [],
+                    };
+                    
+                    try {
+                        await stompManager.send(`/publish/${this.roomId}`, JSON.stringify(message));
+                        console.log('[VIDEO_CALL_START] message sent:', message);
+                    } catch (e) {
+                        console.error('[VIDEO_CALL_START] send failed:', e);
+                    }
+                }
+                
+                // 화상회의 입장하므로 알림 제거
+                this.isVideoCallActive = false;
                 
                 // 부모 컴포넌트에 화상통화 시작 이벤트 전달
                 this.$emit('start-video-call');
@@ -689,8 +804,90 @@ import axios from 'axios';
                 this.$emit('close-chat');
             },
             joinVideoCall() {
+                // 화상회의 참여 확인 모달 띄우기
+                this.videoCallConfirmMessage = '화상회의에 참여하시겠습니까?';
+                this.videoCallConfirmAction = 'join';
+                this.isVideoCallConfirmOpen = true;
+            },
+            
+            executeJoinVideoCall() {
+                // 화상회의 입장하므로 알림 제거
+                this.isVideoCallActive = false;
                 // 화상회의 입장 (화상통화 시작과 동일)
                 this.$emit('start-video-call');
+            },
+            
+            async confirmVideoCall() {
+                this.isVideoCallConfirmOpen = false;
+                
+                if (this.videoCallConfirmAction === 'start') {
+                    await this.executeStartVideoCall();
+                } else if (this.videoCallConfirmAction === 'join') {
+                    this.executeJoinVideoCall();
+                }
+            },
+            
+            cancelVideoCall() {
+                this.isVideoCallConfirmOpen = false;
+                this.videoCallConfirmAction = null;
+                this.videoCallConfirmMessage = '';
+            },
+            
+            /**
+             * 화상회의 입장 버튼이 활성화되어 있는지 확인
+             * VIDEO_CALL_START 이후에 VIDEO_CALL_END가 있으면 비활성화
+             */
+            isVideoCallEntryActive(messageIndex) {
+                // 현재 메시지 이후에 VIDEO_CALL_END가 있는지 확인
+                for (let i = messageIndex + 1; i < this.messages.length; i++) {
+                    if (this.messages[i].messageType === 'VIDEO_CALL_END') {
+                        return false; // 종료 메시지가 있으면 비활성화
+                    }
+                    // 다음 VIDEO_CALL_START가 나오면 그 사이에 END가 없다는 뜻이므로 활성화
+                    if (this.messages[i].messageType === 'VIDEO_CALL_START') {
+                        return true;
+                    }
+                }
+                // 이후에 END도 없고 START도 없으면 활성화 (현재 진행 중)
+                return true;
+            },
+            
+            /**
+             * 화상회의 활성 상태 복원
+             * 화상회의에서 나온 후 히스토리 기반으로 상태 복원
+             */
+            restoreVideoCallActiveState() {
+                let lastVideoCallStart = -1;
+                let lastVideoCallEnd = -1;
+                
+                for (let i = this.messages.length - 1; i >= 0; i--) {
+                    if (this.messages[i].messageType === 'VIDEO_CALL_START' && lastVideoCallStart === -1) {
+                        lastVideoCallStart = i;
+                    }
+                    if (this.messages[i].messageType === 'VIDEO_CALL_END' && lastVideoCallEnd === -1) {
+                        lastVideoCallEnd = i;
+                    }
+                    if (lastVideoCallStart !== -1 && lastVideoCallEnd !== -1) break;
+                }
+                
+                // 마지막 START가 마지막 END보다 나중이면 진행 중
+                this.isVideoCallActive = lastVideoCallStart > lastVideoCallEnd;
+            },
+            updateTooltipPosition() {
+                if (!this.isVideoCallActive || !this.$refs.videoCallBtn) {
+                    this.tooltipPosition = null;
+                    return;
+                }
+                
+                try {
+                    const btnRect = this.$refs.videoCallBtn.getBoundingClientRect();
+                    this.tooltipPosition = {
+                        top: btnRect.top - 45,  // 버튼 위 45px
+                        left: btnRect.left + btnRect.width / 2 - 90,  // 중앙 기준 왼쪽으로 90px
+                    };
+                } catch (e) {
+                    this.tooltipPosition = null;
+                }
             },
             async sendVideoCallEndMessage() {
                 if (!this.roomId) return;
@@ -861,18 +1058,91 @@ import axios from 'axios';
   background-color: #F5F5F5;
 }
 .chat-card{ --v-card-border-radius: 15px; border-radius: 15px !important; overflow: hidden; margin: 24px 0; border: 1px solid #E5E5E5; --chat-accent: #FFE364; --banner-height: 56px; }
-.chat-banner{ height: var(--banner-height); background: var(--chat-accent); display: grid; grid-template-columns: 40px 1fr 40px 40px; align-items: center; position: sticky; top: 0; z-index: 2; }
+.chat-banner{ height: var(--banner-height); background: var(--chat-accent); display: grid; grid-template-columns: 52px 1fr 40px 40px; align-items: center; position: sticky; top: 0; z-index: 100; }
 .chat-banner.minimal{ grid-template-columns: 1fr; justify-items: center; }
 .chat-banner.with-close{ grid-template-columns: 1fr auto; }
 .search-banner{ grid-template-columns: 40px 1fr 40px; }
 .chat-banner.with-user-panel, .chat-banner.with-side-panel{ margin-right: 280px; transition: margin-right 200ms ease; }
 .banner-title{ color: #1C0F0F; font-weight: 700; font-size: 18px; line-height: 22px; text-align: center; }
 .banner-btn{ min-width: 32px; height: 32px; padding: 0; }
-.banner-btn.back{ justify-self: start; }
+.banner-btn.back{ justify-self: start; margin-left: 12px; }
+.video-call-btn-wrapper{ position: relative; justify-self: end; overflow: visible; margin-right: 12px; }
 .banner-btn.video-call{ justify-self: end; }
-.banner-btn.menu{ justify-self: end; }
+.banner-btn.menu{ justify-self: end; margin-right: 12px; }
 .banner-btn.close-btn{ justify-self: end; }
 .menu-icon{ width: 24px; height: 24px; display: block; }
+
+/* 화상회의 알림 빨간 점 */
+.video-call-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: #EF5350;
+  border-radius: 50%;
+  border: 2px solid #FFE364;
+  animation: videoBadgePulse 2s ease-in-out infinite;
+  z-index: 10;
+}
+
+@keyframes videoBadgePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
+}
+
+/* 화상회의 진행 중 말풍선 (Teleport로 body에 렌더링) */
+.video-call-tooltip-portal {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.85);
+  color: #FFFFFF;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10000;
+  pointer-events: none;
+  animation: tooltipFadeIn 0.3s ease-out, tooltipFloat 2s ease-in-out infinite;
+}
+
+/* 말풍선 꼬리 */
+.video-call-tooltip-portal::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.85);
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tooltipFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
 
 /* 헤더 좌우 버튼 포커스 테두리 제거 */
 .banner-btn:focus,
@@ -953,7 +1223,7 @@ import axios from 'axios';
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
 }
 .join-video-btn:hover {
   background: #1565C0;
@@ -961,10 +1231,22 @@ import axios from 'axios';
 .join-video-btn:focus {
   outline: none;
 }
+.join-video-btn:disabled {
+  background: #BDBDBD;
+  color: #FFFFFF;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.join-video-btn:disabled:hover {
+  background: #BDBDBD;
+}
 .join-video-btn .btn-icon {
   width: 18px;
   height: 18px;
   filter: invert(100%) brightness(2);
+}
+.join-video-btn:disabled .btn-icon {
+  opacity: 0.5;
 }
 
 /* VIDEO_CALL_END 메시지 스타일 */
@@ -1063,6 +1345,43 @@ import axios from 'axios';
 .image-modal-img{ max-width: 100%; max-height: 80vh; object-fit: contain; display: block; }
 .image-modal-btn{ background: #FFE364 !important; color: #2A2828 !important; font-weight: 600; border-color: #FFE364 !important; }
 .image-modal-btn:hover{ filter: brightness(0.98); }
+
+/* Video call confirmation modal */
+.video-call-confirm-card { 
+  --v-card-border-radius: 15px; 
+  border-radius: 15px !important; 
+  overflow: hidden; 
+}
+
+.video-call-confirm-title { 
+  background: #FFE364; 
+  color: #1C0F0F; 
+  font-weight: 700; 
+}
+
+.video-call-confirm-body { 
+  padding: 24px 24px 20px 24px;
+  font-size: 15px;
+  color: #2A2828;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.video-call-confirm-actions { 
+  padding: 12px 16px;
+  gap: 8px;
+}
+
+.video-call-cancel-btn {
+  color: #757575 !important;
+  font-weight: 600;
+}
+
+.video-call-confirm-btn { 
+  background: #FFE364 !important; 
+  color: #2A2828 !important; 
+  font-weight: 600; 
+}
 
 .attach-preview{ display: flex; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #eee; background: #FAFAFA; }
 .preview-item{ position: relative; }
