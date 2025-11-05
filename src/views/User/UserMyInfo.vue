@@ -233,7 +233,7 @@ export default {
 .myinfo-shell {
   max-width: 1600px;
   margin: 20px auto 0;
-  padding: 0 24px 24px;
+  padding: 0 24px 24px 48px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;

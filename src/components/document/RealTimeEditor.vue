@@ -1607,6 +1607,22 @@ const handleIncomingMessage = (message) => {
   height: 100%;
 }
 
+.ProseMirror p {
+  margin: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.editor-container .ProseMirror p {
+  margin: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
 .ProseMirror-focused {
   outline: none;
 }

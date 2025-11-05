@@ -417,6 +417,9 @@ export default {
           this.currentStorage = driveResponse.result || 0;
         }
         
+        // 워크스페이스 스토어에 스토리지 정보 저장 (다른 컴포넌트에서 사용할 수 있도록)
+        this.workspaceStore.setStorageInfo(this.currentStorage, this.maxStorage);
+        
         console.log('스토리지 정보 업데이트:', { 
           current: this.formatStorage(this.currentStorage), 
           max: this.formatStorage(this.maxStorage) 

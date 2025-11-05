@@ -3,8 +3,7 @@
     <!-- 관리자 페이지 헤더 -->
     <div class="admin-header">
       <div class="admin-nav-tabs">
-        <div class="nav-tab active" @click="setActiveTab('dashboard')">대시보드</div>
-        <div class="nav-tab" @click="setActiveTab('permission')">권한 그룹</div>
+        <div class="nav-tab active" @click="setActiveTab('permission')">권한 그룹</div>
         <div class="nav-tab" @click="setActiveTab('user')">사용자 그룹</div>
         <div class="nav-tab" @click="setActiveTab('member')">회원 관리</div>
         <div class="nav-tab" @click="setActiveTab('workspace')">워크스페이스 관리</div>
@@ -137,166 +136,6 @@
               <button class="action-btn edit-btn" @click="editUserGroup(group)">수정</button>
               <button class="action-btn delete-btn" @click="deleteUserGroup(group)">삭제</button>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 대시보드 -->
-      <div v-if="activeTab === 'dashboard'" class="tab-content">
-        <!-- 프로젝트 스톤 마일스톤 섹션 (1번 - 가장 큰 영역) -->
-        <div class="milestone-section-wrapper">
-          <h2 class="milestone-section-title">프로젝트별 마일스톤</h2>
-          <div class="dashboard-section milestone-section">
-            <div class="section-header">
-              <div class="dashboard-header">
-        <!-- 프로젝트 선택 네비게이션 -->
-        <div v-if="milestoneForestData.length > 0 && selectedProjectData" class="project-navigation">
-          <span class="arrow" @click="selectPreviousProject">
-            <img src="/src/assets/icons/header/chevron-left.svg" alt="이전" class="arrow-icon" />
-          </span>
-          <div class="nav-content" :style="{ width: maxNavContentWidth }">
-            <span class="nav-text">{{ selectedProjectData.projectName }}</span>
-            <span class="page-info">{{ selectedProjectIndex + 1 }} / {{ milestoneForestData.length }}</span>
-          </div>
-          <span class="arrow" @click="selectNextProject">
-            <img src="/src/assets/icons/header/chevron-right.svg" alt="다음" class="arrow-icon" />
-          </span>
-        </div>
-              </div>
-            </div>
-          
-          <div v-if="loadingMilestones" class="loading-container">
-            <div class="loading-spinner"></div>
-            <p>마일스톤 데이터를 불러오는 중...</p>
-          </div>
-          
-          <div v-else-if="projectMilestones.length === 0" class="no-data">
-            <p>마일스톤 데이터가 없습니다.</p>
-          </div>
-          
-          <!-- 선택된 프로젝트 트리 차트 (단일 프로젝트만 표시) -->
-          <milestone-forest
-            v-else
-            :projects="[selectedProjectData]"
-            class="milestone-forest-wrapper"
-            v-if="selectedProjectData"
-          />
-          </div>
-        </div>
-        
-        <!-- 워크스페이스별 프로젝트 현황 섹션 -->
-        <div class="workspace-section-wrapper">
-          <h2 class="workspace-section-title">프로젝트 전체 현황</h2>
-          <div class="dashboard-section workspace-section">
-          
-          <!-- 로딩 상태 -->
-          <div v-if="loadingWorkspaceProjects" class="loading-container">
-            <div class="loading-spinner"></div>
-            <p>프로젝트 현황을 불러오는 중...</p>
-          </div>
-          
-          <!-- 데이터가 없을 때 -->
-          <div v-else-if="!workspaceProjects || workspaceProjects.length === 0" class="no-data">
-            <p>프로젝트 현황 데이터가 없습니다.</p>
-          </div>
-          
-          <!-- 프로젝트 현황 카드들 -->
-          <div v-else class="project-grid">
-            <div 
-              v-for="(project, index) in workspaceProjects" 
-              :key="project.projectId" 
-              class="project-card-new"
-            >
-              <div 
-                class="project-header-new"
-                :style="{ backgroundColor: getProjectColor(index) }"
-              >
-                {{ project.projectName }}
-              </div>
-              
-              <div class="project-dates-new">
-                <div class="date-row">
-                  <span>Start</span>
-                  <span>{{ formatProjectDate(project.startedAt) }}</span>
-                </div>
-                <div class="date-row">
-                  <span>End</span>
-                  <span>{{ formatProjectDate(project.endedAt) }}</span>
-                </div>
-              </div>
-              
-              <div class="project-stone-count">
-                <span>스톤 수: {{ project.stoneCount }}개</span>
-              </div>
-              
-              <div class="progress-section-new">
-                <div class="progress-circle-new">
-                  <svg viewBox="0 0 36 36">
-                    <path
-                      class="circle-bg"
-                      d="M18 2.0845
-                         a 15.9155 15.9155 0 0 1 0 31.831
-                         a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                    <path
-                      class="circle"
-                      :style="{ stroke: getProjectColor(index) }"
-                      :stroke-dasharray="project.milestone + ', 100'"
-                      d="M18 2.0845
-                         a 15.9155 15.9155 0 0 1 0 31.831
-                         a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                  </svg>
-                  <div class="progress-text-new">
-                    {{ Math.round(project.milestone) }}%
-                  </div>
-                </div>
-                <div class="progress-label">{{ getStatusText(project.projectStatus) }}</div>
-              </div>
-            </div>
-          </div>
-          </div>
-        </div>
-        
-        <!-- 사용자 그룹별 프로젝트 현황 섹션 -->
-        <div class="user-group-section-wrapper">
-          <h2 class="user-group-section-title">사용자 그룹별 프로젝트 현황</h2>
-          <div class="dashboard-section user-group-section">
-          
-          <!-- 로딩 상태 -->
-          <div v-if="loadingUserGroupProgress" class="loading-container">
-            <div class="loading-spinner"></div>
-            <p>사용자 그룹별 프로젝트 현황을 불러오는 중...</p>
-          </div>
-          
-          <!-- 데이터가 없을 때 -->
-          <div v-else-if="!userGroupProgress || userGroupProgress.length === 0" class="no-data">
-            <p>사용자 그룹별 프로젝트 현황 데이터가 없습니다.</p>
-          </div>
-          
-          <!-- 사용자 그룹별 프로젝트 현황 -->
-          <div v-else class="user-group-stats">
-            <div 
-              v-for="(group, index) in userGroupProgress" 
-              :key="group.groupName" 
-              class="group-stat-item"
-            >
-              <div class="group-circular-progress">
-                <div class="group-progress-ring">
-                  <div 
-                    class="group-progress-fill-ring" 
-                    :class="getGroupProgressClass(group.averageProgress)"
-                    :style="{ '--progress': Math.round(group.averageProgress) + '%' }"
-                  ></div>
-                  <span class="group-progress-text">{{ Math.round(group.averageProgress) }}%</span>
-                </div>
-              </div>
-              <div class="group-info">
-                <span class="group-name">{{ group.groupName }}</span>
-                <span class="group-count">{{ group.projectCount }}개 프로젝트</span>
-              </div>
-            </div>
-          </div>
           </div>
         </div>
       </div>
@@ -443,7 +282,7 @@ export default {
   },
   data() {
     return {
-      activeTab: 'dashboard',
+      activeTab: 'permission',
       permissionGroups: [],
       activeActionMenu: null,
       loading: false,
@@ -509,12 +348,6 @@ export default {
       await this.loadPermissionGroups();
     }
     
-    if (this.activeTab === 'dashboard') {
-      this.loadProjectMilestones();
-      this.loadWorkspaceProjects();
-      this.loadUserGroupProgress();
-    }
-    
     // 바깥쪽 클릭 시 액션 메뉴 닫기
     document.addEventListener('click', this.handleOutsideClick);
   },
@@ -564,14 +397,6 @@ export default {
       if (tab === 'user') {
         console.log('사용자 그룹 탭 활성화, loadUserGroups 호출');
         this.loadUserGroups();
-      }
-      
-      // 대시보드 탭이 활성화되면 모든 데이터 로드
-      if (tab === 'dashboard') {
-        console.log('대시보드 탭 활성화, 데이터 로드 시작');
-        this.loadProjectMilestones();
-        this.loadWorkspaceProjects();
-        this.loadUserGroupProgress();
       }
       
     },
@@ -668,6 +493,12 @@ export default {
         
         if (response.data.statusCode === 200) {
           this.workspaceDetail = response.data.result;
+          
+          // 스토어에서 스토리지 정보 가져오기 (사이드바에서 이미 로드된 데이터 활용)
+          const storageInfo = this.workspaceStore.getStorageInfo;
+          if (storageInfo && storageInfo.currentStorage !== undefined) {
+            this.workspaceDetail.currentStorage = storageInfo.currentStorage;
+          }
           
           // workspaceStats 업데이트
           this.workspaceStats = {

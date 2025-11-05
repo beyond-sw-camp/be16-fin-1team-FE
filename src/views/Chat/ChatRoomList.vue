@@ -42,6 +42,7 @@
                                             <div class="row-title">
                                                 <span class="title">{{ chat.roomName }}</span>
                                                 <span class="member-count">({{ chat.participantCount }})</span>
+                                                <span v-if="chat.isVideoCallActive" class="video-call-indicator"></span>
                                             </div>
                                             <div class="row-subtitle-wrap">
                                                 <span class="row-subtitle text-ellipsis-2">
@@ -104,12 +105,24 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
             roomsWithSummary() {
                 const merged = (this.chatRoomList || []).map((room) => {
                     const s = this.summariesByRoomId[room.roomId] || {};
+                    
+                    // isVideoCallActive 계산
+                    let isVideoCallActive = room.isVideoCallActive ?? false;
+                    
+                    // summary에 messageType이 있으면 그걸로 업데이트
+                    if (s.messageType === 'VIDEO_CALL_START') {
+                        isVideoCallActive = true;
+                    } else if (s.messageType === 'VIDEO_CALL_END') {
+                        isVideoCallActive = false;
+                    }
+                    
                     return {
                         ...room,
                         lastMessage: s.lastMessage ?? room.lastMessage,
                         lastSendTime: s.lastSendTime ?? room.lastSendTime,
                         unreadCount: s.unreadCount ?? room.unreadCount,
                         messageType: s.messageType ?? room.messageType,
+                        isVideoCallActive: isVideoCallActive,
                     };
                 });
                 // 최근 메시지 시간 순(내림차순) 정렬
@@ -285,9 +298,28 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
 /* +N indicator position */
 .avatar-stack .avatar-item.more{ width: 18px; height: 18px; right: -12px; bottom: -9px; left: auto; top: auto; font-size: 10px; }
 .col-main { padding-top: 4px; padding-bottom: 4px; }
-.row-title{ display: flex; align-items: baseline; gap: 4px; line-height: 1.3; margin-bottom: 4px; }
+.row-title{ display: flex; align-items: baseline; gap: 4px; line-height: 1.3; margin-bottom: 4px; position: relative; }
 .row-title .title{ font-size: 13px; font-weight: 500; color: #212121; display: block; }
 .row-title .member-count{ font-size: 11px; color: #9E9E9E; }
+.video-call-indicator {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #EF5350;
+  border-radius: 50%;
+  margin-left: 4px;
+  animation: videoIndicatorPulse 2s ease-in-out infinite;
+}
+@keyframes videoIndicatorPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
+}
 .row-subtitle{ font-size: 11px; color: #555; line-height: 1.3; margin: 0; }
 .text-ellipsis-2{
   display: -webkit-box;
@@ -323,9 +355,43 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
     min-width: 88px;
     padding: 0 10px;
     border-radius: 8px;
+    border: 1px solid #D1D5DB;
     cursor: pointer;
-    background: #FFE364; /* 프리뷰 버튼 노란색 */
-    color: #2A2828; /* 가독성 있는 어두운 텍스트 */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    color: #1C0F0F;
+    font-weight: 700;
+    position: absolute;
+    right: var(--badge-right);
+    bottom: var(--badge-bottom);
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* 오로라 효과 */
+.badge-unread.preview::before {
+    content: "";
+    position: absolute;
+    inset: -100%;
+    background: conic-gradient(
+        from 0deg,
+        rgba(0, 255, 255, 0.3),
+        rgba(255, 0, 255, 0.3),
+        rgba(255, 255, 0, 0.3),
+        rgba(0, 255, 255, 0.3)
+    );
+    filter: blur(20px);
+    animation: auroraFlow 6s linear infinite;
+    z-index: 0;
+}
+
+@keyframes auroraFlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 /* Vuetify v-table 기본 셀 패딩 오버라이드 (간격 축소) */

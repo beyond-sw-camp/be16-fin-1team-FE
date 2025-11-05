@@ -33,7 +33,7 @@ export default {
 .content-header {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 30px 24px 0;
+  padding: 30px 24px 0 48px;
 }
 
 .main-title {

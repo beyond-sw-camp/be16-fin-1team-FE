@@ -90,6 +90,7 @@
                     <div class="chat-title">
                       <span class="chat-name">{{ room.roomName }}</span>
                       <span class="chat-count">({{ room.participantCount }})</span>
+                      <span v-if="room.isVideoCallActive" class="video-call-indicator"></span>
                     </div>
                     <div class="chat-subtitle">
                       {{ (room.messageType === 'FILE' && !room.lastMessage) ? '파일이 전송되었습니다.' : (room.lastMessage || '메시지가 없습니다.') }}
@@ -283,11 +284,11 @@
     </div>
   
     <!-- 요약 미리보기 다이얼로그 -->
-    <v-dialog v-model="isSummaryDialogOpen" max-width="520px">
+    <v-dialog v-model="isSummaryDialogOpen" max-width="360px">
       <v-card class="summary-card">
         <v-card-title class="text-h6 summary-title">요약 미리보기</v-card-title>
         <v-card-text class="summary-body">
-          <div v-if="summaryDialogLoading" class="d-flex align-center justify-center" style="min-height:120px">
+          <div v-if="summaryDialogLoading" class="d-flex align-center justify-center" style="min-height:150px">
             <v-progress-circular indeterminate :size="42" :width="4" color="#FFE364" />
           </div>
           <div v-else v-html="formatMultiline(summaryDialogText)" style="white-space: normal; line-height: 1.5;"></div>
@@ -551,12 +552,24 @@ export default {
     sortedChatRooms() {
       return this.chatRooms.map(room => {
         const summary = this.summariesByRoomId[room.roomId] || {};
+        
+        // isVideoCallActive 계산
+        let isVideoCallActive = room.isVideoCallActive ?? false;
+        
+        // summary에 messageType이 있으면 그걸로 업데이트
+        if (summary.messageType === 'VIDEO_CALL_START') {
+          isVideoCallActive = true;
+        } else if (summary.messageType === 'VIDEO_CALL_END') {
+          isVideoCallActive = false;
+        }
+        
         return {
           ...room,
           lastMessage: summary.lastMessage ?? room.lastMessage,
           lastSendTime: summary.lastSendTime ?? room.lastSendTime,
           unreadCount: summary.unreadCount ?? room.unreadCount,
           messageType: summary.messageType ?? room.messageType,
+          isVideoCallActive: isVideoCallActive,
         };
       }).sort((a, b) => {
         const parse = (t) => {
@@ -1921,6 +1934,27 @@ export default {
   color: #9E9E9E;
 }
 
+.video-call-indicator {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #EF5350;
+  border-radius: 50%;
+  margin-left: 4px;
+  animation: videoIndicatorPulse 2s ease-in-out infinite;
+}
+
+@keyframes videoIndicatorPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
+}
+
 .chat-subtitle {
   font-family: 'Pretendard', sans-serif;
   font-weight: 400;
@@ -1968,9 +2002,41 @@ export default {
   min-width: 88px;
   padding: 0 10px;
   border-radius: 8px;
+  border: 1px solid #D1D5DB;
   cursor: pointer;
-  background: #FFE364;
-  color: #2A2828;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  color: #1C0F0F;
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* 오로라 효과 */
+.chat-badge-preview::before {
+  content: "";
+  position: absolute;
+  inset: -100%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 255, 255, 0.3),
+    rgba(255, 0, 255, 0.3),
+    rgba(255, 255, 0, 0.3),
+    rgba(0, 255, 255, 0.3)
+  );
+  filter: blur(20px);
+  animation: chatBadgeAuroraFlow 6s linear infinite;
+  z-index: 0;
+}
+
+@keyframes chatBadgeAuroraFlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* 문서 카드 */
@@ -2626,17 +2692,51 @@ export default {
 .summary-card { 
   --v-card-border-radius: 15px; 
   border-radius: 15px !important; 
-  overflow: hidden; 
+  overflow: hidden;
+  min-height: 300px;
 }
 
 .summary-title { 
-  background: #FFE364; 
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
   color: #1C0F0F; 
-  font-weight: 700; 
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+/* 오로라 효과 */
+.summary-title::before {
+  content: "";
+  position: absolute;
+  inset: -100%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 255, 255, 0.3),
+    rgba(255, 0, 255, 0.3),
+    rgba(255, 255, 0, 0.3),
+    rgba(0, 255, 255, 0.3)
+  );
+  filter: blur(40px);
+  animation: summaryTitleAuroraFlow 8s linear infinite;
+  z-index: 0;
+}
+
+@keyframes summaryTitleAuroraFlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 타이틀 내용이 오로라 위에 보이도록 */
+.summary-title :deep(*) {
+  position: relative;
+  z-index: 1;
 }
 
 .summary-body { 
-  padding-top: 16px; 
+  padding: 20px 16px;
+  min-height: 180px;
 }
 
 .summary-actions { 

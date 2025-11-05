@@ -149,11 +149,10 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.avatar-placeholder::before {
-  content: '👤';
-  font-size: 48px;
+  background-image: url('@/assets/icons/user/account-circle.svg');
+  background-size: 110% 110%;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .avatar-upload-btn {

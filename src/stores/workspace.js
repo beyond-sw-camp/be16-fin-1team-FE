@@ -4,7 +4,11 @@ export const useWorkspaceStore = defineStore('workspace', {
   state: () => ({
     currentWorkspace: null,
     workspaces: [],
-    adminUserId: null // 현재 워크스페이스의 관리자 ID
+    adminUserId: null, // 현재 워크스페이스의 관리자 ID
+    storageInfo: {
+      currentStorage: 0,
+      maxStorage: 0
+    }
   }),
   
   getters: {
@@ -13,7 +17,8 @@ export const useWorkspaceStore = defineStore('workspace', {
     getCurrentWorkspaceId: (state) => state.currentWorkspace?.workspaceId || null,
     getCurrentWorkspaceType: (state) => state.currentWorkspace?.workspaceTemplates || 'PERSONAL',
     isPersonalWorkspace: (state) => (state.currentWorkspace?.workspaceTemplates || 'PERSONAL') === 'PERSONAL',
-    getAdminUserId: (state) => state.adminUserId
+    getAdminUserId: (state) => state.adminUserId,
+    getStorageInfo: (state) => state.storageInfo
   },
   
   actions: {
@@ -132,6 +137,14 @@ export const useWorkspaceStore = defineStore('workspace', {
         console.error('워크스페이스 목록 로드 실패:', error);
         return [];
       }
+    },
+    
+    // 스토리지 정보 설정
+    setStorageInfo(currentStorage, maxStorage) {
+      this.storageInfo = {
+        currentStorage: currentStorage || 0,
+        maxStorage: maxStorage || 0
+      };
     }
   }
 })

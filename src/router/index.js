@@ -11,6 +11,7 @@ import { chatBotRouter } from './ChatBotRouter';
 import driveRouter from './DriveRouter';
 import { landingRouter } from './LandingRouter';
 import { scheduleRouter } from './ScheduleRouter';
+import { openViduRouter } from './OpenViduRouter';
 
 const routes = [
     ...homeRouter,
@@ -24,7 +25,8 @@ const routes = [
     ...chatBotRouter,
     ...driveRouter,
     ...scheduleRouter,
-  ...landingRouter,
+    ...openViduRouter,
+    ...landingRouter,
 ];
 
 const router = createRouter({

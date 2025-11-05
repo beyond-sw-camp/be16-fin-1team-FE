@@ -68,10 +68,23 @@
             </v-card-text>
             <v-card-actions>
               <v-btn variant="flat" color="primary" :to="'/workspace/test'">워크스페이스 테스트</v-btn>
+              <v-btn variant="flat" color="primary" :to="'/project/dashboardTemp'">프로젝트 대시보드 테스트</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>
-
+        
+        <!-- OpenVidu -->
+        <v-col cols="12" md="4">
+          <v-card>
+            <v-card-title>OpenVidu</v-card-title>
+            <v-card-text>
+              화상회의 관련
+            </v-card-text>
+            <v-card-actions>
+              <v-btn variant="flat" color="primary" :to="`/callpage/${1}`">화상회의 테스트</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-col>
 
 
         

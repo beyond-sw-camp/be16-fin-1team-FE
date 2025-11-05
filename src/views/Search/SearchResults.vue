@@ -588,11 +588,7 @@ export default {
 
     // 테이블 행 클릭 핸들러
     handleTableRowClick(event, item) {
-      // TASK 탭에서는 클릭해도 반응 없음
-      if (this.activeTab === 'TASK') {
-        return;
-      }
-      // 다른 탭은 기존 openResult 호출
+      // 모든 탭에서 클릭 가능하도록 변경
       this.openResult(event, item);
     },
 
@@ -626,6 +622,27 @@ export default {
             result
           });
         }
+      } else if (result.docType === 'TASK') {
+        // 작업 클릭 시 프로젝트 페이지로 이동 (스톤 모달 열기)
+        // 필요: 프로젝트 ID (projectId), 스톤 ID (rootId)
+        const projectId = result.projectId; // 프로젝트 ID
+        const stoneId = result.rootId; // 스톤 ID (rootId)
+        
+        if (projectId && stoneId) {
+          this.$router.push({ 
+            path: '/project', 
+            query: { 
+              id: projectId,
+              stoneId: stoneId
+            } 
+          });
+        } else {
+          console.warn('작업 상세 페이지 이동에 필요한 정보가 없습니다:', {
+            projectId,
+            stoneId,
+            result
+          });
+        }
       } else if (result.docType === 'FILE') {
         // 파일은 fileUrl이 있으면 새 창에서 열기
         if (result.fileUrl) {
@@ -643,6 +660,9 @@ export default {
         return;
       }
 
+      // 하이라이트할 파일 ID를 query parameter로 전달
+      const query = result.id ? { highlightItemId: result.id } : {};
+
       // parentId가 null이면 루트 경로의 문서함으로 이동
       if (!result.parentId) {
         this.$router.push({
@@ -650,7 +670,8 @@ export default {
           params: {
             rootType: result.rootType,
             rootId: result.rootId
-          }
+          },
+          query
         });
       } else {
         // parentId가 있으면 해당 폴더로 이동
@@ -660,7 +681,8 @@ export default {
             rootType: result.rootType,
             rootId: result.rootId,
             folderId: result.parentId
-          }
+          },
+          query
         });
       }
     },
@@ -1077,9 +1099,9 @@ export default {
   cursor: pointer;
 }
 
-/* TASK 탭에서는 클릭 불가이므로 커서를 default로 변경 */
+/* TASK 탭에서도 클릭 가능하도록 커서 유지 */
 .table-results[data-active-tab="TASK"] .search-table :deep(tbody tr) {
-  cursor: default;
+  cursor: pointer;
 }
 
 .search-table :deep(tbody tr:last-child td) {
