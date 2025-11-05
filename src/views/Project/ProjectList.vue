@@ -450,7 +450,8 @@
         />
       </div>
       <div v-if="activeTab === 'gantt'" class="gantt-section">
-        <OrbitGantt :stones="stones" />
+        <!-- projectId가 준비된 다음에만 렌더 -->
+        <OrbitGantt v-if="projectId" :project-id="projectId" />
       </div>
       <div v-if="activeTab === 'documents'" class="project-drive-container">
         <DriveMain :project-id="$route.query.id" />
@@ -981,7 +982,7 @@ import { searchWorkspaceParticipants, getStoneDetail } from '@/services/stoneSer
 import { showSnackbar } from '@/services/snackbar.js';
 import pinIcon from '@/assets/icons/project/pin.svg';
 import pinOutlineIcon from '@/assets/icons/project/pin-outline.svg';
-import OrbitGantt from "@/components/project/OrbitGantt.vue";
+import OrbitGantt from "@/views/project/OrbitGantt.vue";
 
 export default {
   name: 'ProjectList',
@@ -995,6 +996,7 @@ export default {
     return {
       activeTab: 'milestone',
       projectName: '',
+      projectId: this.$route.query.id || this.$route.params.id || null,
       projectDescription: '프로젝트 협업을 위한 일정 관리 서비스',
       stones: [],
       loading: false,
@@ -1163,6 +1165,8 @@ export default {
     }
   },
   async mounted() {
+    console.log('[ProjectList] projectId =', this.projectId);
+    
     // 현재 사용자 정보 로드
     await this.loadCurrentUserInfo();
     
@@ -1234,6 +1238,9 @@ export default {
       },
       immediate: true,
       deep: true
+    },
+    '$route'(to) {
+      this.projectId = to.query.id || to.params.id || null;
     },
     '$route.query.id': {
       handler(newProjectId, oldProjectId) {
