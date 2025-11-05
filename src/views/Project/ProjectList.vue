@@ -449,7 +449,9 @@
           @view-task="handleViewTask"
         />
       </div>
-      <p v-if="activeTab === 'gantt'" class="placeholder-text">간트차트 컨텐츠</p>
+      <div v-if="activeTab === 'gantt'" class="gantt-section">
+        <OrbitGantt :stones="stones" />
+      </div>
       <div v-if="activeTab === 'documents'" class="project-drive-container">
         <DriveMain :project-id="$route.query.id" />
       </div>
@@ -979,13 +981,15 @@ import { searchWorkspaceParticipants, getStoneDetail } from '@/services/stoneSer
 import { showSnackbar } from '@/services/snackbar.js';
 import pinIcon from '@/assets/icons/project/pin.svg';
 import pinOutlineIcon from '@/assets/icons/project/pin-outline.svg';
+import OrbitGantt from "@/components/project/OrbitGantt.vue";
 
 export default {
   name: 'ProjectList',
   components: {
     StoneDetailModal,
     DriveMain,
-    ProjectDashboard
+    ProjectDashboard,
+    OrbitGantt,
   },
   data() {
     return {
