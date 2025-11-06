@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import axios from "axios";
 // @ts-ignore
 import CalendarBase from "@/components/CalendarBase.vue";
@@ -10,6 +10,8 @@ import { useRoute } from "vue-router";
 import { getStoneDetail } from "@/services/stoneService.js";
 // @ts-ignore
 import { showSnackbar } from '@/services/snackbar.js';
+import EyeOutlineIcon from "@/assets/icons/calendar/eye-outline.svg";
+import EyeOffIcon from "@/assets/icons/calendar/eye-off.svg";
 
 const route = useRoute();
 const workspaceId = ref(
@@ -48,6 +50,91 @@ const events = ref<any[]>([]);
 const currentView = ref("dayGridMonth");
 const showSidebar = ref(false);
 const currentDate = ref(new Date());
+
+// ✅ 각 이벤트별 숨김 상태 관리 (eventId -> visible)
+const eventVisibilityMap = ref<Map<string, boolean>>(new Map());
+
+// ✅ 사이드바 검색 키워드
+const sidebarSearchKeyword = ref("");
+
+// ✅ localStorage 키 생성 (워크스페이스별로 관리)
+const getStorageKey = () => {
+  const wsId = workspaceId.value || localStorage.getItem("selectedWorkspaceId") || "default";
+  return `projectCalendar_visibility_${wsId}`;
+};
+
+// ✅ localStorage에서 숨김 상태 불러오기
+function loadVisibilityFromStorage() {
+  try {
+    const storageKey = getStorageKey();
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      eventVisibilityMap.value = new Map(Object.entries(parsed));
+    }
+  } catch (e) {
+    // 저장된 데이터가 없거나 파싱 실패 시 무시
+  }
+}
+
+// ✅ localStorage에 숨김 상태 저장
+function saveVisibilityToStorage() {
+  try {
+    const storageKey = getStorageKey();
+    const obj = Object.fromEntries(eventVisibilityMap.value);
+    localStorage.setItem(storageKey, JSON.stringify(obj));
+  } catch (e) {
+    // 저장 실패 시 무시
+  }
+}
+
+// ✅ OrbitGantt와 동일한 색상 팔레트 및 할당 로직 (확장된 색상 팔레트)
+const colorPalette = [
+  "#9B6BFF", // 보라색
+  "#4C9AFF", // 파란색
+  "#FF5A8A", // 핑크색
+  "#FFD93D", // 노란색
+  "#6ECB63", // 초록색
+  "#FF9F68", // 주황색
+  "#A78BFA", // 연보라색
+  "#FF4B4B", // 코랄색색
+  "#F472B6", // 연핑크색
+  "#FBBF24", // 연노란색
+  "#34D399", // 민트색
+  "#FB923C", // 연주황색
+  "#C084FC", // 라벤더색
+  "#3B82F6", // 진파란색
+  "#EC4899", // 진핑크색
+  "#F59E0B", // 골드색
+  "#10B981", // 에메랄드색
+  "#F97316", // 오렌지색
+];
+const colorMap = new Map<string, string>(); // stoneId -> color
+
+// ✅ stoneId별 색상 할당 함수 (OrbitGantt와 동일)
+function getColorForStoneId(stoneId: string | number | null | undefined): string {
+  if (!stoneId) return colorPalette[0]; // 기본 색상
+  
+  const stoneIdStr = String(stoneId);
+  if (!colorMap.has(stoneIdStr)) {
+    // 새로운 stoneId면 팔레트에서 순차적으로 할당
+    const color = colorPalette[colorMap.size % colorPalette.length];
+    colorMap.set(stoneIdStr, color);
+  }
+  return colorMap.get(stoneIdStr)!;
+}
+
+// ✅ hex를 rgba로 변환 (불투명도 조절용)
+function hexToRgba(hex: string, alpha: number = 1): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// ✅ 불투명도 설정 (필요시 수정 가능)
+const EVENT_BACKGROUND_OPACITY = 0.35; // 배경 불투명도 (0.0 ~ 1.0)
+const EVENT_BORDER_OPACITY = 1.0; // 테두리 불투명도 (0.0 ~ 1.0)
 
 async function handleEditParticipants(stoneData) {
   // 참여자 수정 모달 열기
@@ -559,35 +646,106 @@ const fetchEvents = async () => {
       }),
     ]);
 
-    const stoneEvents = (stoneRes.data.result || []).map((s) => ({
-      id: s.stoneId,
-      title: `[스톤] ${s.stoneName}`,
-      start: s.startTime,
-      end: s.endTime,
-      project: s.projectName,
-      type: "STONE",
-      color: "#A3B8FF",
-      stoneId: s.stoneId,
-      projectId: s.projectId, // 프로젝트 ID 추가
-    }));
+    // ✅ 색상 맵 초기화 (새로고침 시 재할당)
+    colorMap.clear();
 
-    const taskEvents = (taskRes.data.result || []).map((t) => ({
-      id: t.taskId,
-      title: `[태스크] ${t.taskName}`,
-      start: t.startTime,
-      end: t.endTime,
-      project: t.projectName,
-      stone: t.stoneName,
-      type: "TASK",
-      color: "#FFD93D",
-      stoneId: t.stoneId,
-    }));
+    // ✅ 스톤 이벤트 생성 (stoneId별 색상 할당)
+    const stoneEvents = (stoneRes.data.result || []).map((s) => {
+      const stoneColor = getColorForStoneId(s.stoneId);
+      const startDate = new Date(s.startTime);
+      const endDate = new Date(s.endTime);
+      // ✅ 날짜만 비교 (시간 제외)
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      const isSingleDay = startDate.getTime() === endDate.getTime();
+      
+      // ✅ 1일짜리 이벤트는 end 속성 제거 (FullCalendar가 제대로 표시하도록)
+      const eventData = {
+        id: s.stoneId,
+        title: `[스톤] ${s.stoneName}`,
+        start: s.startTime,
+        project: s.projectName,
+        type: "STONE",
+        // ✅ FullCalendar 색상 속성 설정
+        color: "#FFFFFF", // 텍스트 색상: 흰색으로 고정
+        backgroundColor: hexToRgba(stoneColor, EVENT_BACKGROUND_OPACITY), // 배경 색상 (불투명도 적용)
+        borderColor: hexToRgba(stoneColor, EVENT_BORDER_OPACITY), // 테두리 색상
+        stoneId: s.stoneId,
+        projectId: s.projectId,
+        allDay: true, // ✅ 하루 종일 이벤트로 표시
+      };
+      
+      // ✅ 2일 이상인 경우만 end 속성 추가
+      if (!isSingleDay) {
+        eventData.end = s.endTime;
+      }
+      
+      return eventData;
+    });
+
+    // ✅ 태스크 이벤트 생성 (stoneId별 색상 할당)
+    const taskEvents = (taskRes.data.result || []).map((t) => {
+      const taskColor = getColorForStoneId(t.stoneId);
+      const startDate = new Date(t.startTime);
+      const endDate = new Date(t.endTime);
+      // ✅ 날짜만 비교 (시간 제외)
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      const isSingleDay = startDate.getTime() === endDate.getTime();
+      
+      // ✅ 1일짜리 이벤트는 end 속성 제거 (FullCalendar가 제대로 표시하도록)
+      const eventData = {
+        id: t.taskId,
+        title: `[태스크] ${t.taskName}`,
+        start: t.startTime,
+        project: t.projectName,
+        stone: t.stoneName,
+        type: "TASK",
+        // ✅ FullCalendar 색상 속성 설정
+        color: "#FFFFFF", // 텍스트 색상: 흰색으로 고정
+        backgroundColor: hexToRgba(taskColor, EVENT_BACKGROUND_OPACITY), // 배경 색상 (불투명도 적용)
+        borderColor: hexToRgba(taskColor, EVENT_BORDER_OPACITY), // 테두리 색상
+        stoneId: t.stoneId,
+        allDay: true, // ✅ 하루 종일 이벤트로 표시
+      };
+      
+      // ✅ 2일 이상인 경우만 end 속성 추가
+      if (!isSingleDay) {
+        eventData.end = t.endTime;
+      }
+      
+      return eventData;
+    });
 
     events.value = [...stoneEvents, ...taskEvents];
+    
+    // ✅ localStorage에서 숨김 상태 불러오기 (이벤트 로드 전에 실행)
+    loadVisibilityFromStorage();
+    
+    // ✅ 새로 로드된 이벤트들의 기본 visible 상태 설정 (기존 설정 유지)
+    events.value.forEach(event => {
+      if (!eventVisibilityMap.value.has(event.id)) {
+        eventVisibilityMap.value.set(event.id, true); // 기본값: 표시
+      }
+    });
+    
+    // ✅ 변경사항 저장
+    saveVisibilityToStorage();
   } catch (e) {
     // 에러 처리 (로그 없음)
   }
 };
+
+// ✅ 워크스페이스 변경 감지
+watch(
+  () => workspaceId.value,
+  () => {
+    if (workspaceId.value) {
+      loadVisibilityFromStorage();
+      fetchEvents();
+    }
+  }
+);
 
 onMounted(fetchEvents);
 
@@ -604,14 +762,45 @@ function toggleSidebar() {
   showSidebar.value = !showSidebar.value;
 }
 
-// ✅ 사이드바
-const sidebarItems = ref([
-  { name: "스톤 일정", color: "#A3B8FF", visible: true },
-  { name: "태스크 일정", color: "#FFD93D", visible: true },
-]);
-function toggleVisibility(item) {
-  item.visible = !item.visible;
+// ✅ 사이드바에 표시할 이벤트 목록 (검색 필터링 포함)
+const sidebarEventList = computed(() => {
+  let list = events.value.map(event => ({
+    id: event.id,
+    title: event.title,
+    type: event.type,
+    color: event.backgroundColor || event.color,
+    visible: eventVisibilityMap.value.get(event.id) ?? true,
+  }));
+  
+  // 검색 필터링
+  if (sidebarSearchKeyword.value.trim()) {
+    const keyword = sidebarSearchKeyword.value.trim().toLowerCase();
+    list = list.filter(item => 
+      item.title.toLowerCase().includes(keyword)
+    );
+  }
+  
+  // 타입별로 정렬 (스톤 먼저, 그 다음 태스크)
+  return list.sort((a, b) => {
+    if (a.type === b.type) return a.title.localeCompare(b.title);
+    return a.type === "STONE" ? -1 : 1;
+  });
+});
+
+// ✅ 개별 이벤트 표시/숨김 토글
+function toggleEventVisibility(eventId: string) {
+  const currentVisible = eventVisibilityMap.value.get(eventId) ?? true;
+  eventVisibilityMap.value.set(eventId, !currentVisible);
+  // ✅ 변경사항 즉시 localStorage에 저장
+  saveVisibilityToStorage();
 }
+
+// ✅ 필터링된 이벤트 (개별 숨김 설정 반영)
+const filteredEvents = computed(() => {
+  return events.value.filter(event => {
+    return eventVisibilityMap.value.get(event.id) ?? true;
+  });
+});
 
 </script>
 
@@ -626,7 +815,9 @@ function toggleVisibility(item) {
       </div>
 
       <div class="right">
-        <button class="icon-btn" @click="toggleSidebar">👁️</button>
+        <button class="icon-btn" @click="toggleSidebar">
+          <img :src="EyeOutlineIcon" alt="일정 표시/숨기기" class="icon-img" />
+        </button>
         <div class="view-toggle">
           <button
             v-for="type in viewOptions"
@@ -643,7 +834,7 @@ function toggleVisibility(item) {
     <!-- 📅 캘린더 -->
     <div class="calendar-container">
       <CalendarBase
-        :events="events"
+        :events="filteredEvents"
         :initial-date="currentDate"
         :view-type="currentView"
         @event-click="openStoneModal"
@@ -786,15 +977,48 @@ function toggleVisibility(item) {
     <transition name="slide">
       <aside v-if="showSidebar" class="sidebar">
         <div class="sidebar-header">
+          <h3 class="sidebar-title">일정 표시 설정</h3>
           <button class="close-btn" @click="toggleSidebar">←</button>
         </div>
+        
+        <!-- 검색 입력 -->
+        <div class="sidebar-search">
+          <input
+            v-model="sidebarSearchKeyword"
+            type="text"
+            placeholder="일정 검색..."
+            class="search-input"
+          />
+        </div>
+        
+        <!-- 이벤트 목록 -->
         <div class="sidebar-body">
-          <div v-for="item in sidebarItems" :key="item.name" class="sidebar-item">
-            <button class="eye-btn" :class="{ off: !item.visible }" @click="toggleVisibility(item)">
-              {{ item.visible ? "👁️" : "🚫" }}
+          <div v-if="sidebarEventList.length === 0" class="empty-message">
+            {{ sidebarSearchKeyword.trim() ? '검색 결과가 없습니다.' : '일정이 없습니다.' }}
+          </div>
+          <div
+            v-for="item in sidebarEventList"
+            :key="item.id"
+            class="sidebar-item"
+            :class="{ 'is-hidden': !item.visible }"
+          >
+            <button 
+              class="eye-btn" 
+              :class="{ off: !item.visible }" 
+              @click="toggleEventVisibility(item.id)"
+              :title="item.visible ? '숨기기' : '보이기'"
+            >
+              <img 
+                :src="item.visible ? EyeOutlineIcon : EyeOffIcon" 
+                :alt="item.visible ? '보기' : '숨기기'"
+                class="eye-icon"
+              />
             </button>
-            <span class="dot" :style="{ background: item.color }"></span>
-            <span>{{ item.name }}</span>
+            <span 
+              class="dot" 
+              :style="{ background: item.color }"
+            ></span>
+            <span class="event-title">{{ item.title }}</span>
           </div>
         </div>
       </aside>
@@ -804,9 +1028,11 @@ function toggleVisibility(item) {
 
 <style scoped>
 .project-calendar-wrap {
-  padding: 20px;
+  padding: var(--gap-l);
   position: relative;
   font-family: 'Pretendard', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
 }
 
 /* ===== Toolbar ===== */
@@ -814,59 +1040,92 @@ function toggleVisibility(item) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--gap-m);
+  padding: var(--gap-s) var(--gap-m);
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border);
 }
 
 .left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--gap-xs);
 }
 
 .arrow {
-  border: 1px solid #ddd; /* ✅ 공유 캘린더와 동일한 얇은 테두리 */
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: 8px;
-  width: 32px;          /* ✅ 크기 통일 */
-  height: 32px;
-  font-size: 16px;
-  color: #333;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); /* ✅ 동일한 그림자 */
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .arrow:hover {
-  background-color: #fff8db; /* ✅ 살짝 노란 hover 효과 */
-  border-color: #ffcd4d;
+  background-color: var(--brand-weak);
+  border-color: var(--brand);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255, 204, 51, 0.15);
 }
 
+.arrow:active {
+  transform: translateY(0);
+}
 
 .left strong {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-strong);
+  letter-spacing: -0.02em;
+  margin: 0 var(--gap-xs);
 }
 
 /* ===== Right Controls ===== */
 .right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--gap-xs);
 }
 
 .icon-btn {
-  border: none;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: 8px;
-  width: 32px;
-  height: 32px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  width: 36px;
+  height: 36px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
+
+.icon-img {
+  width: 20px;
+  height: 20px;
+  transition: opacity 0.2s ease;
+}
+
 .icon-btn:hover {
-  background: #fffae0;
+  background: var(--brand-weak);
+  border-color: var(--brand);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255, 204, 51, 0.15);
+}
+
+.icon-btn:hover .icon-img {
+  opacity: 0.8;
 }
 
 /* 월/주/일 변경 버튼 */
@@ -874,38 +1133,42 @@ function toggleVisibility(item) {
   display: inline-flex;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #e0e0e0;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .view-btn {
   border: none;
-  padding: 6px 14px;
+  padding: 8px 16px;
   cursor: pointer;
   font-weight: 500;
-  background: #fff;
-  color: #555;
-  transition: all 0.2s ease;
+  background: transparent;
+  color: var(--text);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 14px;
+  position: relative;
 }
 
 .view-btn:hover {
-  background: #f8f8f8;
+  background: var(--surface-2);
 }
 
 .view-btn.active {
-  background: #ffd580;
-  color: #333;
+  background: var(--brand);
+  color: var(--text-strong);
   font-weight: 600;
+  box-shadow: 0 2px 4px rgba(255, 204, 51, 0.2);
 }
 
 /* ===== Calendar Container ===== */
 .calendar-container {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  padding: 20px;
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  padding: var(--gap-l);
   overflow: hidden;
+  border: 1px solid var(--border);
 }
 
 /* ===== FullCalendar Customization ===== */
@@ -918,29 +1181,30 @@ function toggleVisibility(item) {
 
 /* 배경 및 경계선 정리 */
 #calendar {
-  background: #fff;
-  border-radius: 12px;
+  background: transparent;
+  border-radius: 0;
   box-shadow: none;
-  padding: 12px;
+  padding: 0;
 }
 
 /* 날짜 숫자 */
 .fc-daygrid-day-number {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  color: #444;
+  color: var(--text);
 }
 
 /* 요일 헤더 */
 .fc-col-header-cell {
-  background-color: #f9f9f9;
+  background-color: var(--surface-2);
   border: none;
-  color: #555;
+  color: var(--text);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
+  padding: var(--gap-s) 0;
 }
 
-/* 오늘 날짜 강조 */
+/* 오늘 날짜 강조 - 유지 */
 .fc-day-today {
   background-color: transparent !important;
   box-shadow: 0 0 0 2px #ffcd4d inset, 0 0 6px rgba(255, 205, 77, 0.4);
@@ -961,19 +1225,25 @@ function toggleVisibility(item) {
   box-shadow: 0 2px 6px rgba(255, 205, 77, 0.5);
 }
 
-/* 이벤트 카드 */
+/* 이벤트 카드 - 개선된 디자인 */
 .fc-event {
   border: none !important;
   border-radius: 6px;
-  padding: 2px 4px;
-  color: #333 !important;
-  font-size: 13px;
+  padding: 4px 8px;
+  color: var(--text-strong) !important;
+  font-size: 12px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  margin: 2px 0;
+  line-height: 1.4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
+
 .fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
   filter: brightness(1.05);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* 경계선 최소화 */
@@ -982,103 +1252,230 @@ function toggleVisibility(item) {
   border: none !important;
 }
 
+/* 날짜 셀 호버 효과 */
+.fc-daygrid-day:hover {
+  background-color: var(--surface-2);
+}
+
 /* ===== Sidebar ===== */
 .sidebar {
   position: absolute;
-  top: 70px;
+  top: 90px;
   right: 0;
-  width: 280px;
-  height: calc(100% - 70px);
-  background: #fff;
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.08);
-  border-radius: 12px 0 0 12px;
-  padding: 20px;
+  width: 320px;
+  height: calc(100% - 110px);
+  background: var(--surface);
+  box-shadow: var(--shadow-hover);
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  padding: var(--gap-l);
+  border: 1px solid var(--border);
+  border-right: none;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .sidebar-header {
   display: flex;
-  justify-content: flex-start;
-  margin-bottom: 10px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--gap-m);
+  padding-bottom: var(--gap-s);
+  border-bottom: 1px solid var(--divider);
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-strong);
+  margin: 0;
 }
 
 .close-btn {
-  border: none;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: 6px;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  transition: background 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--text);
 }
+
 .close-btn:hover {
-  background: #fffae0;
+  background: var(--brand-weak);
+  border-color: var(--brand);
+  transform: translateY(-1px);
+}
+
+/* 검색 입력 */
+.sidebar-search {
+  margin-bottom: var(--gap-m);
+  padding-bottom: var(--gap-s);
+  border-bottom: 1px solid var(--divider);
+}
+
+.sidebar-search .search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-search .search-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(255, 204, 51, 0.1);
+}
+
+.sidebar-search .search-input::placeholder {
+  color: var(--text-weak);
 }
 
 .sidebar-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--gap-xxs);
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.sidebar-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-body::-webkit-scrollbar-thumb {
+  background: var(--brand);
+  border-radius: 4px;
+}
+
+.sidebar-body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .sidebar-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--gap-xs);
   font-size: 14px;
-  color: #444;
+  color: var(--text);
+  padding: 8px var(--gap-xs);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.sidebar-item:hover {
+  background: var(--surface-2);
+}
+
+.sidebar-item.is-hidden {
+  opacity: 0.5;
+}
+
+.event-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.empty-message {
+  padding: var(--gap-xl) var(--gap-m);
+  text-align: center;
+  color: var(--text-weak);
+  font-size: 14px;
 }
 
 .eye-btn {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  transition: all 0.2s ease;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
 }
+
+.eye-icon {
+  width: 20px;
+  height: 20px;
+  transition: opacity 0.2s ease;
+}
+
+.eye-btn:hover {
+  transform: scale(1.1);
+}
+
+.eye-btn:hover .eye-icon {
+  opacity: 0.8;
+}
+
 .eye-btn.off {
-  opacity: 0.3;
+  opacity: 0.4;
+}
+
+.eye-btn.off:hover {
+  opacity: 0.6;
 }
 
 .dot {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* ===== Animation ===== */
 .slide-enter-active,
 .slide-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .slide-enter-from,
 .slide-leave-to {
   opacity: 0;
-  transform: translateX(20px);
+  transform: translateX(30px);
 }
 
-/* ===== 참여자 수정 모달 - 구독 관리 모달과 동일한 디자인 ===== */
+/* ===== 참여자 수정 모달 - Orbit 디자인 토큰 적용 ===== */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(4px);
 }
 
 .user-select-modal-container {
   width: 1100px;
   height: 600px;
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  background: var(--surface, #FFFFFF);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-hover, 0 10px 28px rgba(16, 24, 40, 0.09));
   overflow: hidden;
-  animation: fadeIn 0.25s ease-out;
+  animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Pretendard', sans-serif;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--border, #E4E7EC);
 }
 
 @keyframes fadeIn {
@@ -1087,94 +1484,105 @@ function toggleVisibility(item) {
 }
 
 .user-select-modal-header {
-  background: #fff8e1;
-  padding: 20px 24px;
-  border-bottom: 1px solid #f2e3a5;
+  background: var(--brand-weak, #FFF4C2);
+  padding: var(--gap-l, 20px) var(--gap-xl, 24px);
+  border-bottom: 1px solid var(--border, #E4E7EC);
 }
 
 .user-select-modal-header h2 {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-strong, #111418);
+  letter-spacing: -0.01em;
 }
 
 .user-select-modal-header p {
-  margin-top: 6px;
+  margin-top: var(--gap-xxs, 6px);
   font-size: 13px;
-  color: #777;
+  color: var(--text-weak, #757B85);
 }
 
 .user-select-modal-body {
   display: flex;
-  gap: 20px;
-  padding: 20px 24px;
-  background: #fffdf9;
+  gap: var(--gap-l, 20px);
+  padding: var(--gap-l, 20px) var(--gap-xl, 24px);
+  background: var(--bg, #F5F6F8);
   flex: 1;
   overflow: hidden;
 }
 
 .user-select-section {
   flex: 1;
-  border-radius: 12px;
-  background: #ffffff;
-  padding: 16px;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-xl, 16px);
+  background: var(--surface, #FFFFFF);
+  padding: var(--gap-m, 16px);
+  box-shadow: var(--shadow-soft, 0 8px 24px rgba(16, 24, 40, 0.06));
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: 1px solid var(--border, #E4E7EC);
 }
 
 .user-select-section h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #444;
-  margin-bottom: 10px;
+  color: var(--text-strong, #111418);
+  margin-bottom: var(--gap-xs, 10px);
+  letter-spacing: -0.01em;
 }
 
 .hint-text {
   font-size: 13px;
-  color: #888;
-  margin-bottom: 10px;
+  color: var(--text-weak, #757B85);
+  margin-bottom: var(--gap-xs, 10px);
 }
 
 .search-wrapper {
   display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: var(--gap-xxs, 6px);
+  margin-bottom: var(--gap-xs, 10px);
 }
 
 .search-wrapper .search-input {
   flex: 1;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #E4E7EC);
   border-radius: 8px;
-  padding: 6px 8px;
+  padding: 8px 12px;
   font-size: 14px;
-  transition: border-color 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--surface, #FFFFFF);
+  color: var(--text, #2C2F36);
 }
 
 .search-wrapper .search-input:focus {
-  border-color: #ffcd4d;
+  border-color: var(--brand, #FFCC33);
   outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 204, 51, 0.1);
 }
 
 .search-wrapper .search-btn {
-  background: #ffcd4d;
+  background: var(--brand, #FFCC33);
   border: none;
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-strong, #111418);
+  font-size: 14px;
 }
 
 .search-wrapper .search-btn:hover:not(:disabled) {
-  background: #ffd86c;
+  background: #FFD64F;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255, 204, 51, 0.25);
 }
 
 .search-wrapper .search-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .user-select-section .user-list,
@@ -1182,12 +1590,12 @@ function toggleVisibility(item) {
 .user-select-section .group-list {
   flex: 1;
   overflow-y: auto;
-  border: 1px solid #f3f3f3;
+  border: 1px solid var(--divider, #EEF0F3);
   border-radius: 8px;
-  padding: 8px;
-  background: #fffefc;
+  padding: var(--gap-xs, 10px);
+  background: var(--surface-2, #F8F9FB);
   scrollbar-width: thin;
-  scrollbar-color: #ffde7d transparent;
+  scrollbar-color: var(--brand, #FFCC33) transparent;
 }
 
 .user-select-section .user-list::-webkit-scrollbar,
@@ -1199,7 +1607,7 @@ function toggleVisibility(item) {
 .user-select-section .user-list::-webkit-scrollbar-thumb,
 .user-select-section .subscription-list::-webkit-scrollbar-thumb,
 .user-select-section .group-list::-webkit-scrollbar-thumb {
-  background: #ffd86c;
+  background: var(--brand, #FFCC33);
   border-radius: 4px;
 }
 
@@ -1212,22 +1620,22 @@ function toggleVisibility(item) {
 .user-select-section .user-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px;
+  gap: var(--gap-xxs, 6px);
+  padding: var(--gap-xxs, 6px);
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
 
 .user-select-section .user-row:hover {
-  background: #fff8e6;
+  background: var(--brand-weak, #FFF4C2);
 }
 
 .user-select-section .user-name {
-  color: #2a2828;
+  color: var(--text-strong, #111418);
   font-weight: 500;
   font-size: 14px;
   padding: 0 4px;
-  border-radius: 4px;
 }
 
 .user-select-section .user-text {
@@ -1235,7 +1643,7 @@ function toggleVisibility(item) {
 }
 
 .user-select-section .user-email {
-  color: #999;
+  color: var(--text-weak, #757B85);
   font-size: 13px;
 }
 
@@ -1243,62 +1651,73 @@ function toggleVisibility(item) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 4px;
-  border-bottom: 1px solid #f4f4f4;
+  padding: var(--gap-xxs, 6px) 4px;
+  border-bottom: 1px solid var(--divider, #EEF0F3);
+  transition: background 0.2s ease;
+}
+
+.user-select-section .subscriber-item:hover {
+  background: var(--surface-2, #F8F9FB);
 }
 
 .user-select-section .subscriber-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--gap-xs, 10px);
 }
 
 .user-select-section .subscriber-name {
   font-weight: 500;
   font-size: 14px;
-  color: #2a2828;
+  color: var(--text-strong, #111418);
 }
 
 .user-select-section .trash-icon {
   width: 16px;
   height: 16px;
   cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.2s;
+  opacity: 0.5;
+  transition: all 0.2s ease;
 }
 
 .user-select-section .trash-icon:hover {
   opacity: 1;
+  transform: scale(1.1);
 }
 
 .user-select-section .add-btn {
-  margin-top: 12px;
-  background: #ffcd4d;
+  margin-top: var(--gap-s, 12px);
+  background: var(--brand, #FFCC33);
   border: none;
   width: 100%;
-  padding: 10px;
+  padding: var(--gap-xs, 10px);
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-strong, #111418);
+  font-size: 14px;
 }
 
 .user-select-section .add-btn:hover {
-  background: #ffd86c;
+  background: #FFD64F;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255, 204, 51, 0.25);
 }
 
 .user-select-section .group-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px;
-  border-bottom: 1px solid #f4f4f4;
+  padding: var(--gap-xs, 10px);
+  border-bottom: 1px solid var(--divider, #EEF0F3);
   border-radius: 6px;
-  transition: background 0.2s;
+  transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
 
 .user-select-section .group-item:hover {
-  background: #fff8e6;
+  background: var(--brand-weak, #FFF4C2);
 }
 
 .user-select-section .group-item:last-child {
@@ -1308,56 +1727,58 @@ function toggleVisibility(item) {
 .user-select-section .group-info {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--gap-xxs, 6px);
   flex: 1;
 }
 
 .user-select-section .group-name {
   font-weight: 500;
   font-size: 14px;
-  color: #2a2828;
+  color: var(--text-strong, #111418);
 }
 
 .user-select-section .group-count {
   font-size: 13px;
-  color: #999;
+  color: var(--text-weak, #757B85);
 }
 
 .user-select-section .group-add-btn {
-  background: #ffcd4d;
+  background: var(--brand, #FFCC33);
   border: none;
   padding: 6px 12px;
   border-radius: 6px;
   font-weight: 600;
   font-size: 12px;
-  color: #1C0F0F;
+  color: var(--text-strong, #111418);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
 }
 
 .user-select-section .group-add-btn:hover {
-  background: #ffd86c;
+  background: #FFD64F;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(255, 204, 51, 0.2);
 }
 
 .user-select-modal-footer {
-  padding: 12px 20px;
+  padding: var(--gap-s, 12px) var(--gap-l, 20px);
   text-align: right;
-  background: #fafafa;
-  border-top: 1px solid #eee;
+  background: var(--surface-2, #F8F9FB);
+  border-top: 1px solid var(--divider, #EEF0F3);
   display: flex;
-  gap: 8px;
+  gap: var(--gap-xs, 10px);
   justify-content: flex-end;
 }
 
 .user-select-modal-footer .btn-confirm {
-  background: #ffcd4d;
+  background: var(--brand, #FFCC33);
   border: none;
   border-radius: 8px;
   padding: 8px 14px;
   cursor: pointer;
   font-weight: 600;
-  transition: background 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   width: 80px;
   height: 40px;
   white-space: nowrap;
@@ -1367,25 +1788,29 @@ function toggleVisibility(item) {
   justify-content: center;
   font-size: 14px;
   line-height: 1;
+  color: var(--text-strong, #111418);
 }
 
 .user-select-modal-footer .btn-confirm:hover:not(:disabled) {
-  background: #ffd86c;
+  background: #FFD64F;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255, 204, 51, 0.25);
 }
 
 .user-select-modal-footer .btn-confirm:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .user-select-modal-footer .close-btn {
-  background: #f5f5f5;
-  border: none;
+  background: var(--chip, #F0F2F6);
+  border: 1px solid var(--border, #E4E7EC);
   border-radius: 8px;
   padding: 8px 14px;
   cursor: pointer;
   font-weight: 500;
-  transition: background 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   width: 80px;
   height: 40px;
   white-space: nowrap;
@@ -1395,17 +1820,20 @@ function toggleVisibility(item) {
   justify-content: center;
   font-size: 14px;
   line-height: 1;
+  color: var(--text, #2C2F36);
 }
 
 .user-select-modal-footer .close-btn:hover {
-  background: #e8e8e8;
+  background: var(--surface-2, #F8F9FB);
+  border-color: var(--border, #E4E7EC);
+  transform: translateY(-1px);
 }
 
 .user-select-section .empty-msg,
 .user-select-section .empty-list {
-  padding: 40px 20px;
+  padding: 40px var(--gap-l, 20px);
   text-align: center;
-  color: #999;
+  color: var(--text-weak, #757B85);
   font-size: 14px;
 }
 </style>
