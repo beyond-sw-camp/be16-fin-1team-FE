@@ -272,6 +272,19 @@
       @confirm="confirmDeletePermissionGroup"
     />
     
+    <!-- 사용자 그룹 삭제 확인 모달 -->
+    <ConfirmModal
+      :show="showDeleteUserGroupModal"
+      title="사용자 그룹 삭제"
+      :message="deleteUserGroupMessage"
+      warning-text="이 작업은 되돌릴 수 없습니다."
+      confirm-button-text="삭제"
+      loading-text="삭제 중..."
+      :loading="deleteUserGroupLoading"
+      @close="closeDeleteUserGroupModal"
+      @confirm="confirmDeleteUserGroup"
+    />
+    
     <!-- 권한 그룹 사용자 추가/제거 모달 -->
     <AddPermissionGroupUsersModal
       v-model="showAddPermissionGroupUsersModal"
@@ -341,6 +354,12 @@ export default {
       deletePermissionGroupMessage: '',
       deletePermissionGroupLoading: false,
       selectedGroupForDelete: null,
+      
+      // 사용자 그룹 삭제 모달 관련
+      showDeleteUserGroupModal: false,
+      deleteUserGroupMessage: '',
+      deleteUserGroupLoading: false,
+      selectedUserGroupForDelete: null,
       
       // 권한 그룹 사용자 추가/제거 모달 관련
       showAddPermissionGroupUsersModal: false,
@@ -1030,38 +1049,61 @@ export default {
       }
     },
     
-    // 사용자 그룹 삭제
-    async deleteUserGroup(group) {
-      if (confirm(`"${group.name}" 그룹을 삭제하시겠습니까?`)) {
-        try {
-          const token = localStorage.getItem('token');
-          const userId = localStorage.getItem('userId') || localStorage.getItem('id');
-          
-          const response = await axios.delete(
-            `http://localhost:8080/workspace-service/groups/${group.id}`,
-            {
-              headers: {
-                'X-User-Id': userId,
-                'Authorization': `Bearer ${token}`
-              }
+    // 사용자 그룹 삭제 모달 열기
+    deleteUserGroup(group) {
+      this.selectedUserGroupForDelete = group;
+      this.deleteUserGroupMessage = `<strong>${group.name}</strong> 그룹을 삭제하시겠습니까?`;
+      this.showDeleteUserGroupModal = true;
+    },
+    
+    // 사용자 그룹 삭제 모달 닫기
+    closeDeleteUserGroupModal() {
+      this.showDeleteUserGroupModal = false;
+      this.selectedUserGroupForDelete = null;
+      this.deleteUserGroupMessage = '';
+    },
+    
+    // 사용자 그룹 삭제 확인
+    async confirmDeleteUserGroup() {
+      if (!this.selectedUserGroupForDelete) return;
+      
+      try {
+        this.deleteUserGroupLoading = true;
+        
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId') || localStorage.getItem('id');
+        
+        const response = await axios.delete(
+          `http://localhost:8080/workspace-service/groups/${this.selectedUserGroupForDelete.id}`,
+          {
+            headers: {
+              'X-User-Id': userId,
+              'Authorization': `Bearer ${token}`
             }
-          );
-          
-          if (response.data.statusCode === 200) {
-            // 로컬 데이터에서 제거
-            const index = this.userGroups.findIndex(g => g.id === group.id);
-            if (index > -1) {
-              this.userGroups.splice(index, 1);
-              this.filterUserGroups();
-            }
-            alert('그룹이 삭제되었습니다.');
-          } else {
-            alert('그룹 삭제에 실패했습니다.');
           }
-        } catch (error) {
-          console.error('사용자 그룹 삭제 실패:', error);
-          alert('그룹 삭제에 실패했습니다.');
+        );
+        
+        if (response.data.statusCode === 200) {
+          // 로컬 데이터에서 제거
+          const index = this.userGroups.findIndex(g => g.id === this.selectedUserGroupForDelete.id);
+          if (index > -1) {
+            this.userGroups.splice(index, 1);
+            this.filterUserGroups();
+          }
+          this.closeDeleteUserGroupModal();
+          showSnackbar('그룹이 성공적으로 삭제되었습니다.', { color: 'success' });
+        } else {
+          showSnackbar('그룹 삭제에 실패했습니다.', { color: 'error' });
         }
+      } catch (error) {
+        console.error('사용자 그룹 삭제 실패:', error);
+        if (error.response && error.response.data && error.response.data.statusMessage) {
+          showSnackbar(error.response.data.statusMessage, { color: 'error' });
+        } else {
+          showSnackbar('그룹 삭제에 실패했습니다.', { color: 'error' });
+        }
+      } finally {
+        this.deleteUserGroupLoading = false;
       }
     },
     
