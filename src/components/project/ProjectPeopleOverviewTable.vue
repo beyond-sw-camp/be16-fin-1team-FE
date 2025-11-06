@@ -1,6 +1,6 @@
 <template>
   <div class="people-overview-section">
-    <div class="pis-header with-inset-hr">
+    <div class="pis-header">
       <h3 class="pis-title">인원 현황</h3>
     </div>
     
@@ -19,17 +19,52 @@
     <div v-else class="people-overview-content">
       <!-- 메트릭 카드 -->
       <div class="people-metrics-grid">
-        <div class="people-metric-card">
-          <div class="people-metric-value">{{ overview.totalPeopleCount || 0 }}</div>
-          <div class="people-metric-label">총 인원</div>
+        <!-- 총 인원 -->
+        <div class="people-metric-card people-metric-1">
+          <div class="people-icon-box people-icon-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13"/>
+              <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88"/>
+            </svg>
+          </div>
+          <div class="people-info">
+            <div class="people-metric-label">총 인원</div>
+            <div class="people-metric-value">{{ overview.totalPeopleCount || 0 }} 명</div>
+          </div>
         </div>
-        <div class="people-metric-card">
-          <div class="people-metric-value">{{ overview.managerCount || 0 }}</div>
-          <div class="people-metric-label">담당자 수</div>
+        
+        <!-- 담당자 수 -->
+        <div class="people-metric-card people-metric-2">
+          <div class="people-icon-box people-icon-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21V5C16 4.46957 15.7893 3.96086 15.4142 3.58579C15.0391 3.21071 14.5304 3 14 3H10C9.46957 3 8.96086 3.21071 8.58579 3.58579C8.21071 3.96086 8 4.46957 8 5V21"/>
+              <path d="M16 3H18C18.5304 3 19.0391 3.21071 19.4142 3.58579C19.7893 3.96086 20 4.46957 20 5V19C20 19.5304 19.7893 20.0391 19.4142 20.4142C19.0391 20.7893 18.5304 21 18 21H16"/>
+              <path d="M8 3H6C5.46957 3 4.96086 3.21071 4.58579 3.58579C4.21071 3.96086 4 4.46957 4 5V19C4 19.5304 4.21071 20.0391 4.58579 20.4142C4.96086 20.7893 5.46957 21 6 21H8"/>
+              <line x1="9" y1="7" x2="15" y2="7"/>
+              <line x1="9" y1="11" x2="15" y2="11"/>
+              <line x1="9" y1="15" x2="13" y2="15"/>
+            </svg>
+          </div>
+          <div class="people-info">
+            <div class="people-metric-label">담당자 수</div>
+            <div class="people-metric-value">{{ overview.managerCount || 0 }} 명</div>
+          </div>
         </div>
-        <div class="people-metric-card">
-          <div class="people-metric-value">{{ overview.participantOnlyCount || 0 }}</div>
-          <div class="people-metric-label">참여만 하는 인원 수</div>
+        
+        <!-- 참여만 하는 인원 수 -->
+        <div class="people-metric-card people-metric-3">
+          <div class="people-icon-box people-icon-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div class="people-info">
+            <div class="people-metric-label">참여만 하는 인원 수</div>
+            <div class="people-metric-value">{{ overview.participantOnlyCount || 0 }} 명</div>
+          </div>
         </div>
       </div>
       
@@ -121,6 +156,7 @@
                     v-for="(stone, idx) in getVisibleStones(person.ownedStones)"
                     :key="stone.stoneId"
                     class="stone-tag"
+                    :class="getStoneColorClass(stone.stoneId)"
                   >
                     {{ stone.stoneName }}
                   </span>
@@ -139,6 +175,7 @@
                     v-for="(stone, idx) in getVisibleStones(person.participatingStones)"
                     :key="stone.stoneId"
                     class="stone-tag"
+                    :class="getStoneColorClass(stone.stoneId)"
                   >
                     {{ stone.stoneName }}
                   </span>
@@ -205,7 +242,8 @@
             <div
               v-for="stone in modalStones"
               :key="stone.stoneId"
-              class="stone-list-item"
+              class="stone-list-item stone-tag"
+              :class="getStoneColorClass(stone.stoneId)"
             >
               {{ stone.stoneName }}
             </div>
@@ -397,6 +435,20 @@ export default {
       return stones.slice(0, 3);
     },
     
+    getStoneColorClass(stoneId) {
+      if (!stoneId) return 'stone-color-1';
+      
+      // 스톤 ID를 해시하여 0-7 사이의 숫자로 변환
+      let hash = 0;
+      const str = String(stoneId);
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      const colorIndex = Math.abs(hash) % 8 + 1;
+      return `stone-color-${colorIndex}`;
+    },
+    
     handleSort(column) {
       if (this.sortColumn === column) {
         // 같은 컬럼이면 정렬 순서 토글
@@ -559,7 +611,12 @@ export default {
 
 .header-filter-select-inline:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: #ddd;
+}
+
+.header-filter-select-inline:focus-visible {
+  outline: none;
+  border-color: #ddd;
 }
 
 /* 메트릭 카드 */
@@ -571,22 +628,80 @@ export default {
 }
 
 .people-metric-card {
-  background: #f5f5f5;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 20px;
-  text-align: center;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.people-metric-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 8px;
+.people-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* 카드별 배경색 */
+.people-metric-1 {
+  background: #e3f2fd; /* 연한 파랑 */
+}
+
+.people-metric-2 {
+  background: #e8f5f5; /* 연한 초록 */
+}
+
+.people-metric-3 {
+  background: #fff3e0; /* 연한 오렌지 */
+}
+
+/* 아이콘 박스 */
+.people-icon-box {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.people-icon-1 {
+  background: #3b82f6; /* 파랑 */
+}
+
+.people-icon-2 {
+  background: #10b981; /* 초록 */
+}
+
+.people-icon-3 {
+  background: #f59e0b; /* 오렌지 */
+}
+
+/* 정보 영역 */
+.people-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
 }
 
 .people-metric-label {
-  font-size: 14px;
-  color: #666;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666666;
+  line-height: 1.2;
+}
+
+.people-metric-value {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.2;
 }
 
 /* 테이블 */
@@ -612,33 +727,33 @@ export default {
 }
 
 .people-table thead {
-  background-color: #f5f5f5;
-  border-bottom: 2px solid #e0e0e0;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f4f8 100%);
+  border-bottom: 2px solid #90caf9;
 }
 
 .people-table th {
-  padding: 10px 12px;
+  padding: 12px 12px;
   text-align: center;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #1565c0;
   white-space: nowrap;
   vertical-align: middle;
-  border-right: 1px solid #e9eaee;
+  border-right: 1px solid #e3f2fd;
 }
 
 .th-sub {
   margin-left: 4px;
   font-weight: 500;
-  color: #777;
+  color: #64b5f6;
   font-size: 12px;
 }
 
 .people-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e3f2fd;
   vertical-align: middle;
   text-align: center;
-  border-right: 1px solid #e9eaee;
+  border-right: 1px solid #f0f7ff;
 }
 
 .people-table th:last-child,
@@ -647,12 +762,13 @@ export default {
 }
 
 .people-table tbody tr:hover {
-  background-color: #f9f9f9;
+  background-color: #f0f7ff;
+  transition: background-color 0.2s ease;
 }
 
 /* 짝수 행 가독성 향상 */
 .people-table tbody tr:nth-child(even) {
-  background-color: #fafafa;
+  background-color: #fafbff;
 }
 
 /* 정렬 가능한 컬럼 */
@@ -660,10 +776,11 @@ export default {
   cursor: pointer;
   user-select: none;
   position: relative;
+  transition: background-color 0.2s ease;
 }
 
 .sortable:hover {
-  background-color: #e8e8e8;
+  background-color: #d4e9f7;
 }
 
 .sort-icon {
@@ -738,13 +855,67 @@ export default {
 
 .stone-tag {
   display: inline-block;
-  padding: 6px 10px;
-  background-color: #eeeeee;
-  color: #555555;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
+  border: 1px solid;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stone-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 스톤 색상 팔레트 (8가지) */
+.stone-color-1 {
+  background-color: #e3f2fd;
+  color: #666666;
+  border-color: rgba(144, 202, 249, 0.4);
+}
+
+.stone-color-2 {
+  background-color: #e8f5e9;
+  color: #666666;
+  border-color: rgba(129, 199, 132, 0.4);
+}
+
+.stone-color-3 {
+  background-color: #fff3e0;
+  color: #666666;
+  border-color: rgba(255, 183, 77, 0.4);
+}
+
+.stone-color-4 {
+  background-color: #f3e5f5;
+  color: #666666;
+  border-color: rgba(186, 104, 200, 0.4);
+}
+
+.stone-color-5 {
+  background-color: #fce4ec;
+  color: #666666;
+  border-color: rgba(240, 98, 146, 0.4);
+}
+
+.stone-color-6 {
+  background-color: #e0f2f1;
+  color: #666666;
+  border-color: rgba(77, 182, 172, 0.4);
+}
+
+.stone-color-7 {
+  background-color: #fff9c4;
+  color: #666666;
+  border-color: rgba(255, 213, 79, 0.4);
+}
+
+.stone-color-8 {
+  background-color: #ffebee;
+  color: #666666;
+  border-color: rgba(239, 83, 80, 0.4);
 }
 
 .more-button {
@@ -758,11 +929,20 @@ export default {
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 0.2s, border-color 0.2s;
+  outline: none;
 }
 
 .more-button:hover {
   background-color: #e8e8e8;
   border-color: #bbb;
+}
+
+.more-button:focus {
+  outline: none;
+}
+
+.more-button:focus-visible {
+  outline: none;
 }
 
 /* 모달 */
@@ -819,10 +999,19 @@ export default {
   justify-content: center;
   border-radius: 4px;
   transition: background-color 0.2s;
+  outline: none;
 }
 
 .stone-modal-close:hover {
   background-color: #f5f5f5;
+}
+
+.stone-modal-close:focus {
+  outline: none;
+}
+
+.stone-modal-close:focus-visible {
+  outline: none;
 }
 
 .stone-modal-body {
@@ -833,16 +1022,14 @@ export default {
 
 .stone-list {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
 }
 
 .stone-list-item {
-  padding: 12px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
+  padding: 10px 14px;
   font-size: 14px;
-  color: #1a1a1a;
 }
 
 .stone-modal-empty {
@@ -855,7 +1042,7 @@ export default {
 .pagination-container {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #e3f2fd;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -865,7 +1052,8 @@ export default {
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: #1565c0;
+  font-weight: 500;
 }
 
 .pagination-controls {
@@ -876,23 +1064,27 @@ export default {
 
 .pagination-btn {
   padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid #90caf9;
+  border-radius: 8px;
   background-color: white;
-  color: #1a1a1a;
+  color: #1565c0;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .pagination-btn:hover:not(.disabled) {
-  background-color: #f5f5f5;
-  border-color: #bbb;
+  background-color: #e3f2fd;
+  border-color: #64b5f6;
+  transform: translateY(-1px);
 }
 
 .pagination-btn.disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  border-color: #e3f2fd;
+  color: #90caf9;
 }
 
 .pagination-pages {
@@ -904,28 +1096,31 @@ export default {
   min-width: 36px;
   height: 36px;
   padding: 0 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid #90caf9;
+  border-radius: 8px;
   background-color: white;
-  color: #1a1a1a;
+  color: #1565c0;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .pagination-page-btn:hover {
-  background-color: #f5f5f5;
-  border-color: #bbb;
+  background-color: #e3f2fd;
+  border-color: #64b5f6;
+  transform: translateY(-1px);
 }
 
 .pagination-page-btn.active {
-  background-color: #1976d2;
-  border-color: #1976d2;
+  background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
+  border-color: #42a5f5;
   color: white;
   font-weight: 600;
+  box-shadow: 0 2px 6px rgba(66, 165, 245, 0.3);
 }
 </style>
 
