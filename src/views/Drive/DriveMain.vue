@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="drive-container pa-0">
+  <v-container fluid class="drive-container" :class="{ 'pa-0': !projectId, 'project-drive-container': projectId }">
     <div class="drive-layout">
       <!-- Left Sidebar - Folder Tree -->
       <div 
@@ -32,7 +32,16 @@
             @update:open="onTreeOpenUpdate"
           >
             <template v-slot:prepend="{ item }">
-              <v-icon :color="getTreeItemIconColor(item)">
+              <img 
+                v-if="isTreeItemImage(item)" 
+                :src="getTreeItemIconImage(item)" 
+                class="tree-item-icon-image"
+                alt=""
+              />
+              <v-icon 
+                v-else 
+                :color="getTreeItemIconColor(item)"
+              >
                 {{ getTreeItemIcon(item) }}
               </v-icon>
             </template>
@@ -163,7 +172,12 @@
               </v-list>
             </v-menu>
 
-            <v-btn text small @click="loadFolderContents(currentFolderId, currentRootType, currentRootId)">
+            <v-btn 
+              outlined
+              small 
+              class="refresh-btn"
+              @click="loadFolderContents(currentFolderId, currentRootType, currentRootId)"
+            >
               <v-icon small left>mdi-refresh</v-icon>
               새로고침
             </v-btn>
@@ -171,7 +185,13 @@
             <!-- 신규 메뉴 -->
             <v-menu v-model="isNewItemMenuOpen" :close-on-content-click="true" offset-y>
               <template #activator="{ props }">
-                <v-btn color="primary" depressed small v-bind="props">
+                <v-btn 
+                  color="primary" 
+                  elevation="0"
+                  small 
+                  class="new-btn"
+                  v-bind="props"
+                >
                   <v-icon small left>mdi-plus</v-icon>
                   신규
                 </v-btn>
@@ -291,7 +311,17 @@
                 @dragleave="onDragLeave"
                 @drop="onDrop($event, item)"
               >
-                <v-icon :color="getItemIconColor(item)" class="mr-3">
+                <img 
+                  v-if="isItemImage(item)" 
+                  :src="getItemIconImage(item)" 
+                  class="item-icon-image mr-3"
+                  alt=""
+                />
+                <v-icon 
+                  v-else 
+                  :color="getItemIconColor(item)" 
+                  class="mr-3"
+                >
                   {{ getItemIcon(item) }}
                 </v-icon>
                 <span class="item-name">
@@ -363,7 +393,11 @@
             <template v-slot:no-data>
               <div class="empty-folder-container">
                 <div class="empty-folder-content">
-                  <v-icon size="96" color="grey lighten-2" class="empty-folder-icon">mdi-folder-open-outline</v-icon>
+                  <img 
+                    src="@/assets/images/empty-folder.svg" 
+                    alt="빈 폴더" 
+                    class="empty-folder-image"
+                  />
                   <div class="empty-folder-title">폴더가 비어있습니다</div>
                   <div class="empty-folder-subtitle">파일을 여기에 드래그 인 드롭하거나 <br>'신규' 버튼을 사용하세요</div>
                 </div>
@@ -377,236 +411,372 @@
     </div>
 
     <!-- Create Folder Dialog -->
-    <v-dialog v-model="createFolderDialog" max-width="520" scroll-strategy="block">
-      <v-card class="create-dialog-card">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon class="mr-3" color="#4285f4" size="28">mdi-folder-plus</v-icon>
-          <div>
-            <div class="text-h6 font-weight-600">새 폴더 만들기</div>
-            <div class="text-caption grey--text text--darken-1 mt-1">폴더 이름을 입력하세요</div>
+    <v-dialog v-model="createFolderDialog" max-width="520" scroll-strategy="block" content-class="modern-dialog">
+      <v-card class="create-dialog-card modern-modal-card">
+        <v-card-title class="modern-modal-header">
+          <div class="d-flex align-center">
+            <div class="modern-icon-wrapper">
+              <v-icon color="#1a73e8" size="24">mdi-folder-plus</v-icon>
+            </div>
+            <div class="ml-3">
+              <div class="modern-modal-title">새 폴더 만들기</div>
+            </div>
           </div>
         </v-card-title>
-        <v-divider></v-divider>
-        <v-card-text class="pt-4 pb-2">
+        <v-card-text class="modern-modal-content">
           <v-text-field
             v-model="newFolderName"
             label="폴더 이름"
-            outlined
+            filled
+            rounded
             dense
             clearable
             counter="80"
             :maxlength="80"
             hide-details="auto"
             autofocus
-            :prepend-inner-icon="'mdi-folder-outline'"
+            class="modern-text-field"
             hint="공백과 특수문자 사용을 최소화해주세요."
             persistent-hint
             @keyup.enter="createFolder"
           ></v-text-field>
         </v-card-text>
-        <v-card-actions class="px-4 pb-4">
+        <v-card-actions class="modern-modal-actions">
           <v-spacer></v-spacer>
-          <v-btn text @click="createFolderDialog = false" class="mr-2" :disabled="isCreatingFolder">취소</v-btn>
-          <v-btn color="primary" depressed @click="createFolder" :disabled="isCreatingFolder" :loading="isCreatingFolder">
-            <v-icon small left>mdi-check</v-icon>만들기
+          <v-btn 
+            text 
+            @click="createFolderDialog = false" 
+            class="modern-cancel-btn" 
+            :disabled="isCreatingFolder"
+          >
+            취소
+          </v-btn>
+          <v-btn 
+            color="primary" 
+            depressed 
+            @click="createFolder" 
+            :disabled="isCreatingFolder" 
+            :loading="isCreatingFolder"
+            class="modern-primary-btn"
+          >
+            만들기
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Rename Dialog -->
-    <v-dialog v-model="renameDialog" max-width="520" scroll-strategy="block">
-      <v-card class="rename-dialog-card">
-        <v-card-title class="d-flex align-center">
-          <v-icon class="mr-2" :color="getItemIconColor(renameItem || {})">{{ getItemIcon(renameItem || {}) }}</v-icon>
-          <div>
-            <div class="text-subtitle-1 font-weight-600">이름 변경</div>
-            <div class="text-caption grey--text text--darken-1 text-truncate" style="max-width: 360px;">
-              {{ renameItem?.name || '' }}
+    <v-dialog v-model="renameDialog" max-width="520" scroll-strategy="block" content-class="modern-dialog">
+      <v-card class="rename-dialog-card modern-modal-card">
+        <v-card-title class="modern-modal-header">
+          <div class="d-flex align-center">
+            <div class="modern-icon-wrapper">
+              <img 
+                v-if="isItemImage(renameItem || {})" 
+                :src="getItemIconImage(renameItem || {})" 
+                class="item-icon-image"
+                style="width: 24px; height: 24px;"
+                alt=""
+              />
+              <v-icon 
+                v-else 
+                :color="getItemIconColor(renameItem || {})"
+                size="24"
+              >
+                {{ getItemIcon(renameItem || {}) }}
+              </v-icon>
+            </div>
+            <div class="ml-3">
+              <div class="modern-modal-title text-truncate" style="max-width: 360px;">{{ renameItem?.name || '' }}</div>
+              <div class="modern-modal-subtitle">이름 변경</div>
             </div>
           </div>
         </v-card-title>
-        <v-card-text class="pt-2">
+        <v-card-text class="modern-modal-content">
           <v-text-field
             v-model="renameName"
             label="새 이름"
-            outlined
+            filled
+            rounded
             dense
             clearable
             counter="80"
             :maxlength="80"
             hide-details="auto"
             autofocus
-            :prepend-inner-icon="'mdi-rename-box'"
+            class="modern-text-field"
             hint="공백과 특수문자 사용을 최소화해주세요."
             persistent-hint
             @keyup.enter="confirmRename"
           ></v-text-field>
         </v-card-text>
-        <v-card-actions class="px-4 pb-4">
+        <v-card-actions class="modern-modal-actions">
           <v-spacer></v-spacer>
-          <v-btn text @click="renameDialog = false" :disabled="isRenaming">취소</v-btn>
-          <v-btn color="primary" depressed @click="confirmRename" :disabled="isRenaming" :loading="isRenaming">
-            <v-icon small left>mdi-check</v-icon>변경
+          <v-btn 
+            text 
+            @click="renameDialog = false" 
+            class="modern-cancel-btn" 
+            :disabled="isRenaming"
+          >
+            취소
+          </v-btn>
+          <v-btn 
+            color="primary" 
+            depressed 
+            @click="confirmRename" 
+            :disabled="isRenaming" 
+            :loading="isRenaming"
+            class="modern-primary-btn"
+          >
+            변경
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Delete Confirmation Dialog -->
-    <v-dialog v-model="deleteDialog" max-width="520" scroll-strategy="block">
-      <v-card class="delete-dialog-card">
-        <v-card-title class="d-flex align-center">
-          <v-icon class="mr-2" color="error">{{ getItemIcon(deleteItem || {}) }}</v-icon>
-          <div>
-            <div class="text-subtitle-1 font-weight-600">삭제 확인</div>
-            <div class="text-caption grey--text text--darken-1 text-truncate" style="max-width: 360px;">
-              {{ deleteItem?.name || '' }}
+    <v-dialog v-model="deleteDialog" max-width="520" scroll-strategy="block" content-class="modern-dialog">
+      <v-card class="delete-dialog-card modern-modal-card">
+        <v-card-title class="modern-modal-header">
+          <div class="d-flex align-center">
+            <div class="modern-icon-wrapper delete-icon-wrapper">
+              <img 
+                v-if="isItemImage(deleteItem || {})" 
+                :src="getItemIconImage(deleteItem || {})" 
+                class="item-icon-image"
+                style="width: 24px; height: 24px;"
+                alt=""
+              />
+              <v-icon 
+                v-else 
+                color="#ea4335"
+                size="24"
+              >
+                {{ getItemIcon(deleteItem || {}) }}
+              </v-icon>
+            </div>
+            <div class="ml-3">
+              <div class="modern-modal-title text-truncate" style="max-width: 360px;">{{ deleteItem?.name || '' }}</div>
+              <div class="modern-modal-subtitle">삭제 확인</div>
             </div>
           </div>
         </v-card-title>
-        <v-card-text class="pt-4 pb-2">
-          <v-alert type="warning" border="left" colored-border density="compact" class="mb-3">
+        <v-card-text class="modern-modal-content">
+          <v-alert type="warning" border="left" colored-border density="compact" class="mb-3 modern-alert">
             <div class="text-body-2">
               삭제하면 돌이킬 수 없습니다. 정말 <strong>"{{ deleteItem?.name }}"</strong>을(를) 삭제하시겠습니까?
             </div>
           </v-alert>
         </v-card-text>
-        <v-card-actions class="px-4 pb-4">
+        <v-card-actions class="modern-modal-actions">
           <v-spacer></v-spacer>
-          <v-btn text @click="deleteDialog = false" :disabled="isDeleting">취소</v-btn>
-          <v-btn color="error" depressed @click="confirmDelete" :disabled="isDeleting" :loading="isDeleting">
-            <v-icon small left>mdi-delete</v-icon>삭제
+          <v-btn 
+            text 
+            @click="deleteDialog = false" 
+            class="modern-cancel-btn" 
+            :disabled="isDeleting"
+          >
+            취소
+          </v-btn>
+          <v-btn 
+            color="error" 
+            depressed 
+            @click="confirmDelete" 
+            :disabled="isDeleting" 
+            :loading="isDeleting"
+            class="modern-error-btn"
+          >
+            삭제
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Create Document Dialog -->
-    <v-dialog v-model="createDocumentDialog" max-width="520" scroll-strategy="block">
-      <v-card class="create-dialog-card">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon class="mr-3" color="#4285f4" size="28">mdi-file-document-plus</v-icon>
-          <div>
-            <div class="text-h6 font-weight-600">새 문서 만들기</div>
-            <div class="text-caption grey--text text--darken-1 mt-1">문서 제목을 입력하세요</div>
+    <v-dialog v-model="createDocumentDialog" max-width="520" scroll-strategy="block" content-class="modern-dialog">
+      <v-card class="create-dialog-card modern-modal-card">
+        <v-card-title class="modern-modal-header">
+          <div class="d-flex align-center">
+            <div class="modern-icon-wrapper">
+              <v-icon color="#1a73e8" size="24">mdi-file-document-plus</v-icon>
+            </div>
+            <div class="ml-3">
+              <div class="modern-modal-title">새 문서 만들기</div>
+            </div>
           </div>
         </v-card-title>
-        <v-divider></v-divider>
-        <v-card-text class="pt-4 pb-2">
+        <v-card-text class="modern-modal-content">
           <v-text-field
             v-model="newDocumentTitle"
             label="문서 제목"
-            outlined
+            filled
+            rounded
             dense
             clearable
             counter="80"
             :maxlength="80"
             hide-details="auto"
             autofocus
-            :prepend-inner-icon="'mdi-file-document-outline'"
+            class="modern-text-field"
             hint="공백과 특수문자 사용을 최소화해주세요."
             persistent-hint
             @keyup.enter="createDocument"
           ></v-text-field>
         </v-card-text>
-        <v-card-actions class="px-4 pb-4">
+        <v-card-actions class="modern-modal-actions">
           <v-spacer></v-spacer>
-          <v-btn text @click="createDocumentDialog = false" class="mr-2" :disabled="isCreatingDocument">취소</v-btn>
-          <v-btn color="primary" depressed @click="createDocument" :disabled="isCreatingDocument" :loading="isCreatingDocument">
-            <v-icon small left>mdi-check</v-icon>만들기
+          <v-btn 
+            text 
+            @click="createDocumentDialog = false" 
+            class="modern-cancel-btn" 
+            :disabled="isCreatingDocument"
+          >
+            취소
+          </v-btn>
+          <v-btn 
+            color="primary" 
+            depressed 
+            @click="createDocument" 
+            :disabled="isCreatingDocument" 
+            :loading="isCreatingDocument"
+            class="modern-primary-btn"
+          >
+            만들기
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- Item Info Dialog -->
-    <v-dialog v-model="infoDialog" max-width="600" scroll-strategy="block">
-      <v-card class="info-dialog-card">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon class="mr-3" :color="getItemIconColor(infoItem || {})" size="28">
-            {{ getItemIcon(infoItem || {}) }}
-          </v-icon>
-          <div class="flex-grow-1">
-            <div class="text-h6 font-weight-600">상세 정보</div>
-            <div class="text-caption grey--text text--darken-1 mt-1 text-truncate" style="max-width: 400px;">
-              {{ infoItem?.name || '' }}
+    <!-- Item Info Side Panel -->
+    <v-navigation-drawer
+      v-model="infoDialog"
+      location="right"
+      temporary
+      width="400"
+      class="info-side-panel"
+    >
+      <div class="info-panel-content">
+        <div class="info-panel-header">
+          <div class="d-flex align-center flex-grow-1">
+            <div class="modern-icon-wrapper">
+              <img 
+                v-if="isItemImage(infoItem || {})" 
+                :src="getItemIconImage(infoItem || {})" 
+                class="item-icon-image"
+                style="width: 24px; height: 24px;"
+                alt=""
+              />
+              <v-icon 
+                v-else 
+                :color="getItemIconColor(infoItem || {})" 
+                size="24"
+              >
+                {{ getItemIcon(infoItem || {}) }}
+              </v-icon>
+            </div>
+            <div class="ml-3 flex-grow-1">
+              <div class="modern-modal-title text-truncate">{{ infoItem?.name || '' }}</div>
+              <div class="modern-modal-subtitle">상세 정보</div>
             </div>
           </div>
-          <v-btn icon @click="infoDialog = false" size="small">
-            <v-icon>mdi-close</v-icon>
+          <v-btn 
+            icon 
+            @click="infoDialog = false" 
+            size="small"
+            class="modern-close-btn"
+          >
+            <v-icon size="20">mdi-close</v-icon>
           </v-btn>
-        </v-card-title>
-        <v-divider></v-divider>
-        <v-card-text class="pa-0" v-if="isLoadingInfo">
-          <div class="d-flex justify-center align-center py-8">
-            <v-progress-circular indeterminate color="primary"></v-progress-circular>
+        </div>
+        
+        <div class="info-panel-body">
+          <div v-if="isLoadingInfo" class="info-loading">
+            <v-progress-circular indeterminate color="primary" size="48"></v-progress-circular>
           </div>
-        </v-card-text>
-        <v-card-text class="pa-4" v-else-if="itemInfo">
-          <v-list dense>
-            <v-list-item v-if="itemInfo.name" :title="'이름'" :subtitle="itemInfo.name" />
+          <div v-else-if="itemInfo" class="info-list-container">
+            <div v-if="itemInfo.name" class="info-list-item">
+              <div class="info-label">이름</div>
+              <div class="info-value">{{ itemInfo.name }}</div>
+            </div>
             
-            <v-list-item 
+            <div 
               v-if="itemInfo.folderName || itemInfo.parentFolderName"
-              :title="infoItem?.type === 'folder' ? '상위 폴더' : '폴더'"
-              :subtitle="itemInfo.folderName || itemInfo.parentFolderName || '루트'"
-            />
+              class="info-list-item"
+            >
+              <div class="info-label">{{ infoItem?.type === 'folder' ? '상위 폴더' : '폴더' }}</div>
+              <div class="info-value">{{ itemInfo.folderName || itemInfo.parentFolderName || '루트' }}</div>
+            </div>
             
-            <v-list-item 
+            <div 
               v-if="itemInfo.fileSize"
-              title="크기"
-              :subtitle="formatFileSize(itemInfo.fileSize)"
-            />
+              class="info-list-item"
+            >
+              <div class="info-label">크기</div>
+              <div class="info-value">{{ formatFileSize(itemInfo.fileSize) }}</div>
+            </div>
             
-            <v-list-item 
+            <div 
               v-if="itemInfo.creatorName"
-              title="생성자"
-              :subtitle="itemInfo.creatorName"
-            />
+              class="info-list-item"
+            >
+              <div class="info-label">생성자</div>
+              <div class="info-value">{{ itemInfo.creatorName }}</div>
+            </div>
             
-            <v-list-item 
+            <div 
               v-if="itemInfo.createdAt"
-              title="생성일"
-              :subtitle="formatDateTime(itemInfo.createdAt)"
-            />
+              class="info-list-item"
+            >
+              <div class="info-label">생성일</div>
+              <div class="info-value">{{ formatDateTime(itemInfo.createdAt) }}</div>
+            </div>
             
-            <v-list-item 
+            <div 
               v-if="itemInfo.updatedAt"
-              title="수정일"
-              :subtitle="formatDateTime(itemInfo.updatedAt)"
-            />
-          </v-list>
-        </v-card-text>
-        <v-divider></v-divider>
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <v-btn text @click="openRenameDialog(infoItem)" :disabled="!infoItem">
-            <v-icon small left>mdi-pencil</v-icon>이름 변경
-          </v-btn>
-          <v-btn text color="error" @click="openDeleteDialog(infoItem)" :disabled="!infoItem || !canDelete(infoItem)">
-            <v-icon small left>mdi-delete</v-icon>삭제
-          </v-btn>
-          <v-btn color="primary" depressed @click="infoDialog = false">
-            닫기
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+              class="info-list-item"
+            >
+              <div class="info-label">수정일</div>
+              <div class="info-value">{{ formatDateTime(itemInfo.updatedAt) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </v-navigation-drawer>
 
     <!-- Upload Dialog -->
-    <v-dialog v-model="uploadDialog" max-width="760" scroll-strategy="block">
-      <v-card>
-        <v-card-title class="d-flex justify-space-between align-center">
-          <span>파일 업로드</span>
+    <v-dialog v-model="uploadDialog" max-width="760" scroll-strategy="block" content-class="modern-dialog">
+      <v-card class="modern-modal-card upload-dialog-card">
+        <v-card-title class="modern-modal-header">
           <div class="d-flex align-center">
-            <v-btn small text class="mr-2" @click="clearSelectedFiles" :disabled="selectedFiles.length === 0 || isUploading">비우기</v-btn>
-            <v-btn small color="primary" depressed @click="uploadSelectedFiles" :disabled="selectedFiles.length === 0 || isUploading || uploadStatus.hasErrors" :loading="isUploading">
-              <v-icon small left>mdi-upload</v-icon> 업로드
+            <div class="modern-icon-wrapper">
+              <v-icon color="#1a73e8" size="24">mdi-cloud-upload</v-icon>
+            </div>
+            <div class="ml-3">
+              <div class="modern-modal-title">파일 업로드</div>
+            </div>
+          </div>
+          <div class="d-flex align-center">
+            <v-btn 
+              text 
+              class="modern-cancel-btn mr-2" 
+              @click="clearSelectedFiles" 
+              :disabled="selectedFiles.length === 0 || isUploading"
+            >
+              비우기
+            </v-btn>
+            <v-btn 
+              color="primary" 
+              depressed 
+              @click="uploadSelectedFiles" 
+              :disabled="selectedFiles.length === 0 || isUploading || uploadStatus.hasErrors" 
+              :loading="isUploading"
+              class="modern-primary-btn"
+            >
+              업로드
             </v-btn>
           </div>
         </v-card-title>
-        <v-card-text>
+        <v-card-text class="modern-modal-content">
           <!-- Upload Progress -->
           <div v-if="isUploading" class="upload-progress mb-4">
             <v-progress-linear
@@ -628,15 +798,23 @@
           </div>
 
           <div
-            class="upload-zone"
+            class="upload-zone modern-upload-zone"
             :class="{ 'upload-zone-disabled': isUploading }"
             @dragover.prevent
             @drop.prevent="handleFileDrop"
           >
-            <v-icon size="64" color="primary">mdi-cloud-upload</v-icon>
-            <div class="text-h6 mt-2">파일을 여기에 드래그하거나</div>
-            <v-btn color="primary" class="mt-3" @click="$refs.fileInput.click()" :disabled="isUploading">
-              파일 추가
+            <div class="upload-icon-wrapper">
+              <v-icon size="56" color="#1a73e8">mdi-cloud-upload</v-icon>
+            </div>
+            <div class="upload-text-primary">파일을 여기에 드래그하거나</div>
+            <v-btn 
+              color="primary" 
+              depressed
+              class="mt-3 modern-primary-btn" 
+              @click="$refs.fileInput.click()" 
+              :disabled="isUploading"
+            >
+              파일 선택
             </v-btn>
             <input
               ref="fileInput"
@@ -697,9 +875,16 @@
             <div class="mt-3 text-body-1 grey--text">업로드 중...</div>
           </div>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="modern-modal-actions">
           <v-spacer></v-spacer>
-          <v-btn text @click="uploadDialog = false" :disabled="isUploading">닫기</v-btn>
+          <v-btn 
+            text 
+            @click="uploadDialog = false" 
+            :disabled="isUploading"
+            class="modern-cancel-btn"
+          >
+            닫기
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -732,6 +917,8 @@
 <script>
 import driveService from '@/services/driveService';
 import { showSnackbar } from '@/services/snackbar';
+import workspaceLogo from '@/assets/icons/logo/1_2.svg';
+import projectIcon from '@/assets/icons/sidebar/project.svg';
 
 export default {
   name: "DriveMain",
@@ -2744,21 +2931,39 @@ export default {
       }
     },
 
+    // 트리 아이템이 이미지를 사용하는지 확인
+    isTreeItemImage(item) {
+      if (item.rootName || item.id === 'root' || item.isRoot) {
+        const rootType = item.rootType || this.currentRootType;
+        return rootType === 'WORKSPACE' || rootType === 'PROJECT';
+      }
+      return false;
+    },
+
+    // 트리 아이템 이미지 경로
+    getTreeItemIconImage(item) {
+      if (item.rootName || item.id === 'root' || item.isRoot) {
+        const rootType = item.rootType || this.currentRootType;
+        if (rootType === 'WORKSPACE') {
+          return workspaceLogo;
+        } else if (rootType === 'PROJECT') {
+          return projectIcon;
+        }
+      }
+      return null;
+    },
+
     // 트리 아이템 아이콘 (rootType에 따라 분리)
     getTreeItemIcon(item) {
       // rootName이 있거나 isRoot 플래그가 있으면 루트 경로
       if (item.rootName || item.id === 'root' || item.isRoot) {
         const rootType = item.rootType || this.currentRootType;
-        // rootType에 따라 아이콘 분리
+        // rootType에 따라 아이콘 분리 (STONE만 아이콘 사용)
         switch (rootType) {
-          case 'WORKSPACE':
-            return 'mdi-account-group-outline';
-          case 'PROJECT':
-            return 'mdi-clipboard-list-outline';
           case 'STONE':
-            return 'mdi-archive-outline';
+            return 'mdi-flag'; // 마일스톤 아이콘 (깃발)
           default:
-            return 'mdi-account-group-outline';
+            return 'mdi-folder'; // 이미지 사용하는 경우 기본값
         }
       }
       // 일반 폴더
@@ -2770,17 +2975,11 @@ export default {
       // rootName이 있거나 isRoot 플래그가 있으면 루트 경로
       if (item.rootName || item.id === 'root' || item.isRoot) {
         const rootType = item.rootType || this.currentRootType;
-        // rootType에 따라 색상 분리
-        switch (rootType) {
-          case 'WORKSPACE':
-            return 'primary';
-          case 'PROJECT':
-            return 'green darken-1';
-          case 'STONE':
-            return 'purple darken-1';
-          default:
-            return 'primary';
+        // 모든 루트 타입을 검정색으로 통일
+        if (rootType === 'WORKSPACE' || rootType === 'PROJECT' || rootType === 'STONE') {
+          return '#000000';
         }
+        return '#000000';
       }
       // 일반 폴더
       return 'amber darken-2';
@@ -2808,18 +3007,54 @@ export default {
       return labelMap[filterType] || '전체';
     },
 
+    // 아이템이 이미지를 사용하는지 확인
+    isItemImage(item) {
+      // 테이블에서 type이 STONE/PROJECT인 경우
+      if (item.type === 'STONE' || item.type === 'PROJECT') {
+        return item.type === 'PROJECT';
+      }
+      
+      // folderName이 없고 rootName이 있는 루트 항목
+      if (item.isRoot || (!item.folderName && item.rootName)) {
+        const rootType = item.rootType;
+        return rootType === 'WORKSPACE' || rootType === 'PROJECT';
+      }
+      
+      return false;
+    },
+
+    // 아이템 이미지 경로
+    getItemIconImage(item) {
+      // 테이블에서 type이 STONE/PROJECT인 경우
+      if (item.type === 'STONE' || item.type === 'PROJECT') {
+        if (item.type === 'PROJECT') {
+          return projectIcon;
+        }
+      }
+      
+      // folderName이 없고 rootName이 있는 루트 항목
+      if (item.isRoot || (!item.folderName && item.rootName)) {
+        const rootType = item.rootType;
+        if (rootType === 'WORKSPACE') {
+          return workspaceLogo;
+        } else if (rootType === 'PROJECT') {
+          return projectIcon;
+        }
+      }
+      
+      return null;
+    },
+
     // 아이템 아이콘
     getItemIcon(item) {
       // 테이블에서 type이 STONE/PROJECT인 경우 (type이 rootType 역할)
       if (item.type === 'STONE' || item.type === 'PROJECT') {
         const rootType = item.type; // 테이블에서는 type이 rootType
         switch (rootType) {
-          case 'PROJECT':
-            return 'mdi-clipboard-list-outline';
           case 'STONE':
-            return 'mdi-archive-outline';
+            return 'mdi-flag'; // 마일스톤 아이콘 (깃발)
           default:
-            return 'mdi-account-group-outline';
+            return 'mdi-folder'; // 이미지 사용하는 경우 기본값
         }
       }
       
@@ -2827,14 +3062,10 @@ export default {
       if (item.isRoot || (!item.folderName && item.rootName)) {
         const rootType = item.rootType;
         switch (rootType) {
-          case 'WORKSPACE':
-            return 'mdi-account-group-outline';
-          case 'PROJECT':
-            return 'mdi-clipboard-list-outline';
           case 'STONE':
-            return 'mdi-archive-outline';
+            return 'mdi-flag'; // 마일스톤 아이콘 (깃발)
           default:
-            return 'mdi-account-group-outline';
+            return 'mdi-folder'; // 이미지 사용하는 경우 기본값
         }
       }
       
@@ -2899,30 +3130,18 @@ export default {
     getItemIconColor(item) {
       // 테이블에서 type이 STONE/PROJECT인 경우 (type이 rootType 역할)
       if (item.type === 'STONE' || item.type === 'PROJECT') {
-        const rootType = item.type; // 테이블에서는 type이 rootType
-        switch (rootType) {
-          case 'PROJECT':
-            return 'green darken-1';
-          case 'STONE':
-            return 'purple darken-1';
-          default:
-            return 'primary';
-        }
+        // 모든 루트 타입을 검정색으로 통일
+        return '#000000';
       }
       
       // folderName이 없고 rootName이 있는 루트 항목 (기존 로직)
       if (item.isRoot || (!item.folderName && item.rootName)) {
         const rootType = item.rootType;
-        switch (rootType) {
-          case 'WORKSPACE':
-            return 'primary';
-          case 'PROJECT':
-            return 'green darken-1';
-          case 'STONE':
-            return 'purple darken-1';
-          default:
-            return 'primary';
+        // 모든 루트 타입을 검정색으로 통일
+        if (rootType === 'WORKSPACE' || rootType === 'PROJECT' || rootType === 'STONE') {
+          return '#000000';
         }
+        return '#000000';
       }
       
       if (item.type === 'folder') return 'amber darken-2';
@@ -4845,7 +5064,24 @@ export default {
 
 .drive-container {
   height: calc(100vh - 64px);
-  background-color: #f5f5f5;
+  background-color: #F5F5F5;
+}
+
+/* 프로젝트 문서함 전용 컨테이너 스타일 - v-container 공간 활용 */
+.drive-container.project-drive-container {
+  padding: 20px 45px 30px 45px !important;
+  background-color: #F5F5F5;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: calc(100vh - 64px);
+}
+
+/* 프로젝트 문서함일 때 v-container의 기본 패딩 제거하고 커스텀 패딩 적용 */
+.drive-container.project-drive-container.v-container--fluid {
+  padding-left: 45px !important;
+  padding-right: 45px !important;
+  padding-top: 20px !important;
+  padding-bottom: 30px !important;
 }
 
 .drive-layout {
@@ -4854,43 +5090,145 @@ export default {
   width: 100%;
 }
 
+/* 프로젝트 문서함 전용 레이아웃 스타일 - 높이만 조정 (gap 없음) */
+.drive-container.project-drive-container .drive-layout {
+  height: calc(100vh - 64px - 50px); /* 상하 패딩 20px + 30px = 50px */
+}
+
 .sidebar-col {
-  background-color: white;
-  border-right: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  border-right: 1px solid #e8e8e8;
   max-height: calc(100vh - 64px);
   overflow-y: auto;
   flex-shrink: 0;
   transition: width 0.1s ease;
+  box-shadow: 1px 0 2px rgba(0, 0, 0, 0.02);
+}
+
+/* 프로젝트 문서함 전용 사이드바 스타일 - 카드 형태 */
+.drive-container.project-drive-container .sidebar-col {
+  border-radius: 8px 0 0 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  max-height: calc(100vh - 64px - 50px);
+  border-right: none;
+  background-color: #ffffff;
 }
 
 .resizer {
-  width: 1px;
-  background-color: #e0e0e0;
+  width: 2px;
+  background-color: #e8e8e8;
   cursor: col-resize;
   flex-shrink: 0;
   user-select: none;
   position: relative;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .resizer:hover {
   background-color: #1976d2;
+  width: 3px;
 }
 
 .main-content-col {
   max-height: calc(100vh - 64px);
-  background-color: white;
+  background-color: #ffffff;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  box-shadow: -1px 0 2px rgba(0, 0, 0, 0.02);
+}
+
+/* 프로젝트 문서함 전용 메인 컨텐츠 스타일 - 카드 형태 (트리뷰와 붙어있음) */
+.drive-container.project-drive-container .main-content-col {
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  max-height: calc(100vh - 64px - 50px);
+  overflow: hidden;
+  background-color: #ffffff;
+}
+
+/* 프로젝트 문서함 전용 메인 컨텐츠 카드 - 바닥 부분 자연스럽게 */
+.drive-container.project-drive-container .main-content-card {
+  border-radius: 0 8px 8px 0;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 프로젝트 문서함 전용 테이블 래퍼 - 바닥까지 자연스럽게 */
+.drive-container.project-drive-container .table-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0 0 8px 0;
+}
+
+/* 프로젝트 문서함 전용 테이블 컨테이너 - 바닥 처리 */
+.drive-container.project-drive-container .table-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.drive-container.project-drive-container .table-container :deep(.v-data-table) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0 0 8px 0;
+}
+
+.drive-container.project-drive-container .table-container :deep(.v-data-table__wrapper) {
+  flex: 1;
+  border-radius: 0 0 8px 0;
+  overflow: hidden;
+}
+
+.drive-container.project-drive-container .table-container :deep(.v-data-table__wrapper table) {
+  border-radius: 0 0 8px 0;
 }
 
 /* Ensure the toolbar height matches the sidebar header */
 .main-content-col :deep(.v-toolbar) {
   min-height: 64px;
   height: 64px;
+  border-bottom: 1px solid #f0f0f0;
+  background: linear-gradient(to bottom, #ffffff, #fafafa);
+}
+
+/* 프로젝트 문서함 전용 툴바 스타일 */
+.drive-container.project-drive-container .main-content-col :deep(.v-toolbar) {
+  background: #ffffff;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 0 20px;
+}
+
+/* 툴바 title Pretendard 폰트 */
+.main-content-col :deep(.v-toolbar-title),
+.main-content-col :deep(.v-toolbar .text-h6) {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif !important;
+  font-weight: 600 !important;
+}
+
+/* 스톤 문서함(간소화 모드) 툴바 타이틀 - 더 많은 이름 표시 */
+.main-content-col :deep(.v-toolbar-title) {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: calc(100% - 200px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 16px;
+}
+
+/* 간소화 모드일 때 spacer 최소화하고 타이틀 공간 확대 */
+.main-content-col :deep(.v-toolbar .v-spacer) {
+  flex: 0 0 auto;
+  min-width: 16px;
 }
 
 .folder-tree-card,
@@ -4905,16 +5243,20 @@ export default {
 .sidebar-header {
   border-bottom: 1px solid #f0f0f0;
   height: 64px; /* match toolbar height */
-  padding: 0 16px !important; /* override pa-4 vertical padding, keep px-4 */
+  padding: 0 20px !important; /* override pa-4 vertical padding, keep px-4 */
   display: flex;
   align-items: center;
+  background: linear-gradient(to bottom, #ffffff, #fafafa);
 }
 
 .drive-root-title {
-  font-size: 18px !important; /* override utility classes */
-  font-weight: 600;
-  letter-spacing: 0.2px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif !important;
+  font-size: 19px !important; /* override utility classes */
+  font-weight: 500;
+  letter-spacing: -0.3px;
   margin: 0;
+  color: #1a1a1a;
+  line-height: 1.4;
 }
 
 .folder-tree :deep(.v-treeview-node__root) {
@@ -5095,7 +5437,8 @@ export default {
 
 .folder-label:hover {
   color: #1976d2;
-  background-color: #f5f5f5;
+  background-color: #f0f4ff;
+  transform: translateX(2px);
 }
 
 .folder-label.drag-over-tree {
@@ -5111,7 +5454,22 @@ export default {
 }
 
 .drive-table :deep(tbody tr:hover) {
-  background-color: #f5f5f5 !important;
+  background-color: #f8f9fa !important;
+  transition: background-color 0.15s ease;
+}
+
+/* 빈 폴더 상태일 때 hover 효과 비활성화 */
+.drive-table :deep(tbody tr:has(.empty-folder-container)),
+.drive-table :deep(tbody tr:has(.empty-folder-container):hover) {
+  background-color: transparent !important;
+  cursor: default !important;
+}
+
+/* :has() 미지원 브라우저를 위한 대체 방법 */
+.drive-table :deep(.empty-folder-container),
+.drive-table :deep(.empty-folder-container:hover),
+.drive-table :deep(.empty-folder-container *) {
+  pointer-events: none;
 }
 
 .clickable-row {
@@ -5161,14 +5519,17 @@ export default {
 }
 
 .clickable-row:hover {
-  background-color: #f5f5f5;
-  border-radius: 4px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 }
 
 .item-name {
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  letter-spacing: -0.2px;
   white-space: nowrap;
   min-width: 0;
   flex: 1;
@@ -5176,6 +5537,21 @@ export default {
 
 .clickable-row:hover .item-name {
   color: #1976d2;
+}
+
+/* 이미지 아이콘 스타일 */
+.tree-item-icon-image {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.item-icon-image {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 /* 필터 버튼 스타일 */
@@ -5221,6 +5597,68 @@ export default {
   outline: none !important;
   border: none !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 새로고침 버튼 스타일 */
+.refresh-btn {
+  border-radius: 8px !important;
+  border: 1px solid #e0e0e0 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  padding: 6px 16px !important;
+  color: #5f6368 !important;
+  background-color: white !important;
+}
+
+.refresh-btn:hover {
+  background-color: #f5f5f5 !important;
+  border-color: #1976d2 !important;
+  color: #1976d2 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.15) !important;
+}
+
+.refresh-btn :deep(.v-icon) {
+  transition: transform 0.3s ease !important;
+}
+
+.refresh-btn:hover :deep(.v-icon) {
+  transform: rotate(180deg);
+}
+
+/* 신규 버튼 스타일 */
+.new-btn {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  padding: 8px 16px !important;
+  letter-spacing: 0 !important;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+  border: none !important;
+}
+
+.new-btn:hover {
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%) !important;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3) !important;
+  transform: translateY(-1px);
+}
+
+.new-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(25, 118, 210, 0.2) !important;
+}
+
+.new-btn :deep(.v-icon) {
+  color: white !important;
+  margin-right: 4px !important;
+}
+
+.new-btn :deep(.v-btn__content) {
+  color: white !important;
+  font-size: 14px !important;
 }
 
 /* 새로고침 버튼 및 신규 버튼 테두리 제거 */
@@ -5296,7 +5734,8 @@ export default {
   font-size: 13.5px;
   font-weight: 600;
   color: #5f6368;
-  letter-spacing: 0.3px;
+  letter-spacing: -0.1px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
 }
 
 .clickable-header {
@@ -5306,7 +5745,9 @@ export default {
 }
 
 .clickable-header:hover {
-  opacity: 0.7;
+  opacity: 0.8;
+  color: #1976d2;
+  transition: all 0.2s ease;
 }
 
 .drive-table :deep(table) {
@@ -5315,20 +5756,21 @@ export default {
 }
 
 .drive-table :deep(thead) {
-  background: linear-gradient(to bottom, #ffffff, #f5f5f5);
-  border-bottom: 2px solid #d3d3d3;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(to bottom, #ffffff, #fafafa);
+  border-bottom: 1px solid #e8e8e8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .drive-table :deep(thead th) {
   font-weight: 600;
   color: #3c4043;
-  padding: 14px 16px;
-  border-bottom: 2px solid #d3d3d3;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e8e8e8;
   text-transform: none;
   background-color: transparent;
   position: relative;
   font-size: 13.5px;
+  letter-spacing: -0.1px;
 }
 
 .drive-table :deep(thead th:first-child) {
@@ -5336,9 +5778,10 @@ export default {
 }
 
 .drive-table :deep(tbody td) {
-  padding: 12px 16px;
+  padding: 14px 20px;
   color: #202124;
-  font-size: 14.5px;
+  font-size: 14px;
+  border-bottom: 1px solid #f5f5f5;
 }
 
 /* 이름 셀 overflow 처리 */
@@ -5544,6 +5987,16 @@ export default {
   white-space: nowrap;
   max-width: 200px;
   display: inline-block;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif !important;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #5f6368;
+  letter-spacing: -0.1px;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-item:hover .breadcrumb-text {
+  color: #1976d2;
 }
 
 /* 브레드크럼 컨테이너 overflow 처리 */
@@ -5555,6 +6008,7 @@ export default {
   min-width: 0;
   overflow: hidden;
   max-width: 200px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif !important;
 }
 
 .upload-zone {
@@ -5573,6 +6027,13 @@ export default {
 .upload-zone-disabled {
   opacity: 0.6;
   pointer-events: none;
+}
+
+/* 모던 업로드 영역은 위의 modern-upload-zone 스타일 사용 */
+.modern-upload-zone.upload-zone-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 .upload-limits-info {
@@ -5703,6 +6164,8 @@ export default {
   justify-content: center;
   min-height: 400px;
   padding: 48px 24px;
+  pointer-events: none;
+  user-select: none;
 }
 
 .empty-folder-content {
@@ -5716,17 +6179,30 @@ export default {
   transition: opacity 0.3s ease;
 }
 
+.empty-folder-image {
+  width: 280px;
+  height: auto;
+  max-width: 100%;
+  margin-bottom: 24px;
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+}
+
 .empty-folder-title {
   font-size: 18px;
-  font-weight: 500;
-  color: #5f6368;
-  margin-bottom: 8px;
+  font-weight: 600;
+  color: #3c4043;
+  margin-bottom: 10px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  letter-spacing: -0.3px;
 }
 
 .empty-folder-subtitle {
   font-size: 14px;
-  color: #9aa0a6;
-  line-height: 1.5;
+  color: #80868b;
+  line-height: 1.6;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  letter-spacing: -0.1px;
 }
 </style>
 
@@ -5739,87 +6215,325 @@ export default {
   border-radius: 4px !important;
 }
 
-/* 다이얼로그 스타일 */
-.create-dialog-card,
-.rename-dialog-card {
-  border-radius: 8px !important;
+/* 모던 다이얼로그 스타일 - 구글 드라이브 스타일 */
+.modern-dialog {
+  border-radius: 16px !important;
+  overflow: hidden;
 }
 
-.create-dialog-card .v-card-title,
-.rename-dialog-card .v-card-title {
-  background: linear-gradient(to right, #f8f9fa 0%, #ffffff 100%);
-  border-bottom: 1px solid #e8eaed;
+.modern-modal-card {
+  border-radius: 16px !important;
+  box-shadow: 0 8px 10px 1px rgba(0, 0, 0, 0.14), 
+              0 3px 14px 2px rgba(0, 0, 0, 0.12), 
+              0 5px 5px -3px rgba(0, 0, 0, 0.2) !important;
+  overflow: hidden;
 }
 
-.create-dialog-card .v-text-field :deep(.v-input__prepend-inner) {
-  margin-right: 12px;
+.modern-modal-header {
+  padding: 24px 24px 20px 24px !important;
+  background: #ffffff !important;
+  border-bottom: none !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modern-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e8f0fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modern-modal-title {
+  font-size: 20px;
+  font-weight: 500;
+  color: #202124;
+  letter-spacing: 0;
+  line-height: 1.4;
+  font-family: 'Google Sans', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', sans-serif;
+}
+
+.modern-modal-subtitle {
+  font-size: 13px;
+  color: #5f6368;
+  margin-top: 4px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.modern-modal-content {
+  padding: 0 24px 8px 24px !important;
+}
+
+.modern-text-field {
   margin-top: 8px;
 }
 
-.create-dialog-card .v-text-field :deep(.v-input__prepend-inner .v-icon) {
-  color: #5f6368;
+.modern-text-field :deep(.v-input__control) {
+  min-height: 48px;
 }
 
-.create-dialog-card .v-card-actions .v-btn {
-  text-transform: none;
-  font-weight: 500;
-  letter-spacing: 0.25px;
-  padding: 0 20px !important;
-}
-
-.create-dialog-card .v-card-actions .v-btn--text {
-  color: #5f6368;
-}
-
-.create-dialog-card .v-card-actions .v-btn--text:hover {
-  background-color: #f5f5f5;
-}
-
-.create-dialog-card .v-card-actions .v-btn--depressed {
-  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
-}
-
-.create-dialog-card .v-card-actions .v-btn--depressed:hover {
-  box-shadow: 0 2px 4px 0 rgba(60, 64, 67, 0.3), 0 2px 6px 2px rgba(60, 64, 67, 0.15);
-}
-
-/* 상세 정보 모달 스타일 */
-.info-dialog-card {
+.modern-text-field :deep(.v-input__slot) {
+  background-color: #f1f3f4 !important;
   border-radius: 8px !important;
+  padding: 0 16px !important;
+  transition: background-color 0.2s ease;
 }
 
-.info-dialog-card .v-card-title {
-  background: linear-gradient(to right, #f8f9fa 0%, #ffffff 100%);
-  border-bottom: 1px solid #e8eaed;
+.modern-text-field :deep(.v-input__slot):hover {
+  background-color: #e8eaed !important;
 }
 
-.info-dialog-card .info-label {
+.modern-text-field :deep(.v-input__slot):focus-within {
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 2px #1a73e8 !important;
+}
+
+.modern-text-field :deep(.v-label) {
+  color: #5f6368 !important;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.modern-text-field :deep(.v-input__control input) {
+  color: #202124 !important;
+  font-size: 14px;
+}
+
+.modern-modal-actions {
+  padding: 16px 24px 24px 24px !important;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modern-cancel-btn {
+  text-transform: none !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.25px !important;
+  padding: 0 24px !important;
+  min-width: 88px !important;
+  height: 36px !important;
+  color: #5f6368 !important;
+  border-radius: 4px !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.modern-cancel-btn:hover {
+  background-color: rgba(95, 99, 104, 0.08) !important;
+}
+
+.modern-primary-btn {
+  text-transform: none !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.25px !important;
+  padding: 0 24px !important;
+  min-width: 88px !important;
+  height: 36px !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.modern-primary-btn:hover {
+  box-shadow: none !important;
+}
+
+.modern-error-btn {
+  text-transform: none !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.25px !important;
+  padding: 0 24px !important;
+  min-width: 88px !important;
+  height: 36px !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.modern-error-btn:hover {
+  box-shadow: none !important;
+}
+
+.delete-icon-wrapper {
+  background: #fce8e6 !important;
+}
+
+.modern-alert {
+  border-radius: 8px !important;
+  background-color: #fef7e0 !important;
+}
+
+/* 상세 정보 사이드 패널 스타일 */
+.info-side-panel {
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.info-side-panel :deep(.v-navigation-drawer__content) {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.info-panel-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+}
+
+.info-panel-header {
+  padding: 24px;
+  border-bottom: 1px solid #f1f3f4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.info-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.info-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px 0;
+}
+
+.modern-close-btn {
+  color: #5f6368 !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.modern-close-btn:hover {
+  background-color: rgba(95, 99, 104, 0.08) !important;
+}
+
+.modern-info-content {
+  padding: 24px !important;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.info-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.info-list-item {
+  padding: 16px 0;
+  border-bottom: 1px solid #f1f3f4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-list-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
   font-size: 12px;
   font-weight: 500;
   color: #5f6368;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
   margin-bottom: 4px;
 }
 
-.info-dialog-card .info-value {
+.info-value {
   font-size: 14px;
   color: #202124;
   font-weight: 400;
   line-height: 1.5;
+  word-break: break-word;
 }
 
-.info-dialog-card .v-list-item {
-  padding: 12px 0;
-  min-height: auto;
+.modern-error-btn-text {
+  text-transform: none !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.25px !important;
+  padding: 0 16px !important;
+  min-width: auto !important;
+  height: 36px !important;
+  color: #ea4335 !important;
+  transition: background-color 0.2s ease !important;
 }
 
-.info-dialog-card .v-list-item:not(:last-child) {
-  border-bottom: 1px solid #f1f3f4;
+.modern-error-btn-text:hover {
+  background-color: rgba(234, 67, 53, 0.08) !important;
 }
 
-.info-dialog-card .v-card-actions .v-btn {
-  text-transform: none;
-  font-weight: 500;
-  letter-spacing: 0.25px;
-  padding: 0 20px !important;
+.modern-error-btn-text:disabled {
+  opacity: 0.38 !important;
+}
+
+/* 업로드 다이얼로그 특별 스타일 */
+.upload-dialog-card .modern-modal-header {
+  padding-bottom: 16px !important;
+}
+
+.modern-upload-zone {
+  border: 2px dashed #dadce0;
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  background: #f8f9fa;
+  transition: all 0.2s ease;
+  margin-top: 16px;
+  cursor: pointer;
+}
+
+.modern-upload-zone:hover {
+  border-color: #1a73e8;
+  background: #e8f0fe;
+}
+
+.modern-upload-zone:active {
+  border-color: #1557b0;
+  background: #d2e3fc;
+}
+
+.upload-icon-wrapper {
+  margin-bottom: 16px;
+}
+
+.upload-text-primary {
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c4043;
+  margin-bottom: 8px;
+  font-family: 'Google Sans', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', sans-serif;
+}
+
+/* 기존 다이얼로그 스타일 (하위 호환성) */
+.create-dialog-card,
+.rename-dialog-card {
+  border-radius: 16px !important;
+}
+
+.create-dialog-card .v-card-title,
+.rename-dialog-card .v-card-title {
+  background: #ffffff !important;
+  border-bottom: none !important;
+}
+
+/* 상세 정보 모달 스타일 (하위 호환성) */
+.info-dialog-card {
+  border-radius: 16px !important;
+}
+
+.info-dialog-card .v-card-title {
+  background: #ffffff !important;
+  border-bottom: none !important;
 }
 </style>
