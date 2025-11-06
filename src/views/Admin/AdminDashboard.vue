@@ -70,12 +70,24 @@
             
             <!-- 액션 메뉴 -->
             <div v-if="activeActionMenu === group.accessGroupId" class="action-dropdown" @click.stop>
-              <div class="action-item" @click="editGroup(group)">수정하기</div>
-              <div class="action-item" @click="manageMembers(group)">사용자 추가/제거</div>
+              <div 
+                class="action-item" 
+                :class="{ 'disabled': isDefaultGroup(group.accessGroupName) }"
+                @click="!isDefaultGroup(group.accessGroupName) && editGroup(group)"
+              >
+                수정하기
+              </div>
+              <div 
+                class="action-item" 
+                :class="{ 'disabled': isDefaultGroup(group.accessGroupName) }"
+                @click="!isDefaultGroup(group.accessGroupName) && manageMembers(group)"
+              >
+                사용자 추가/제거
+              </div>
               <div 
                 class="action-item delete" 
-                :class="{ 'disabled': group.accessGroupName === '일반 유저 그룹' || group.accessGroupName === '관리자 그룹' }"
-                @click="deleteGroup(group)"
+                :class="{ 'disabled': isDefaultGroup(group.accessGroupName) }"
+                @click="!isDefaultGroup(group.accessGroupName) && deleteGroup(group)"
               >
                 삭제하기
               </div>
@@ -142,7 +154,7 @@
 
       <!-- 회원 관리 -->
       <div v-if="activeTab === 'member'" class="tab-content">
-        <MemberManagement />
+        <MemberManagement ref="memberManagement" @open-invite-modal="openInviteMemberModal" @open-delete-modal="openDeleteMemberModal" />
       </div>
 
       <!-- 워크스페이스 관리 -->
@@ -259,6 +271,53 @@
       @confirm-delete="confirmDeleteWorkspace"
     />
     
+    <!-- 권한 그룹 삭제 확인 모달 -->
+    <ConfirmModal
+      :show="showDeletePermissionGroupModal"
+      title="권한 그룹 삭제"
+      :message="deletePermissionGroupMessage"
+      warning-text="이 작업은 되돌릴 수 없습니다."
+      confirm-button-text="삭제"
+      loading-text="삭제 중..."
+      :loading="deletePermissionGroupLoading"
+      @close="closeDeletePermissionGroupModal"
+      @confirm="confirmDeletePermissionGroup"
+    />
+    
+    <!-- 사용자 그룹 삭제 확인 모달 -->
+    <ConfirmModal
+      :show="showDeleteUserGroupModal"
+      title="사용자 그룹 삭제"
+      :message="deleteUserGroupMessage"
+      warning-text="이 작업은 되돌릴 수 없습니다."
+      confirm-button-text="삭제"
+      loading-text="삭제 중..."
+      :loading="deleteUserGroupLoading"
+      @close="closeDeleteUserGroupModal"
+      @confirm="confirmDeleteUserGroup"
+    />
+    
+    <!-- 권한 그룹 사용자 추가/제거 모달 -->
+    <AddPermissionGroupUsersModal
+      v-model="showAddPermissionGroupUsersModal"
+      :permission-group-id="selectedPermissionGroupId"
+      @users-updated="handleUsersUpdated"
+    />
+    
+    <!-- 회원 초대 모달 -->
+    <InviteMemberModal
+      v-if="showInviteMemberModal"
+      @close="closeInviteMemberModal"
+      @invited="handleMemberInvited"
+    />
+    
+    <!-- 회원 삭제 모달 -->
+    <DeleteMemberModal
+      v-if="showDeleteMemberModal"
+      @close="closeDeleteMemberModal"
+      @deleted="handleMemberDeleted"
+    />
+    
   </div>
 </template>
 
@@ -270,6 +329,11 @@ import MemberManagement from './MemberManagement.vue';
 import DeleteWorkspaceModal from '../Workspace/DeleteWorkspaceModal.vue';
 import StoneTreeNode from './StoneTreeNode.vue';
 import MilestoneForest from '@/components/MilestoneForest.vue';
+import ConfirmModal from '@/components/modal/ConfirmModal.vue';
+import AddPermissionGroupUsersModal from '@/components/modal/AddPermissionGroupUsersModal.vue';
+import InviteMemberModal from './InviteMember.vue';
+import DeleteMemberModal from './DeleteMembers.vue';
+import { showSnackbar } from '@/services/snackbar.js';
 
 export default {
   name: "AdminDashboard",
@@ -278,7 +342,11 @@ export default {
     MemberManagement,
     DeleteWorkspaceModal,
     StoneTreeNode,
-    MilestoneForest
+    MilestoneForest,
+    ConfirmModal,
+    AddPermissionGroupUsersModal,
+    InviteMemberModal,
+    DeleteMemberModal
   },
   data() {
     return {
@@ -310,6 +378,28 @@ export default {
       showWorkspaceNameModal: false,
       newWorkspaceName: '',
       showDeleteWorkspaceModal: false,
+      
+      // 권한 그룹 삭제 모달 관련
+      showDeletePermissionGroupModal: false,
+      deletePermissionGroupMessage: '',
+      deletePermissionGroupLoading: false,
+      selectedGroupForDelete: null,
+      
+      // 사용자 그룹 삭제 모달 관련
+      showDeleteUserGroupModal: false,
+      deleteUserGroupMessage: '',
+      deleteUserGroupLoading: false,
+      selectedUserGroupForDelete: null,
+      
+      // 권한 그룹 사용자 추가/제거 모달 관련
+      showAddPermissionGroupUsersModal: false,
+      selectedPermissionGroupId: null,
+      
+      // 회원 초대 모달 관련
+      showInviteMemberModal: false,
+      
+      // 회원 삭제 모달 관련
+      showDeleteMemberModal: false,
       
       // 사용자 그룹 관련 데이터
       groupSearchQuery: '',
@@ -545,25 +635,78 @@ export default {
     },
     
     editGroup(group) {
+      // 기본 그룹 수정 불가
+      if (this.isDefaultGroup(group.accessGroupName)) {
+        return;
+      }
+      
       // 권한 그룹 수정 페이지로 이동
       this.$router.push(`/admin/edit-permission-group/${group.accessGroupId}`);
       this.activeActionMenu = null;
     },
     
     manageMembers(group) {
-      // 관리자 그룹만 변경 불가
-      if (group.accessGroupName === '관리자 그룹') {
-        alert('관리자 그룹은 변경할 수 없습니다.');
-        this.activeActionMenu = null;
+      // 기본 그룹 변경 불가
+      if (this.isDefaultGroup(group.accessGroupName)) {
         return;
       }
       
-      // 권한 그룹 사용자 추가/제거 페이지로 이동
-      this.$router.push(`/admin/permission-group/${group.accessGroupId}/add-users`);
+      // 권한 그룹 사용자 추가/제거 모달 열기
+      this.selectedPermissionGroupId = group.accessGroupId;
+      this.showAddPermissionGroupUsersModal = true;
       this.activeActionMenu = null;
     },
     
-    async deleteGroup(group) {
+    handleUsersUpdated() {
+      // 사용자 업데이트 후 권한 그룹 목록 새로고침
+      this.loadPermissionGroups();
+    },
+    
+    // 회원 초대 모달 열기
+    openInviteMemberModal() {
+      this.showInviteMemberModal = true;
+    },
+    
+    // 회원 초대 모달 닫기
+    closeInviteMemberModal() {
+      this.showInviteMemberModal = false;
+    },
+    
+    // 회원 초대 완료 후 처리
+    handleMemberInvited() {
+      this.closeInviteMemberModal();
+      // 회원 목록 새로고침
+      this.$nextTick(() => {
+        const memberManagement = this.$refs.memberManagement;
+        if (memberManagement && memberManagement.loadMembers) {
+          memberManagement.loadMembers();
+        }
+      });
+    },
+    
+    // 회원 삭제 모달 열기
+    openDeleteMemberModal() {
+      this.showDeleteMemberModal = true;
+    },
+    
+    // 회원 삭제 모달 닫기
+    closeDeleteMemberModal() {
+      this.showDeleteMemberModal = false;
+    },
+    
+    // 회원 삭제 완료 후 처리
+    handleMemberDeleted() {
+      this.closeDeleteMemberModal();
+      // 회원 목록 새로고침
+      this.$nextTick(() => {
+        const memberManagement = this.$refs.memberManagement;
+        if (memberManagement && memberManagement.loadMembers) {
+          memberManagement.loadMembers();
+        }
+      });
+    },
+    
+    deleteGroup(group) {
       // 기본 그룹 삭제 방지
       if (group.accessGroupName === '일반 유저 그룹' || group.accessGroupName === '관리자 그룹') {
         alert('기본 권한 그룹은 삭제할 수 없습니다.');
@@ -571,46 +714,65 @@ export default {
         return;
       }
 
-      // 권한 그룹 삭제 확인
-      if (confirm(`${group.accessGroupName} 그룹을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
-        try {
-          const token = localStorage.getItem('token');
-          const userId = localStorage.getItem('userId') || 'user123';
-          
-          const response = await axios.delete(
-            `http://localhost:8080/workspace-service/access/${group.accessGroupId}/delete`,
-            {
-              headers: {
-                'X-User-Id': userId,
-                'Authorization': `Bearer ${token}`
-              }
+      // 삭제 확인 모달 표시
+      this.selectedGroupForDelete = group;
+      this.deletePermissionGroupMessage = `<strong>${group.accessGroupName}</strong> 그룹을 삭제하시겠습니까?`;
+      this.showDeletePermissionGroupModal = true;
+      this.activeActionMenu = null;
+    },
+    
+    closeDeletePermissionGroupModal() {
+      this.showDeletePermissionGroupModal = false;
+      this.selectedGroupForDelete = null;
+      this.deletePermissionGroupMessage = '';
+    },
+    
+    async confirmDeletePermissionGroup() {
+      if (!this.selectedGroupForDelete) {
+        return;
+      }
+
+      this.deletePermissionGroupLoading = true;
+      
+      try {
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId') || 'user123';
+        
+        const response = await axios.delete(
+          `http://localhost:8080/workspace-service/access/${this.selectedGroupForDelete.accessGroupId}/delete`,
+          {
+            headers: {
+              'X-User-Id': userId,
+              'Authorization': `Bearer ${token}`
             }
-          );
-          
-          if (response.data.statusCode === 200) {
-            alert('권한 그룹이 성공적으로 삭제되었습니다.');
-            // 목록 새로고침
-            await this.loadPermissionGroups();
-          } else {
-            alert('권한 그룹 삭제에 실패했습니다.');
           }
-        } catch (error) {
-          console.error('권한 그룹 삭제 실패:', error);
-          
-          // 백엔드에서 반환하는 구체적인 오류 메시지 처리
-          if (error.response && error.response.data) {
-            const errorMessage = error.response.data.statusMessage || error.response.data.message;
-            if (errorMessage) {
-              alert(`삭제 실패: ${errorMessage}`);
-            } else {
-              alert('권한 그룹 삭제 중 오류가 발생했습니다.');
-            }
+        );
+        
+        if (response.data.statusCode === 200) {
+          this.closeDeletePermissionGroupModal();
+          // 목록 새로고침
+          await this.loadPermissionGroups();
+          // 성공 메시지는 스낵바로 표시
+          showSnackbar('권한 그룹이 성공적으로 삭제되었습니다.');
+        } else {
+          alert('권한 그룹 삭제에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('권한 그룹 삭제 실패:', error);
+        
+        // 백엔드에서 반환하는 구체적인 오류 메시지 처리
+        if (error.response && error.response.data) {
+          const errorMessage = error.response.data.statusMessage || error.response.data.message;
+          if (errorMessage) {
+            alert(`삭제 실패: ${errorMessage}`);
           } else {
             alert('권한 그룹 삭제 중 오류가 발생했습니다.');
           }
-        } finally {
-          this.activeActionMenu = null;
+        } else {
+          alert('권한 그룹 삭제 중 오류가 발생했습니다.');
         }
+      } finally {
+        this.deletePermissionGroupLoading = false;
       }
     },
     
@@ -705,7 +867,7 @@ export default {
         );
         
         if (response.data.statusCode === 200) {
-          alert('워크스페이스명이 성공적으로 변경되었습니다.');
+          showSnackbar('워크스페이스명이 성공적으로 변경되었습니다.', { color: 'success' });
           
           // 워크스페이스 스토어 업데이트
           const currentWorkspace = this.workspaceStore.getCurrentWorkspace;
@@ -722,11 +884,15 @@ export default {
           // 워크스페이스 상세 정보 새로고침
           await this.loadWorkspaceDetail();
         } else {
-          alert('워크스페이스명 변경에 실패했습니다.');
+          showSnackbar(response.data.statusMessage || '워크스페이스명 변경에 실패했습니다.', { color: 'error' });
         }
       } catch (error) {
         console.error('워크스페이스명 변경 실패:', error);
-        alert('워크스페이스명 변경 중 오류가 발생했습니다.');
+        if (error.response && error.response.data && error.response.data.statusMessage) {
+          showSnackbar(error.response.data.statusMessage, { color: 'error' });
+        } else {
+          showSnackbar('워크스페이스명 변경 중 오류가 발생했습니다.', { color: 'error' });
+        }
       }
     },
     
@@ -970,38 +1136,61 @@ export default {
       }
     },
     
-    // 사용자 그룹 삭제
-    async deleteUserGroup(group) {
-      if (confirm(`"${group.name}" 그룹을 삭제하시겠습니까?`)) {
-        try {
-          const token = localStorage.getItem('token');
-          const userId = localStorage.getItem('userId') || localStorage.getItem('id');
-          
-          const response = await axios.delete(
-            `http://localhost:8080/workspace-service/groups/${group.id}`,
-            {
-              headers: {
-                'X-User-Id': userId,
-                'Authorization': `Bearer ${token}`
-              }
+    // 사용자 그룹 삭제 모달 열기
+    deleteUserGroup(group) {
+      this.selectedUserGroupForDelete = group;
+      this.deleteUserGroupMessage = `<strong>${group.name}</strong> 그룹을 삭제하시겠습니까?`;
+      this.showDeleteUserGroupModal = true;
+    },
+    
+    // 사용자 그룹 삭제 모달 닫기
+    closeDeleteUserGroupModal() {
+      this.showDeleteUserGroupModal = false;
+      this.selectedUserGroupForDelete = null;
+      this.deleteUserGroupMessage = '';
+    },
+    
+    // 사용자 그룹 삭제 확인
+    async confirmDeleteUserGroup() {
+      if (!this.selectedUserGroupForDelete) return;
+      
+      try {
+        this.deleteUserGroupLoading = true;
+        
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId') || localStorage.getItem('id');
+        
+        const response = await axios.delete(
+          `http://localhost:8080/workspace-service/groups/${this.selectedUserGroupForDelete.id}`,
+          {
+            headers: {
+              'X-User-Id': userId,
+              'Authorization': `Bearer ${token}`
             }
-          );
-          
-          if (response.data.statusCode === 200) {
-            // 로컬 데이터에서 제거
-            const index = this.userGroups.findIndex(g => g.id === group.id);
-            if (index > -1) {
-              this.userGroups.splice(index, 1);
-              this.filterUserGroups();
-            }
-            alert('그룹이 삭제되었습니다.');
-          } else {
-            alert('그룹 삭제에 실패했습니다.');
           }
-        } catch (error) {
-          console.error('사용자 그룹 삭제 실패:', error);
-          alert('그룹 삭제에 실패했습니다.');
+        );
+        
+        if (response.data.statusCode === 200) {
+          // 로컬 데이터에서 제거
+          const index = this.userGroups.findIndex(g => g.id === this.selectedUserGroupForDelete.id);
+          if (index > -1) {
+            this.userGroups.splice(index, 1);
+            this.filterUserGroups();
+          }
+          this.closeDeleteUserGroupModal();
+          showSnackbar('그룹이 성공적으로 삭제되었습니다.', { color: 'success' });
+        } else {
+          showSnackbar('그룹 삭제에 실패했습니다.', { color: 'error' });
         }
+      } catch (error) {
+        console.error('사용자 그룹 삭제 실패:', error);
+        if (error.response && error.response.data && error.response.data.statusMessage) {
+          showSnackbar(error.response.data.statusMessage, { color: 'error' });
+        } else {
+          showSnackbar('그룹 삭제에 실패했습니다.', { color: 'error' });
+        }
+      } finally {
+        this.deleteUserGroupLoading = false;
       }
     },
     
@@ -1993,6 +2182,16 @@ export default {
 
 .action-item.delete {
   color: #FF4444;
+}
+
+.action-item.disabled {
+  color: #CCCCCC;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.action-item.disabled:hover {
+  background: transparent;
 }
 
 .action-item.delete.disabled {

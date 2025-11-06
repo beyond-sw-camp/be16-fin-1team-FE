@@ -1,7 +1,7 @@
 <template>
   <div class="member-management">
     <!-- 헤더 -->
-    <div class="member-header">
+    <div class="content-header">
       <h1 class="main-title">회원 관리</h1>
       <p class="sub-title">워크스페이스에 가입된 모든 회원을 관리할 수 있습니다</p>
     </div>
@@ -257,7 +257,7 @@ export default {
       return roleMap[role.toLowerCase()] || role.toUpperCase();
     },
     inviteMember() {
-      this.$router.push('/admin/invite-member');
+      this.$emit('open-invite-modal');
     },
     exportMembers() {
       // 회원 목록을 CSV 형태로 내보내기
@@ -287,8 +287,7 @@ export default {
     },
     
     deleteMembers() {
-      // 회원 삭제 페이지로 이동
-      this.$router.push('/admin/delete-members');
+      this.$emit('open-delete-modal');
     }
   },
   mounted() {
@@ -305,9 +304,9 @@ export default {
   overflow-y: auto;
 }
 
-.member-header {
-  padding: 30px 30px 0 30px;
+.content-header {
   margin-bottom: 30px;
+  text-align: left;
 }
 
 .main-title {
@@ -331,7 +330,7 @@ export default {
 }
 
 .member-table-container {
-  margin: 0 30px 30px 30px;
+  margin: 0 0 30px 0;
   background: #FFFFFF;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 2px;

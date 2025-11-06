@@ -1,94 +1,93 @@
 <template>
-  <div class="invite-member-page">
-    <!-- 헤더 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="back-button" @click="goBack">
-          <svg width="31" height="31" viewBox="0 0 31 31" fill="none">
-            <path d="M19.5 8L12 15.5L19.5 23" stroke="#2A2828" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="header-title">회원 초대</div>
-        <div class="header-spacer"></div>
-      </div>
-    </div>
+  <div class="modal-overlay" @click.self="handleClose">
+    <div class="modal-container">
+      <!-- 헤더 -->
+      <header class="modal-header">
+        <h2>회원 초대</h2>
+        <p>워크스페이스에 회원을 초대해보세요.</p>
+      </header>
 
-    <!-- 메인 콘텐츠: 권한그룹 페이지 스타일과 동일한 구조 -->
-    <div class="page-content">
-      <div class="content-container">
-        <!-- 제목 섹션 -->
-        <div class="title-section">
-          <h1 class="main-title">회원초대</h1>
-          <p class="sub-title">워크스페이스에 회원을 초대해보세요</p>
-        </div>
+      <!-- 본문 -->
+      <div class="modal-body">
+        <!-- 왼쪽: 검색 결과 -->
+        <div class="section add-section">
+          <h3>사용자 검색</h3>
+          <p class="hint-text">이메일로 사용자를 검색하고 초대할 수 있습니다.</p>
 
-        <!-- 이메일로 사용자 검색 -->
-        <div class="section">
-          <div class="section-heading">이메일로 사용자 검색</div>
-          <div class="search-row">
+          <div class="search-wrapper">
             <input
               v-model="emailQuery"
               type="email"
-              class="text-input"
-              placeholder="이메일 주소를 입력하세요"
+              lang="en"
               @keyup.enter="searchByEmail"
+              placeholder="이메일 주소를 입력하세요"
+              class="search-input"
             />
-            <button class="primary-btn" @click="searchByEmail">검색</button>
+            <button @click="searchByEmail" class="search-btn">검색</button>
           </div>
+
+          <div class="user-list">
+            <template v-if="results.length > 0">
+              <div
+                v-for="user in results"
+                :key="user.email"
+                class="user-row"
+              >
+                <label>
+                  <input
+                    type="checkbox"
+                    v-model="selectedUserIds"
+                    :value="user.email"
+                    class="checkbox"
+                    :disabled="selectedUsers.some(u => u.email === user.email)"
+                  />
+                  <span class="user-text">
+                    <span class="user-name">{{ user.name }}</span>
+                    <span class="user-email">({{ user.email }})</span>
+                  </span>
+                </label>
+              </div>
+            </template>
+            <div v-else class="empty-msg">검색 결과가 없습니다.</div>
+          </div>
+
+          <button class="add-btn" @click="addSelectedUsers">＋ 초대 목록 추가</button>
         </div>
 
-        <!-- 검색 결과 -->
-        <div class="section">
-          <div class="section-heading">검색 결과</div>
-          <div class="panel">
-            <div class="cards">
-              <div v-if="results.length === 0">
-                <div class="card placeholder"></div>
-                <div class="empty-tip">검색 결과가 없습니다.</div>
-              </div>
-              <div v-else>
-                <div class="card" v-for="user in results" :key="user.email">
-                  <div class="dot"></div>
-                  <div class="user-col">
-                    <div class="user-name">{{ user.name }}</div>
-                    <div class="user-email">{{ user.email }}</div>
-                  </div>
-                  <button class="accent-btn" @click="addSelected(user)">추가</button>
+        <!-- 오른쪽: 선택한 사용자 -->
+        <div class="section list-section">
+          <h3>초대할 사용자</h3>
+          <p class="hint-text">워크스페이스에 초대될 사용자 목록입니다.</p>
+
+          <div class="subscription-list">
+            <template v-if="selectedUsers.length > 0">
+              <div
+                v-for="user in selectedUsers"
+                :key="user.email"
+                class="subscriber-item"
+              >
+                <div class="subscriber-info">
+                  <span class="subscriber-name">{{ user.name }}</span>
+                  <span class="user-email-small">({{ user.email }})</span>
                 </div>
+                <img
+                  src="@/assets/icons/calendar/trash-can.svg"
+                  alt="삭제"
+                  class="trash-icon"
+                  @click="removeSelected(user.email)"
+                />
               </div>
-            </div>
+            </template>
+            <div v-else class="empty-list">선택된 사용자가 없습니다.</div>
           </div>
-        </div>
-
-        <!-- 선택한 사용자 -->
-        <div class="section">
-          <div class="section-heading">선택한 사용자</div>
-          <div class="panel">
-            <div class="cards">
-              <div v-if="selectedUsers.length === 0">
-                <div class="card placeholder"></div>
-                <div class="empty-tip">선택된 사용자가 없습니다.</div>
-              </div>
-              <div v-else>
-                <div class="card" v-for="user in selectedUsers" :key="user.email">
-                  <div class="dot"></div>
-                  <div class="user-col">
-                    <div class="user-name">{{ user.name }}</div>
-                    <div class="user-email">{{ user.email }}</div>
-                  </div>
-                  <button class="danger-btn" @click="removeSelected(user.email)">제거</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 버튼 섹션 -->
-        <div class="button-section">
-          <button class="ghost-btn" @click="goBack">취소</button>
-          <button class="primary-accent-btn" @click="invite" :disabled="inviting">초대하기</button>
         </div>
       </div>
+
+      <!-- 푸터 -->
+      <footer class="modal-footer">
+        <button class="cancel-btn" @click="handleClose">취소</button>
+        <button class="invite-btn" @click="invite" :disabled="inviting">초대하기</button>
+      </footer>
     </div>
   </div>
 </template>
@@ -96,9 +95,11 @@
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { showSnackbar } from '@/services/snackbar.js';
 
 export default {
   name: 'InviteMember',
+  emits: ['close', 'invited'],
   setup() {
     const workspaceStore = useWorkspaceStore();
     return { workspaceStore };
@@ -108,16 +109,21 @@ export default {
       emailQuery: '',
       results: [],
       selectedUsers: [],
+      selectedUserIds: [],
       loading: false,
-      inviting: false,
+      inviting: false
     };
   },
   mounted() {
     // 컴포넌트 마운트 시 필요한 초기화 작업
   },
   methods: {
+    handleClose() {
+      this.$emit('close');
+    },
+    
     goBack() {
-      this.$router.back();
+      this.handleClose();
     },
     async searchByEmail() {
       const keyword = (this.emailQuery || '').trim();
@@ -169,8 +175,7 @@ export default {
           this.results = filtered.map(u => ({
             userId: u.userId,
             name: u.userName,
-            email: u.userEmail,
-            profileImageUrl: u.profileImageUrl,
+            email: u.userEmail
           }));
         } else {
           this.results = [];
@@ -178,7 +183,7 @@ export default {
       } catch (e) {
         console.error('회원 검색 실패:', e);
         this.results = [];
-        alert(e?.response?.data?.statusMessage || '회원 검색 중 오류가 발생했습니다.');
+        showSnackbar(e?.response?.data?.statusMessage || '회원 검색 중 오류가 발생했습니다.', { color: 'error' });
       } finally {
         this.loading = false;
       }
@@ -190,6 +195,27 @@ export default {
       // 검색 결과에서 제거하여 중복 추가를 방지하고 UI에서 사라지게 함
       this.results = this.results.filter(u => u.email !== user.email);
     },
+    
+    // 선택된 사용자들 추가
+    addSelectedUsers() {
+      if (this.selectedUserIds.length === 0) {
+        showSnackbar('사용자를 선택하세요.', { color: 'error' });
+        return;
+      }
+      
+      this.selectedUserIds.forEach(email => {
+        const user = this.results.find(u => u.email === email);
+        if (user && !this.selectedUsers.some(u => u.email === user.email)) {
+          this.selectedUsers.push(user);
+          // 검색 결과에서 제거
+          this.results = this.results.filter(u => u.email !== user.email);
+        }
+      });
+      
+      // 체크박스 초기화
+      this.selectedUserIds = [];
+    },
+    
     removeSelected(email) {
       const removed = this.selectedUsers.find(u => u.email === email);
       this.selectedUsers = this.selectedUsers.filter(u => u.email !== email);
@@ -199,7 +225,7 @@ export default {
     },
     async invite() {
       if (this.selectedUsers.length === 0) {
-        alert('초대할 사용자를 선택하세요.');
+        showSnackbar('초대할 사용자를 선택하세요.', { color: 'error' });
         return;
       }
 
@@ -208,7 +234,7 @@ export default {
         .filter(Boolean);
 
       if (userIdList.length === 0) {
-        alert('선택된 사용자에 유효한 사용자 ID가 없습니다. 검색을 통해 다시 선택해주세요.');
+        showSnackbar('선택된 사용자에 유효한 사용자 ID가 없습니다. 검색을 통해 다시 선택해주세요.', { color: 'error' });
         return;
       }
 
@@ -230,14 +256,16 @@ export default {
         );
 
         if (response?.data?.statusCode === 200) {
-          alert('워크스페이스 사용자 추가 완료');
-          this.goBack();
+          showSnackbar('워크스페이스 사용자 추가 완료', { color: 'success' });
+          setTimeout(() => {
+            this.$emit('invited');
+          }, 100);
         } else {
-          alert(response?.data?.statusMessage || '초대에 실패했습니다.');
+          showSnackbar(response?.data?.statusMessage || '초대에 실패했습니다.', { color: 'error' });
         }
       } catch (e) {
         console.error('워크스페이스 초대 실패:', e);
-        alert(e?.response?.data?.statusMessage || '워크스페이스 초대 중 오류가 발생했습니다.');
+        showSnackbar(e?.response?.data?.statusMessage || '워크스페이스 초대 중 오류가 발생했습니다.', { color: 'error' });
       } finally {
         this.inviting = false;
       }
@@ -247,72 +275,318 @@ export default {
 </script>
 
 <style scoped>
-/* 페이지 컨테이너 */
-.invite-member-page {
+/* ===== Modal Overlay ===== */
+.modal-overlay {
   position: fixed;
-  top: 83px;
-  left: 280px;
-  right: 0;
-  bottom: 0;
-  width: calc(100vw - 280px);
-  height: calc(100vh - 83px);
-  background: #F5F5F5;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(3px);
+}
+
+/* ===== Modal Container ===== */
+.modal-container {
+  width: 900px;
+  max-width: 95%;
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: fadeIn 0.25s ease-out;
+  font-family: 'Pretendard', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Header ===== */
+.modal-header {
+  background: #fff8e1;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f2e3a5;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+}
+
+.modal-header p {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #777;
+}
+
+/* ===== Body ===== */
+.modal-body {
+  display: flex;
+  gap: 20px;
+  padding: 20px 24px;
+  background: #fffdf9;
+  flex: 1;
+  overflow: hidden;
+  min-height: 400px;
+  max-height: calc(90vh - 200px);
+}
+
+.section {
+  flex: 1;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 16px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  z-index: 100;
 }
 
-/* 헤더 영역 */
-.page-header {
-  background: #F5F5F5;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 20px 30px;
-  flex-shrink: 0;
-  z-index: 200;
+.add-section h3,
+.list-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 6px;
 }
-.header-content { display: flex; align-items: center; gap: 20px; }
-.back-button { width: 31px; height: 31px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; transition: background-color 0.2s; }
-.back-button:hover { background: rgba(0, 0, 0, 0.05); }
-.header-title { font-family: 'Pretendard', sans-serif; font-weight: 800; font-size: 28px; line-height: 33px; color: #1C0F0F; }
-.header-spacer { flex: 1; }
 
-/* 콘텐츠 영역 */
-.page-content { flex: 1; padding: 30px; overflow-y: auto; background: #F5F5F5; }
-.content-container { max-width: 1200px; margin: 0 auto; }
+.hint-text {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 10px;
+}
 
-/* 타이틀 섹션 (권한그룹 페이지 스타일) */
-.title-section { margin-bottom: 40px; }
-.main-title { font-family: 'Pretendard', sans-serif; font-weight: 800; font-size: 28px; line-height: 33px; color: #1C0F0F; margin: 0 0 15px 0; text-align: left; }
-.sub-title { font-family: 'Pretendard', sans-serif; font-weight: 700; font-size: 16px; line-height: 19px; color: #666666; margin: 0; text-align: left; }
+/* ===== Scroll Lists ===== */
+.user-list,
+.subscription-list {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #f3f3f3;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fffefc;
+  scrollbar-width: thin;
+  scrollbar-color: #ffde7d transparent;
+  min-height: 200px;
+}
 
-/* 공통 섹션 */
-.section { margin-bottom: 24px; }
-.section-heading { font-family: 'Pretendard', sans-serif; font-weight: 700; font-size: 18px; line-height: 21px; color: #1C0F0F; margin-bottom: 12px; text-align: left; }
+.user-list::-webkit-scrollbar,
+.subscription-list::-webkit-scrollbar {
+  width: 6px;
+}
+.user-list::-webkit-scrollbar-thumb,
+.subscription-list::-webkit-scrollbar-thumb {
+  background: #ffd86c;
+  border-radius: 4px;
+}
+.user-list::-webkit-scrollbar-track,
+.subscription-list::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-/* 검색 행 */
-.search-row { display: flex; gap: 12px; max-width: 620px; }
-.text-input { flex: 1; height: 42px; padding: 0 17px; background: #FFFFFF; border: 1px solid #DDDDDD; border-radius: 25px; font-family: 'Pretendard', sans-serif; font-weight: 400; font-size: 14px; line-height: 17px; color: #1C0F0F; box-sizing: border-box; }
-.text-input::placeholder { color: #757575; }
-.primary-btn { height: 42px; padding: 0 18px; background: #FFDD44; border: none; border-radius: 8px; font-family: 'Pretendard', sans-serif; font-weight: 700; font-size: 14px; line-height: 17px; color: #1C0F0F; cursor: pointer; }
+/* ===== Search ===== */
+.search-wrapper {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
 
-/* 카드 리스트 */
-.cards { display: flex; flex-direction: column; gap: 10px; }
-.panel { background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 2px; padding: 12px; }
-.card { display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; padding: 12px 16px; }
-.card.placeholder { height: 60px; }
-.dot { width: 8px; height: 8px; background: #2A2828; border-radius: 50%; }
-.user-col { display: flex; flex-direction: column; gap: 4px; flex: 1; text-align: left; }
-.user-name { font-family: 'Pretendard', sans-serif; font-weight: 700; font-size: 13px; color: #1C0F0F; text-align: left; }
-.user-email { font-family: 'Pretendard', sans-serif; font-weight: 400; font-size: 13px; color: #666666; }
-.accent-btn { background: #FFDD44; border: none; border-radius: 6px; padding: 8px 12px; font-weight: 700; font-size: 14px; color: #1C0F0F; cursor: pointer; }
-.danger-btn { background: #FF0000; border: none; border-radius: 6px; padding: 8px 12px; font-weight: 700; font-size: 12px; color: #FFFFFF; cursor: pointer; }
+.search-input {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
 
-/* 빈 상태 */
-.empty-tip { color: #666666; font-size: 14px; text-align: left; padding: 4px 2px; }
+.search-input:focus {
+  border-color: #ffcd4d;
+  outline: none;
+}
 
-/* 버튼 섹션 */
-.button-section { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 24px; }
-.ghost-btn { height: 36px; padding: 0 16px; background: #E0E0E0; border: none; border-radius: 8px; font-weight: 700; color: #666666; cursor: pointer; }
-.primary-accent-btn { height: 36px; padding: 0 16px; background: #FFDD44; border: none; border-radius: 8px; font-weight: 700; color: #1C0F0F; cursor: pointer; }
+.search-btn {
+  background: #ffcd4d;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.search-btn:hover {
+  background: #ffd86c;
+}
+
+/* ===== User Row ===== */
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.user-row:hover {
+  background: #fff8e6;
+}
+
+.user-row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.checkbox {
+  accent-color: #ffcd4d;
+  cursor: pointer;
+}
+
+.user-text {
+  font-size: 14px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.user-name {
+  color: #2a2828;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.user-email {
+  color: #999;
+  font-size: 13px;
+}
+
+.empty-msg {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+/* ===== Subscription List ===== */
+.subscriber-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid #f4f4f4;
+}
+
+.subscriber-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.subscriber-name {
+  font-size: 14px;
+  color: #2a2828;
+  font-weight: 500;
+}
+
+.user-email-small {
+  font-size: 12px;
+  color: #999;
+  margin-left: 4px;
+}
+
+.trash-icon {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.trash-icon:hover {
+  opacity: 1;
+}
+
+.empty-list {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+/* ===== Buttons ===== */
+.add-btn {
+  margin-top: 12px;
+  background: #ffcd4d;
+  border: none;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-btn:hover {
+  background: #ffd86c;
+}
+
+/* ===== Footer ===== */
+.modal-footer {
+  padding: 12px 20px;
+  text-align: right;
+  background: #fafafa;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancel-btn {
+  background: #f5f5f5;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #e8e8e8;
+}
+
+.invite-btn {
+  background: #ffcd4d;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.invite-btn:hover {
+  background: #ffd86c;
+}
+
+.invite-btn:disabled {
+  background: #ddd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
 </style>

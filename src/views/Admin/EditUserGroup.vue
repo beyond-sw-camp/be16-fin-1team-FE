@@ -1,123 +1,106 @@
 <template>
-  <div class="edit-group-page">
-    <!-- 메인 컨텐츠 -->
-    <div class="main-content">
-      <!-- 헤더 섹션 -->
-      <div class="header-section">
-        <h1 class="page-title">사용자 그룹</h1>
-        <p class="page-subtitle">사용자 그룹의 정보를 수정하세요.</p>
+  <div class="modal-overlay" @click.self="goBack">
+    <div class="modal-container">
+      <!-- 헤더 -->
+      <header class="modal-header">
+        <h2>사용자 그룹 수정</h2>
+        <p>사용자 그룹의 정보를 수정하고 멤버를 관리하세요.</p>
+      </header>
+
+      <!-- 그룹명 입력 -->
+      <div class="group-name-section">
+        <label class="group-name-label">사용자 그룹명</label>
+        <input 
+          type="text" 
+          class="group-name-input" 
+          :placeholder="originalGroupName || '그룹명을 입력하세요'"
+          v-model="groupName"
+        />
       </div>
 
-      <!-- 그룹명 입력 및 사용자 검색 섹션 -->
-      <div class="form-section">
-        <div class="form-container-left">
-          <label class="section-label">사용자 그룹명</label>
-          <input 
-            type="text" 
-            class="group-name-input" 
-            :placeholder="originalGroupName || '그룹명을 입력하세요'"
-            v-model="groupName"
-          />
-          
-          <label class="section-label">사용자 검색</label>
-          <div class="search-input-wrapper">
-            <input 
-              type="text" 
-              class="user-search-input" 
-              placeholder="사용자 이름으로 검색"
+      <!-- 본문 -->
+      <div class="modal-body">
+        <!-- 왼쪽: 사용자 목록 -->
+        <div class="section add-section">
+          <h3>사용자 목록</h3>
+          <p class="hint-text">그룹에 추가할 사용자를 검색하거나 목록에서 선택하세요.</p>
+
+          <div class="search-wrapper">
+            <input
               v-model="userSearchQuery"
+              lang="en"
               @keyup.enter="searchUsers"
+              @input="handleSearchInput"
+              placeholder="이메일로 검색"
+              class="search-input"
             />
-            <button class="search-btn" @click="searchUsers">검색</button>
+            <button @click="searchUsers" class="search-btn">검색</button>
           </div>
-        </div>
-      </div>
 
-      <!-- 사용자 목록과 선택된 멤버 섹션 -->
-      <div class="user-selection-section">
-        <div class="user-lists-container">
-          <!-- 사용자 목록 -->
-          <div class="user-list-section">
-            <div class="form-container">
-              <label class="section-label">사용자 목록</label>
-              <div class="user-list-container">
-                <div 
-                  v-for="user in availableUsers" 
-                  :key="user.userId" 
-                  class="user-item"
-                >
-                  <img :src="user.profileImageUrl || userDefaultIcon" alt="user" class="user-avatar" @error="handleAvatarError($event)" />
-                  <div class="user-info">
-                    <div class="user-name">{{ user.userName }}</div>
-                    <div class="user-email">{{ user.userEmail }}</div>
-                  </div>
-                  <button 
-                    class="add-user-btn" 
-                    @click="addUser(user)"
+          <div class="user-list">
+            <template v-if="availableUsers.length > 0">
+              <div
+                v-for="user in availableUsers"
+                :key="user.userId"
+                class="user-row"
+              >
+                <label>
+                  <input
+                    type="checkbox"
+                    v-model="selectedUserIds"
+                    :value="user.userId"
+                    class="checkbox"
                     :disabled="selectedUsers.find(u => u.userId === user.userId)"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              
-              <!-- 페이지네이션 -->
-              <div class="pagination">
-                <button class="page-btn prev-btn">← 이전</button>
-                <button class="page-btn active">1</button>
-                <button class="page-btn">2</button>
-                <button class="page-btn">3</button>
-                <span class="page-ellipsis">...</span>
-                <button class="page-btn">10</button>
-                <button class="page-btn next-btn">다음 →</button>
-              </div>
-              
-              <!-- 더보기 버튼 -->
-              <button class="more-btn">더보기</button>
-            </div>
-          </div>
-          
-          <!-- 화살표 -->
-          <div class="arrow-container">
-            <div class="arrow">→</div>
-          </div>
-          
-          <!-- 선택된 멤버 -->
-          <div class="selected-members-section">
-            <div class="form-container">
-              <label class="section-label">선택된 멤버</label>
-              <div class="selected-members-container">
-                <div 
-                  v-for="user in selectedUsers" 
-                  :key="user.userId" 
-                  class="selected-user-item"
-                >
+                  />
                   <img :src="user.profileImageUrl || userDefaultIcon" alt="user" class="user-avatar" @error="handleAvatarError($event)" />
-                  <div class="user-info">
-                    <div class="user-name">{{ user.userName }}</div>
-                    <div class="user-email">{{ user.userEmail }}</div>
-                  </div>
-                  <button class="remove-user-btn" @click="removeUser(user.userId)">✕</button>
-                </div>
+                  <span class="user-text">
+                    <span class="user-name">{{ user.userName }}</span>
+                    <span class="user-email">({{ user.userEmail }})</span>
+                  </span>
+                </label>
               </div>
-            </div>
+            </template>
+            <div v-else class="empty-msg">사용자가 없습니다.</div>
+          </div>
+
+          <button class="add-btn" @click="addSelectedUsers">＋ 멤버 추가</button>
+        </div>
+
+        <!-- 오른쪽: 선택된 멤버 -->
+        <div class="section list-section">
+          <h3>선택된 멤버</h3>
+          <p class="hint-text">그룹에 포함될 멤버 목록입니다.</p>
+
+          <div class="subscription-list">
+            <template v-if="selectedUsers.length > 0">
+              <div
+                v-for="user in selectedUsers"
+                :key="user.userId"
+                class="subscriber-item"
+              >
+                <div class="subscriber-info">
+                  <img :src="user.profileImageUrl || userDefaultIcon" alt="user" class="user-avatar-small" @error="handleAvatarError($event)" />
+                  <span class="subscriber-name">{{ user.userName }}</span>
+                  <span class="user-email-small">({{ user.userEmail }})</span>
+                </div>
+                <img
+                  src="@/assets/icons/calendar/trash-can.svg"
+                  alt="삭제"
+                  class="trash-icon"
+                  @click="removeUser(user.userId)"
+                />
+              </div>
+            </template>
+            <div v-else class="empty-list">선택된 멤버가 없습니다.</div>
           </div>
         </div>
       </div>
 
-      <!-- 액션 버튼들 -->
-      <div class="action-section">
-        <div class="action-buttons">
-          <button class="cancel-btn" @click="goBack">취소</button>
-          <button class="edit-btn" @click="updateGroup">그룹 수정</button>
-        </div>
-      </div>
-
-      <!-- 안내 메시지 -->
-      <div class="info-section">
-        <div class="info-text">• 그룹 생성 후 멤버를 추가하거나 제거할 수 있습니다</div>
-        <div class="info-text">• 그룹명은 2-10자 사이로 입력해주세요</div>
-      </div>
+      <!-- 푸터 -->
+      <footer class="modal-footer">
+        <button class="cancel-btn" @click="goBack">취소</button>
+        <button class="edit-btn" @click="updateGroup">그룹 수정</button>
+      </footer>
     </div>
   </div>
 </template>
@@ -125,6 +108,7 @@
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { showSnackbar } from '@/services/snackbar.js';
 import userDefaultIcon from '@/assets/icons/user/user_default_icon.svg';
 
 export default {
@@ -137,6 +121,7 @@ export default {
       userSearchQuery: '',
       availableUsers: [],
       selectedUsers: [],
+      selectedUserIds: [],
       userDefaultIcon
     };
   },
@@ -195,7 +180,7 @@ export default {
       } catch (error) {
         console.error('그룹 정보 로드 실패:', error);
         console.error('에러 상세:', error.response?.data);
-        alert('그룹 정보를 불러오는데 실패했습니다.');
+        showSnackbar('그룹 정보를 불러오는데 실패했습니다.', { color: 'error' });
       }
     },
     
@@ -234,6 +219,14 @@ export default {
       }
     },
     
+    // 검색어 입력 핸들러
+    handleSearchInput() {
+      // 검색어가 비어있으면 전체 목록 로드
+      if (!this.userSearchQuery.trim()) {
+        this.loadAvailableUsers();
+      }
+    },
+    
     // 사용자 검색 (POST 방식)
     async searchUsers() {
       if (!this.userSearchQuery.trim()) {
@@ -253,7 +246,11 @@ export default {
         });
         
         if (response.data.statusCode === 200) {
-          this.availableUsers = (response.data.result.userInfoList || []).map(user => ({
+          const allUsers = response.data.result.userInfoList || [];
+          
+          // 이미 선택된 사용자들을 제외
+          const selectedUserIds = this.selectedUsers.map(user => user.userId);
+          this.availableUsers = allUsers.filter(user => !selectedUserIds.includes(user.userId)).map(user => ({
             userId: user.userId,
             userName: user.userName,
             userEmail: user.userEmail,
@@ -263,7 +260,7 @@ export default {
         }
       } catch (error) {
         console.error('사용자 검색 실패:', error);
-        alert('사용자 검색에 실패했습니다.');
+        showSnackbar('사용자 검색에 실패했습니다.', { color: 'error' });
       }
     },
     
@@ -281,6 +278,31 @@ export default {
       }
     },
     
+    // 선택된 사용자들 추가
+    addSelectedUsers() {
+      if (this.selectedUserIds.length === 0) {
+        showSnackbar('멤버를 선택하세요.', { color: 'error' });
+        return;
+      }
+      
+      this.selectedUserIds.forEach(userId => {
+        const user = this.availableUsers.find(u => u.userId === userId);
+        if (user && !this.selectedUsers.find(u => u.userId === user.userId)) {
+          this.selectedUsers.push({
+            userId: user.userId,
+            userName: user.userName,
+            userEmail: user.userEmail,
+            profileImageUrl: user.profileImageUrl
+          });
+          // 사용 가능한 사용자 목록에서 제거
+          this.availableUsers = this.availableUsers.filter(u => u.userId !== user.userId);
+        }
+      });
+      
+      // 체크박스 초기화
+      this.selectedUserIds = [];
+    },
+    
     // 사용자 제거
     removeUser(userId) {
       const removedUser = this.selectedUsers.find(user => user.userId === userId);
@@ -295,7 +317,7 @@ export default {
     // 그룹 수정
     async updateGroup() {
       if (!this.groupName.trim()) {
-        alert('그룹명을 입력해주세요.');
+        showSnackbar('그룹명을 입력해주세요.', { color: 'error' });
         return;
       }
       
@@ -313,16 +335,20 @@ export default {
         });
         
         if (response.data.statusCode === 200) {
-          alert('그룹이 성공적으로 수정되었습니다.');
-          this.$router.push('/admin');
+          showSnackbar('그룹이 성공적으로 수정되었습니다.', { color: 'success' });
+          setTimeout(() => {
+            this.$router.push('/admin');
+          }, 100);
+        } else {
+          showSnackbar('그룹 수정에 실패했습니다.', { color: 'error' });
         }
       } catch (error) {
         console.error('그룹 수정 실패:', error);
         console.error('에러 상세:', error.response?.data);
         if (error.response && error.response.data && error.response.data.statusMessage) {
-          alert(error.response.data.statusMessage);
+          showSnackbar(error.response.data.statusMessage, { color: 'error' });
         } else {
-          alert('그룹 수정에 실패했습니다.');
+          showSnackbar('그룹 수정에 실패했습니다.', { color: 'error' });
         }
       }
     },
@@ -336,448 +362,356 @@ export default {
 </script>
 
 <style scoped>
-.edit-group-page {
+/* ===== Modal Overlay ===== */
+.modal-overlay {
   position: fixed;
-  top: 83px;
-  left: 280px;
-  right: 0;
-  bottom: 0;
-  width: calc(100vw - 280px);
-  height: calc(100vh - 83px);
-  background: #F5F5F5 !important;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(3px);
+}
+
+/* ===== Modal Container ===== */
+.modal-container {
+  width: 900px;
+  max-width: 95%;
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: fadeIn 0.25s ease-out;
   font-family: 'Pretendard', sans-serif;
-  overflow-y: auto;
-  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Header ===== */
+.modal-header {
+  background: #fff8e1;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f2e3a5;
+}
+
+.modal-header h2 {
   margin: 0;
-  padding: 0;
-  border: none;
-  box-sizing: border-box;
-}
-
-/* 메인 컨텐츠 */
-.main-content {
-  padding: 20px;
-  width: 100%;
-  max-width: none;
-  margin: 0;
-}
-
-/* 헤더 섹션 */
-.header-section {
-  margin-bottom: 32px;
-}
-
-.page-title {
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 800;
   font-size: 20px;
-  line-height: 24px;
-  color: #1C0F0F;
-  margin: 0 0 8px 0;
-  text-align: left;
-}
-
-.page-subtitle {
-  font-family: 'Pretendard', sans-serif;
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 19px;
-  color: #666666;
-  margin: 0;
-  text-align: left;
-}
-
-/* 폼 섹션 */
-.form-section {
-  margin-bottom: 24px;
-}
-
-.form-container {
-  background: #FFFFFF;
-  border: 1px solid #E9ECEF;
-  border-radius: 2px;
-  padding: 20px;
-  margin-bottom: 0;
-  width: 100%;
-}
-
-.form-container .section-label:not(:first-child) {
-  margin-top: 20px;
-}
-
-.form-container-left {
-  background: #FFFFFF;
-  border: 1px solid #E9ECEF;
-  border-radius: 2px;
-  padding: 20px;
-  margin-bottom: 0;
-  width: fit-content;
-  max-width: 600px;
-  text-align: left;
-}
-
-.form-container-left .section-label:not(:first-child) {
-  margin-top: 20px;
-}
-
-.section-label {
-  display: block;
-  font-size: 16px;
   font-weight: 700;
-  color: #1C0F0F;
-  margin-bottom: 12px;
-  text-align: left;
+  color: #333;
+}
+
+.modal-header p {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #777;
+}
+
+/* ===== Group Name Section ===== */
+.group-name-section {
+  padding: 20px 24px;
+  background: #fffdf9;
+  border-bottom: 1px solid #f2e3a5;
+}
+
+.group-name-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 8px;
 }
 
 .group-name-input {
-  width: 400px;
-  height: 42px;
-  padding: 0 17px;
-  border: 1px solid #DDDDDD;
-  border-radius: 4px;
-  background: #F5F5F5;
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 12px;
   font-size: 14px;
-  color: #757575;
+  transition: border-color 0.2s;
   box-sizing: border-box;
 }
 
 .group-name-input:focus {
+  border-color: #ffcd4d;
   outline: none;
-  border-color: #FFDD44;
-  background: #FFFFFF;
 }
 
-/* 검색 섹션 */
-.search-input-wrapper {
+/* ===== Body ===== */
+.modal-body {
   display: flex;
-  gap: 10px;
-  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  background: #fffdf9;
+  flex: 1;
+  overflow: hidden;
+  min-height: 400px;
+  max-height: calc(90vh - 200px);
 }
 
-.user-search-input {
-  width: 300px;
-  height: 42px;
-  padding: 0 17px;
-  border: 1px solid #DDDDDD;
+.section {
+  flex: 1;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 16px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.add-section h3,
+.list-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.hint-text {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 10px;
+}
+
+/* ===== Scroll Lists ===== */
+.user-list,
+.subscription-list {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #f3f3f3;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fffefc;
+  scrollbar-width: thin;
+  scrollbar-color: #ffde7d transparent;
+  min-height: 200px;
+}
+
+.user-list::-webkit-scrollbar,
+.subscription-list::-webkit-scrollbar {
+  width: 6px;
+}
+.user-list::-webkit-scrollbar-thumb,
+.subscription-list::-webkit-scrollbar-thumb {
+  background: #ffd86c;
   border-radius: 4px;
-  background: #F5F5F5;
+}
+.user-list::-webkit-scrollbar-track,
+.subscription-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ===== Search ===== */
+.search-wrapper {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.search-input {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 6px 8px;
   font-size: 14px;
-  color: #757575;
-  box-sizing: border-box;
-  text-align: left;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: #ffcd4d;
+  outline: none;
 }
 
 .search-btn {
-  height: 42px;
-  padding: 0 20px;
-  background: #FFE364;
+  background: #ffcd4d;
   border: none;
-  border-radius: 4px;
-  color: #1C0F0F;
-  font-size: 14px;
-  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s;
+  white-space: nowrap;
 }
 
 .search-btn:hover {
-  background: #FFDD44;
+  background: #ffd86c;
 }
 
-.user-search-input:focus {
-  outline: none;
-  border-color: #FFDD44;
-  background: #FFFFFF;
-}
-
-/* 사용자 선택 섹션 */
-.user-selection-section {
-  margin-bottom: 24px;
-}
-
-/* 사용자 목록과 선택된 멤버 컨테이너 */
-.user-lists-container {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  width: 100%;
-  margin: 0;
-}
-
-.user-list-section {
-  flex: 1;
-  min-width: 0;
-}
-
-.user-list-section .form-container {
-  background: #FFFFFF;
-  border: 1px solid #E9ECEF;
-  border-radius: 2px;
-  padding: 20px;
-  margin-bottom: 0;
-  width: 100%;
-}
-
-.selected-members-section {
-  flex: 1;
-  min-width: 0;
-}
-
-.selected-members-section .form-container {
-  background: #FFFFFF;
-  border: 1px solid #E9ECEF;
-  border-radius: 2px;
-  padding: 20px;
-  margin-bottom: 0;
-  width: 100%;
-}
-
-.arrow-container {
+/* ===== User Row ===== */
+.user-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-top: 60px;
-  padding: 0 20px;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background 0.2s;
 }
 
-.arrow {
-  font-size: 24px;
-  font-weight: bold;
-  color: #2A2828;
+.user-row:hover {
+  background: #fff8e6;
 }
 
-/* 사용자 목록 */
-.user-list-container {
-  max-height: 500px;
-  overflow-y: auto;
-  border: 1px solid #E9ECEF;
-  border-radius: 4px;
-  background: #F8F9FA;
-  min-height: 400px;
-  padding: 8px;
-}
-
-.user-item {
+.user-row label {
   display: flex;
   align-items: center;
-  padding: 12px 15px;
-  border-bottom: 1px solid #E9ECEF;
-  background: #FFFFFF;
-  gap: 12px;
-  margin-bottom: 8px;
-  border-radius: 4px;
+  gap: 8px;
+  cursor: pointer;
+  width: 100%;
 }
 
-.user-item:last-child {
-  border-bottom: none;
+.checkbox {
+  accent-color: #ffcd4d;
+  cursor: pointer;
 }
 
 .user-avatar {
   width: 24px;
   height: 24px;
+  border-radius: 50%;
   flex-shrink: 0;
-  background: none;
 }
 
-.user-info {
-  flex: 1;
-  margin-left: 12px;
-  text-align: left;
+.user-text {
+  font-size: 14px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
 }
 
 .user-name {
-  font-size: 10px;
-  font-weight: 700;
-  color: #1C0F0F;
-  line-height: 12px;
-  margin-bottom: 2px;
-  text-align: left;
+  color: #2a2828;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .user-email {
-  font-size: 10px;
-  color: #666666;
-  line-height: 12px;
-  text-align: left;
+  color: #999;
+  font-size: 13px;
 }
 
-.add-user-btn {
-  width: 24px;
-  height: 24px;
-  background: #FFE364;
-  border: none;
-  border-radius: 4px;
-  color: #FFFFFF;
-  font-size: 12px;
-  font-weight: 400;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.add-user-btn:disabled {
-  background: #DDDDDD;
-  cursor: not-allowed;
-}
-
-/* 페이지네이션 */
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 15px 0;
-  padding: 10px;
-  background: #F8F9FA;
-  border: 1px solid #E9ECEF;
-  border-radius: 4px;
-}
-
-.page-btn {
-  background: none;
-  border: none;
-  font-size: 12px;
-  color: #666666;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.page-btn.active {
-  color: #1C0F0F;
-  font-weight: 700;
-}
-
-.page-btn:hover {
-  background: #DDDDDD;
-}
-
-.page-ellipsis {
-  font-size: 12px;
-  color: #666666;
-  padding: 4px;
-}
-
-/* 더보기 버튼 */
-.more-btn {
-  width: 100%;
-  height: 42px;
-  background: #F5F5F5;
-  border: 1px solid #DDDDDD;
-  border-radius: 4px;
-  color: #1C0F0F;
+.empty-msg {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
   font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 10px;
 }
 
-.more-btn:hover {
-  background: #DDDDDD;
+/* ===== Subscription List ===== */
+.subscriber-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid #f4f4f4;
 }
 
-/* 선택된 멤버 */
-.selected-members-container {
-  max-height: 500px;
-  overflow-y: auto;
-  border: 1px solid #E9ECEF;
-  border-radius: 4px;
-  background: #F8F9FA;
-  min-height: 400px;
-  padding: 8px;
-}
-
-.selected-user-item {
+.subscriber-info {
   display: flex;
   align-items: center;
-  padding: 12px 15px;
-  border-bottom: 1px solid #E9ECEF;
-  background: #FFFFFF;
-  gap: 12px;
-  margin-bottom: 8px;
-  border-radius: 4px;
+  gap: 8px;
+  flex: 1;
 }
 
-.selected-user-item:last-child {
-  border-bottom: none;
-}
-
-.remove-user-btn {
+.user-avatar-small {
   width: 20px;
   height: 20px;
-  background: #FF0000;
-  border: none;
   border-radius: 50%;
-  color: #FFFFFF;
-  font-size: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: rotate(180deg);
+  flex-shrink: 0;
 }
 
-/* 안내 메시지 */
-.info-section {
-  margin: 30px 0;
-  width: 100%;
+.subscriber-name {
+  font-size: 14px;
+  color: #2a2828;
+  font-weight: 500;
 }
 
-.info-text {
+.user-email-small {
   font-size: 12px;
-  color: #999999;
-  margin: 5px 0;
-  line-height: 14px;
+  color: #999;
+  margin-left: 4px;
 }
 
-/* 액션 섹션 */
-.action-section {
+.trash-icon {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.trash-icon:hover {
+  opacity: 1;
+}
+
+.empty-list {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+/* ===== Buttons ===== */
+.add-btn {
+  margin-top: 12px;
+  background: #ffcd4d;
+  border: none;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-btn:hover {
+  background: #ffd86c;
+}
+
+/* ===== Footer ===== */
+.modal-footer {
+  padding: 12px 20px;
+  text-align: right;
+  background: #fafafa;
+  border-top: 1px solid #eee;
   display: flex;
   justify-content: flex-end;
-  align-items: center;
-  margin-top: 20px;
-  width: 100%;
-}
-
-.action-buttons {
-  display: flex;
   gap: 10px;
 }
 
 .cancel-btn {
-  height: 42px;
-  padding: 0 20px;
-  background: #F5F5F5;
-  border: 1px solid #DDDDDD;
-  border-radius: 4px;
-  color: #666666;
-  font-size: 14px;
-  font-weight: 700;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  font-weight: 500;
+  transition: background 0.2s;
 }
 
 .cancel-btn:hover {
-  background: #DDDDDD;
+  background: #e8e8e8;
 }
 
 .edit-btn {
-  height: 42px;
-  padding: 0 20px;
-  background: #FFE364;
+  background: #ffcd4d;
   border: none;
-  border-radius: 4px;
-  color: #1C0F0F;
-  font-size: 14px;
-  font-weight: 700;
+  border-radius: 8px;
+  padding: 8px 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  font-weight: 600;
+  transition: background 0.2s;
 }
 
 .edit-btn:hover {
-  background: #FFDD44;
-  transform: translateY(-1px);
+  background: #ffd86c;
 }
 </style>

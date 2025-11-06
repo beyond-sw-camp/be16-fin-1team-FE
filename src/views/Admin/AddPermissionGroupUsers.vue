@@ -11,7 +11,6 @@
 
       <!-- 개별 사용자 검색 섹션 -->
       <div class="section">
-        <div class="section-heading">개별 사용자 검색</div>
         <div class="panel">
           <div class="form-container">
             <label class="section-label">개별 사용자 검색</label>
@@ -52,7 +51,6 @@
 
       <!-- 사용자 그룹 검색 섹션 -->
       <div class="section">
-        <div class="section-heading">사용자 그룹 검색</div>
         <div class="panel">
           <div class="form-container">
             <label class="section-label">사용자 그룹 검색</label>
@@ -92,7 +90,6 @@
 
       <!-- 선택된 사용자 섹션 -->
       <div class="section">
-        <div class="section-heading">선택된 사용자</div>
         <div class="panel">
           <div class="form-container">
             <label class="section-label">선택된 사용자</label>

@@ -1,104 +1,125 @@
 <template>
-  <div class="delete-members-page">
-    <!-- 헤더 -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="back-button" @click="goBack">
-          <svg width="31" height="31" viewBox="0 0 31 31" fill="none">
-            <path d="M19.5 8L12 15.5L19.5 23" stroke="#2A2828" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="header-title">회원 삭제</div>
-        <div class="header-spacer"></div>
-      </div>
-    </div>
+  <div class="modal-overlay" @click.self="handleClose">
+    <div class="modal-container">
+      <!-- 헤더 -->
+      <header class="modal-header">
+        <h2>회원 삭제</h2>
+        <p>워크스페이스에서 회원을 삭제하세요.</p>
+      </header>
 
-    <!-- 메인 콘텐츠: 권한그룹 페이지 스타일과 동일한 구조 -->
-    <div class="page-content">
-      <div class="content-container">
-        <!-- 제목 섹션 -->
-        <div class="title-section">
-          <h1 class="main-title">회원삭제</h1>
-          <p class="sub-title">워크스페이스의 회원을 삭제해주세요</p>
-        </div>
+      <!-- 본문 -->
+      <div class="modal-body">
+        <!-- 왼쪽: 검색 결과 -->
+        <div class="section add-section">
+          <h3>사용자 검색</h3>
+          <p class="hint-text">이메일로 사용자를 검색하고 삭제할 수 있습니다.</p>
 
-        <!-- 이메일로 사용자 검색 -->
-        <div class="section">
-          <div class="section-heading">이메일로 사용자 검색</div>
-          <div class="search-row">
+          <div class="search-wrapper">
             <input
               v-model="emailQuery"
               type="email"
-              class="text-input"
-              placeholder="이메일 주소를 입력하세요"
+              lang="en"
               @keyup.enter="searchByEmail"
+              placeholder="이메일 주소를 입력하세요"
+              class="search-input"
             />
-            <button class="primary-btn" @click="searchByEmail">검색</button>
+            <button @click="searchByEmail" class="search-btn">검색</button>
           </div>
+
+          <div class="user-list">
+            <template v-if="results.length > 0">
+              <div
+                v-for="user in results"
+                :key="user.userId"
+                class="user-row"
+              >
+                <label>
+                  <input
+                    type="checkbox"
+                    v-model="selectedUserIds"
+                    :value="user.userId"
+                    class="checkbox"
+                    :disabled="selectedUsers.some(u => u.userId === user.userId)"
+                  />
+                  <img :src="user.profileImageUrl || userDefaultIcon" alt="user" class="user-avatar" @error="handleAvatarError($event)" />
+                  <span class="user-text">
+                    <span class="user-name">{{ user.name }}</span>
+                    <span class="user-email">({{ user.email }})</span>
+                  </span>
+                </label>
+              </div>
+            </template>
+            <div v-else class="empty-msg">검색 결과가 없습니다.</div>
+          </div>
+
+          <button class="add-btn" @click="addSelectedUsers">＋ 삭제 목록 추가</button>
         </div>
 
-        <!-- 검색 결과 -->
-        <div class="section">
-          <div class="section-heading">검색 결과</div>
-          <div class="panel">
-            <div class="cards">
-              <div v-if="results.length === 0">
-                <div class="card placeholder"></div>
-                <div class="empty-tip">검색 결과가 없습니다.</div>
-              </div>
-              <div v-else>
-                <div class="card" v-for="user in results" :key="user.userId">
-                  <div class="dot"></div>
-                  <div class="user-col">
-                    <div class="user-name">{{ user.name }}</div>
-                    <div class="user-email">{{ user.email || '이메일 없음' }}</div>
-                  </div>
-                  <button class="accent-btn" @click="addSelected(user)">추가</button>
+        <!-- 오른쪽: 선택한 사용자 -->
+        <div class="section list-section">
+          <h3>삭제할 사용자</h3>
+          <p class="hint-text">워크스페이스에서 삭제될 사용자 목록입니다.</p>
+
+          <div class="subscription-list">
+            <template v-if="selectedUsers.length > 0">
+              <div
+                v-for="user in selectedUsers"
+                :key="user.userId"
+                class="subscriber-item"
+              >
+                <div class="subscriber-info">
+                  <img :src="user.profileImageUrl || userDefaultIcon" alt="user" class="user-avatar-small" @error="handleAvatarError($event)" />
+                  <span class="subscriber-name">{{ user.name }}</span>
+                  <span class="user-email-small">({{ user.email }})</span>
                 </div>
+                <img
+                  src="@/assets/icons/calendar/trash-can.svg"
+                  alt="삭제"
+                  class="trash-icon"
+                  @click="removeSelected(user.userId)"
+                />
               </div>
-            </div>
+            </template>
+            <div v-else class="empty-list">선택된 사용자가 없습니다.</div>
           </div>
-        </div>
-
-        <!-- 선택한 사용자 -->
-        <div class="section">
-          <div class="section-heading">선택한 사용자</div>
-          <div class="panel">
-            <div class="cards">
-              <div v-if="selectedUsers.length === 0">
-                <div class="card placeholder"></div>
-                <div class="empty-tip">선택된 사용자가 없습니다.</div>
-              </div>
-              <div v-else>
-                <div class="card" v-for="user in selectedUsers" :key="user.userId">
-                  <div class="dot"></div>
-                  <div class="user-col">
-                    <div class="user-name">{{ user.name }}</div>
-                    <div class="user-email">{{ user.email || '이메일 없음' }}</div>
-                  </div>
-                  <button class="danger-btn" @click="removeSelected(user.userId)">제거</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 버튼 섹션 -->
-        <div class="button-section">
-          <button class="ghost-btn" @click="goBack">취소</button>
-          <button class="danger-accent-btn" @click="deleteMembers" :disabled="deleting">삭제하기</button>
         </div>
       </div>
+
+      <!-- 푸터 -->
+      <footer class="modal-footer">
+        <button class="cancel-btn" @click="handleClose">취소</button>
+        <button class="delete-btn" @click="openDeleteConfirmModal" :disabled="deleting">삭제하기</button>
+      </footer>
     </div>
+    
+    <!-- 삭제 확인 모달 -->
+    <ConfirmModal
+      :show="showDeleteConfirmModal"
+      title="회원 삭제"
+      :message="deleteConfirmMessage"
+      warning-text="이 작업은 되돌릴 수 없습니다."
+      confirm-button-text="삭제"
+      loading-text="삭제 중..."
+      :loading="deleting"
+      @close="closeDeleteConfirmModal"
+      @confirm="confirmDeleteMembers"
+    />
   </div>
 </template>
 
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { showSnackbar } from '@/services/snackbar.js';
+import ConfirmModal from '@/components/modal/ConfirmModal.vue';
+import userDefaultIcon from '@/assets/icons/user/user_default_icon.svg';
 
 export default {
   name: 'DeleteMembers',
+  emits: ['close', 'deleted'],
+  components: {
+    ConfirmModal
+  },
   setup() {
     const workspaceStore = useWorkspaceStore();
     return { workspaceStore };
@@ -108,46 +129,23 @@ export default {
       emailQuery: '',
       results: [],
       selectedUsers: [],
+      selectedUserIds: [],
       loading: false,
       deleting: false,
+      userDefaultIcon,
+      showDeleteConfirmModal: false,
+      deleteConfirmMessage: ''
     };
   },
-  mounted() {
-    // 워크스페이스 스토어 초기화
-    this.workspaceStore.initialize();
-    // localStorage 변경 감지
-    window.addEventListener('storage', this.handleStorageChange);
-  },
-  beforeUnmount() {
-    // 이벤트 리스너 정리
-    window.removeEventListener('storage', this.handleStorageChange);
-  },
-  watch: {
-    'workspaceStore.currentWorkspace': {
-      handler(newWorkspace, oldWorkspace) {
-        if (newWorkspace && newWorkspace.workspaceId !== oldWorkspace?.workspaceId) {
-          this.reloadPage();
-        }
-      },
-      deep: true,
-      immediate: true
-    }
-  },
   methods: {
-    handleStorageChange(event) {
-      // localStorage의 selectedWorkspaceId 변경 감지
-      if (event.key === 'selectedWorkspaceId' && event.newValue !== event.oldValue) {
-        this.reloadPage();
-      }
+    handleClose() {
+      this.$emit('close');
     },
-    reloadPage() {
-      // 회원삭제 페이지에서는 워크스페이스 변경 시 홈으로 이동하지 않음
-      // 현재 페이지를 유지하면서 데이터만 새로고침
-      this.searchByEmail();
-    },
+    
     goBack() {
-      this.$router.back();
+      this.handleClose();
     },
+    
     async searchByEmail() {
       const keyword = (this.emailQuery || '').trim();
       if (!keyword) {
@@ -161,7 +159,6 @@ export default {
         const lsUserEmailRaw = localStorage.getItem('email') || localStorage.getItem('userEmail') || '';
 
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || localStorage.getItem('selectedWorkspaceId') || 'ws_1';
-        
         
         const response = await axios.post(
           'http://localhost:8080/workspace-service/workspace/participants/search',
@@ -193,7 +190,7 @@ export default {
           this.results = filtered.map(u => ({
             userId: u.userId,
             name: u.userName,
-            email: u.userEmail || u.email || '', // 이메일 필드 확인
+            email: u.userEmail || u.email || '',
             profileImageUrl: u.profileImageUrl || '',
           }));
         } else {
@@ -202,18 +199,34 @@ export default {
       } catch (e) {
         console.error('회원 검색 실패:', e);
         this.results = [];
-        alert(e?.response?.data?.statusMessage || '회원 검색 중 오류가 발생했습니다.');
+        showSnackbar(e?.response?.data?.statusMessage || '회원 검색 중 오류가 발생했습니다.', { color: 'error' });
       } finally {
         this.loading = false;
       }
     },
+    
     addSelected(user) {
       if (!this.selectedUsers.some(u => u.userId === user.userId)) {
         this.selectedUsers.push(user);
       }
-      // 검색 결과에서 제거하여 중복 추가를 방지하고 UI에서 사라지게 함
       this.results = this.results.filter(u => u.userId !== user.userId);
     },
+    
+    addSelectedUsers() {
+      if (this.selectedUserIds.length === 0) {
+        showSnackbar('사용자를 선택하세요.', { color: 'error' });
+        return;
+      }
+      this.selectedUserIds.forEach(userId => {
+        const user = this.results.find(u => u.userId === userId);
+        if (user && !this.selectedUsers.some(u => u.userId === user.userId)) {
+          this.selectedUsers.push(user);
+          this.results = this.results.filter(u => u.userId !== user.userId);
+        }
+      });
+      this.selectedUserIds = [];
+    },
+    
     removeSelected(userId) {
       const removed = this.selectedUsers.find(u => u.userId === userId);
       this.selectedUsers = this.selectedUsers.filter(u => u.userId !== userId);
@@ -221,9 +234,14 @@ export default {
         this.results = [removed, ...this.results];
       }
     },
-    async deleteMembers() {
+    
+    handleAvatarError(event) {
+      event.target.src = this.userDefaultIcon;
+    },
+    
+    openDeleteConfirmModal() {
       if (this.selectedUsers.length === 0) {
-        alert('삭제할 사용자를 선택하세요.');
+        showSnackbar('삭제할 사용자를 선택하세요.', { color: 'error' });
         return;
       }
 
@@ -232,49 +250,57 @@ export default {
         .filter(Boolean);
 
       if (userIdList.length === 0) {
-        alert('선택된 사용자에 유효한 사용자 ID가 없습니다. 검색을 통해 다시 선택해주세요.');
+        showSnackbar('선택된 사용자에 유효한 사용자 ID가 없습니다. 검색을 통해 다시 선택해주세요.', { color: 'error' });
         return;
       }
 
-      if (confirm(`선택한 ${this.selectedUsers.length}명의 회원을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
-        try {
-          this.deleting = true;
-          const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-          const requesterId = localStorage.getItem('id') || 'user123';
-          const workspaceId = this.workspaceStore.getCurrentWorkspaceId || localStorage.getItem('selectedWorkspaceId') || 'ws_1';
-          
-          console.log('삭제 API 호출 - 워크스페이스 ID:', workspaceId);
-          console.log('삭제할 사용자 ID 목록:', userIdList);
-          console.log('현재 워크스페이스 스토어:', this.workspaceStore.getCurrentWorkspace);
+      this.deleteConfirmMessage = `<strong>${this.selectedUsers.length}명</strong>의 회원을 삭제하시겠습니까?`;
+      this.showDeleteConfirmModal = true;
+    },
+    
+    closeDeleteConfirmModal() {
+      this.showDeleteConfirmModal = false;
+    },
+    
+    async confirmDeleteMembers() {
+      try {
+        this.deleting = true;
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+        const requesterId = localStorage.getItem('id') || 'user123';
+        const workspaceId = this.workspaceStore.getCurrentWorkspaceId || localStorage.getItem('selectedWorkspaceId') || 'ws_1';
+        
+        const userIdList = this.selectedUsers
+          .map(u => u.userId)
+          .filter(Boolean);
+        
+        const deleteUrl = `http://localhost:8080/workspace-service/workspace/${workspaceId}/participants`;
+        
+        const requestData = {
+          userIdList: userIdList
+        };
+        
+        const response = await axios.delete(deleteUrl, {
+          headers: {
+            'X-User-Id': requesterId,
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          data: requestData
+        });
 
-          const deleteUrl = `http://localhost:8080/workspace-service/workspace/${workspaceId}/participants`;
-          console.log('삭제 API URL:', deleteUrl);
-          
-          const requestData = {
-            userIdList: userIdList
-          };
-          console.log('삭제 요청 데이터:', requestData);
-          
-          const response = await axios.delete(deleteUrl, {
-            headers: {
-              'X-User-Id': requesterId,
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
-            data: requestData
-          });
-
-          if (response?.data?.statusCode === 200) {
-            alert('선택한 회원들이 성공적으로 삭제되었습니다.');
-            this.goBack();
-          } else {
-            alert(response?.data?.statusMessage || '회원 삭제에 실패했습니다.');
-          }
-        } catch (e) {
-          console.error('회원 삭제 실패:', e);
-          alert(e?.response?.data?.statusMessage || '회원 삭제 중 오류가 발생했습니다.');
-        } finally {
+        if (response?.data?.statusCode === 200) {
+          showSnackbar('선택한 회원들이 성공적으로 삭제되었습니다.', { color: 'success' });
+          this.closeDeleteConfirmModal();
+          setTimeout(() => {
+            this.$emit('deleted');
+          }, 100);
+        } else {
+          showSnackbar(response?.data?.statusMessage || '회원 삭제에 실패했습니다.', { color: 'error' });
           this.deleting = false;
         }
+      } catch (e) {
+        console.error('회원 삭제 실패:', e);
+        showSnackbar(e?.response?.data?.statusMessage || '회원 삭제 중 오류가 발생했습니다.', { color: 'error' });
+        this.deleting = false;
       }
     }
   }
@@ -282,73 +308,348 @@ export default {
 </script>
 
 <style scoped>
-/* 페이지 컨테이너 */
-.delete-members-page {
+.modal-overlay {
   position: fixed;
-  top: 83px;
-  left: 280px;
-  right: 0;
-  bottom: 0;
-  width: calc(100vw - 280px);
-  height: calc(100vh - 83px);
-  background: #F5F5F5;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(3px);
+}
+
+.modal-container {
+  width: 900px;
+  max-width: 95%;
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: fadeIn 0.25s ease-out;
+  font-family: 'Pretendard', sans-serif;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  z-index: 100;
 }
 
-/* 헤더 영역 */
-.page-header {
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-header {
+  padding: 32px 40px 24px;
+  border-bottom: 1px solid #E5E5E5;
+}
+
+.modal-header h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1C0F0F;
+  margin: 0 0 8px 0;
+}
+
+.modal-header p {
+  font-size: 14px;
+  font-weight: 400;
+  color: #666666;
+  margin: 0;
+}
+
+.modal-body {
+  flex: 1;
+  padding: 32px 40px;
+  overflow-y: auto;
+  display: flex;
+  gap: 24px;
+}
+
+.section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.section h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1C0F0F;
+  margin: 0 0 8px 0;
+}
+
+.hint-text {
+  font-size: 13px;
+  font-weight: 400;
+  color: #666666;
+  margin: 0 0 20px 0;
+}
+
+.search-wrapper {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.search-input {
+  flex: 1;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid #DDDDDD;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #1C0F0F;
+  background: #FFFFFF;
+}
+
+.search-input::placeholder {
+  color: #999999;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #FFDD44;
+}
+
+.search-btn {
+  height: 40px;
+  padding: 0 20px;
+  background: #FFDD44;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1C0F0F;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.search-btn:hover {
+  background: #FFD700;
+}
+
+.user-list {
+  flex: 1;
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  background: #FAFAFA;
+}
+
+.user-row {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E5;
+  transition: all 0.2s;
+}
+
+.user-row:hover {
+  background: #F9F9F9;
+  border-color: #DDDDDD;
+}
+
+.user-row label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #FFDD44;
+}
+
+.checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-text {
+  flex: 1;
+  font-size: 14px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.user-name {
+  font-weight: 700;
+  color: #1C0F0F;
+}
+
+.user-email {
+  font-weight: 400;
+  color: #666666;
+}
+
+.empty-msg {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999999;
+  font-size: 14px;
+}
+
+.add-btn {
+  height: 40px;
+  padding: 0 20px;
+  background: #FFDD44;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1C0F0F;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-btn:hover {
+  background: #FFD700;
+}
+
+.subscription-list {
+  flex: 1;
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  padding: 12px;
+  background: #FAFAFA;
+}
+
+.subscriber-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E5;
+  transition: all 0.2s;
+}
+
+.subscriber-item:hover {
+  background: #F9F9F9;
+  border-color: #DDDDDD;
+}
+
+.subscriber-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.user-avatar-small {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.subscriber-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1C0F0F;
+}
+
+.user-email-small {
+  font-size: 13px;
+  font-weight: 400;
+  color: #666666;
+}
+
+.trash-icon {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.trash-icon:hover {
+  opacity: 1;
+}
+
+.empty-list {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999999;
+  font-size: 14px;
+}
+
+.modal-footer {
+  padding: 24px 40px 32px;
+  border-top: 1px solid #E5E5E5;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancel-btn {
+  height: 44px;
+  padding: 0 24px;
   background: #F5F5F5;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 20px 30px;
-  flex-shrink: 0;
-  z-index: 200;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #666666;
+  cursor: pointer;
+  transition: all 0.2s;
 }
-.header-content { display: flex; align-items: center; gap: 20px; }
-.back-button { width: 31px; height: 31px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; transition: background-color 0.2s; }
-.back-button:hover { background: rgba(0, 0, 0, 0.05); }
-.header-title { font-family: 'Pretendard', sans-serif; font-weight: 800; font-size: 28px; line-height: 33px; color: #1C0F0F; }
-.header-spacer { flex: 1; }
 
-/* 콘텐츠 영역 */
-.page-content { flex: 1; padding: 30px; overflow-y: auto; background: #F5F5F5; }
-.content-container { max-width: 1200px; margin: 0 auto; }
+.cancel-btn:hover {
+  background: #E5E5E5;
+}
 
-/* 타이틀 섹션 (권한그룹 페이지 스타일) */
-.title-section { margin-bottom: 40px; }
-.main-title { font-family: 'Pretendard', sans-serif; font-weight: 800; font-size: 28px; line-height: 33px; color: #1C0F0F; margin: 0 0 15px 0; text-align: left; }
-.sub-title { font-family: 'Pretendard', sans-serif; font-weight: 700; font-size: 16px; line-height: 19px; color: #666666; margin: 0; text-align: left; }
+.delete-btn {
+  height: 44px;
+  padding: 0 24px;
+  background: #FF6B6B;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s;
+}
 
-/* 공통 섹션 */
-.section { margin-bottom: 24px; }
-.section-heading { font-family: 'Pretendard', sans-serif; font-weight: 700; font-size: 18px; line-height: 21px; color: #1C0F0F; margin-bottom: 12px; text-align: left; }
+.delete-btn:hover:not(:disabled) {
+  background: #FF5252;
+}
 
-/* 검색 행 */
-.search-row { display: flex; gap: 12px; max-width: 620px; }
-.text-input { flex: 1; height: 42px; padding: 0 17px; background: #FFFFFF; border: 1px solid #DDDDDD; border-radius: 25px; font-family: 'Pretendard', sans-serif; font-weight: 400; font-size: 14px; line-height: 17px; color: #1C0F0F; box-sizing: border-box; }
-.text-input::placeholder { color: #757575; }
-.primary-btn { height: 42px; padding: 0 18px; background: #FFDD44; border: none; border-radius: 8px; font-family: 'Pretendard', sans-serif; font-weight: 700; font-size: 14px; line-height: 17px; color: #1C0F0F; cursor: pointer; }
-
-/* 카드 리스트 */
-.cards { display: flex; flex-direction: column; gap: 10px; }
-.panel { background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 2px; padding: 12px; }
-.card { display: flex; align-items: center; gap: 12px; background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 8px; padding: 12px 16px; }
-.card.placeholder { height: 60px; }
-.dot { width: 8px; height: 8px; background: #2A2828; border-radius: 50%; }
-.user-col { display: flex; flex-direction: column; gap: 4px; flex: 1; text-align: left; }
-.user-name { font-family: 'Pretendard', sans-serif; font-weight: 700; font-size: 13px; color: #1C0F0F; }
-.user-email { font-family: 'Pretendard', sans-serif; font-weight: 400; font-size: 13px; color: #666666; }
-.accent-btn { background: #FFDD44; border: none; border-radius: 6px; padding: 8px 12px; font-weight: 700; font-size: 14px; color: #1C0F0F; cursor: pointer; }
-.danger-btn { background: #FF0000; border: none; border-radius: 6px; padding: 8px 12px; font-weight: 700; font-size: 12px; color: #FFFFFF; cursor: pointer; }
-
-/* 빈 상태 */
-.empty-tip { color: #666666; font-size: 14px; text-align: left; padding: 4px 2px; }
-
-/* 버튼 섹션 */
-.button-section { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 24px; }
-.ghost-btn { height: 36px; padding: 0 16px; background: #E0E0E0; border: none; border-radius: 8px; font-weight: 700; color: #666666; cursor: pointer; }
-.danger-accent-btn { height: 36px; padding: 0 16px; background: #FF6B6B; border: none; border-radius: 8px; font-weight: 700; color: #FFFFFF; cursor: pointer; }
-.danger-accent-btn:hover { background: #FF5252; }
+.delete-btn:disabled {
+  background: #CCCCCC;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
 </style>
+
