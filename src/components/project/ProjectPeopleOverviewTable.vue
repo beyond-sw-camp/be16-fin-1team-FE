@@ -727,33 +727,33 @@ export default {
 }
 
 .people-table thead {
-  background-color: #f5f5f5;
-  border-bottom: 2px solid #e0e0e0;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f4f8 100%);
+  border-bottom: 2px solid #90caf9;
 }
 
 .people-table th {
-  padding: 10px 12px;
+  padding: 12px 12px;
   text-align: center;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #1565c0;
   white-space: nowrap;
   vertical-align: middle;
-  border-right: 1px solid #e9eaee;
+  border-right: 1px solid #e3f2fd;
 }
 
 .th-sub {
   margin-left: 4px;
   font-weight: 500;
-  color: #777;
+  color: #64b5f6;
   font-size: 12px;
 }
 
 .people-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e3f2fd;
   vertical-align: middle;
   text-align: center;
-  border-right: 1px solid #e9eaee;
+  border-right: 1px solid #f0f7ff;
 }
 
 .people-table th:last-child,
@@ -762,12 +762,13 @@ export default {
 }
 
 .people-table tbody tr:hover {
-  background-color: #f9f9f9;
+  background-color: #f0f7ff;
+  transition: background-color 0.2s ease;
 }
 
 /* 짝수 행 가독성 향상 */
 .people-table tbody tr:nth-child(even) {
-  background-color: #fafafa;
+  background-color: #fafbff;
 }
 
 /* 정렬 가능한 컬럼 */
@@ -775,10 +776,11 @@ export default {
   cursor: pointer;
   user-select: none;
   position: relative;
+  transition: background-color 0.2s ease;
 }
 
 .sortable:hover {
-  background-color: #e8e8e8;
+  background-color: #d4e9f7;
 }
 
 .sort-icon {
@@ -1040,7 +1042,7 @@ export default {
 .pagination-container {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #e3f2fd;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1050,7 +1052,8 @@ export default {
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: #1565c0;
+  font-weight: 500;
 }
 
 .pagination-controls {
@@ -1061,23 +1064,27 @@ export default {
 
 .pagination-btn {
   padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid #90caf9;
+  border-radius: 8px;
   background-color: white;
-  color: #1a1a1a;
+  color: #1565c0;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .pagination-btn:hover:not(.disabled) {
-  background-color: #f5f5f5;
-  border-color: #bbb;
+  background-color: #e3f2fd;
+  border-color: #64b5f6;
+  transform: translateY(-1px);
 }
 
 .pagination-btn.disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  border-color: #e3f2fd;
+  color: #90caf9;
 }
 
 .pagination-pages {
@@ -1089,28 +1096,31 @@ export default {
   min-width: 36px;
   height: 36px;
   padding: 0 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid #90caf9;
+  border-radius: 8px;
   background-color: white;
-  color: #1a1a1a;
+  color: #1565c0;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .pagination-page-btn:hover {
-  background-color: #f5f5f5;
-  border-color: #bbb;
+  background-color: #e3f2fd;
+  border-color: #64b5f6;
+  transform: translateY(-1px);
 }
 
 .pagination-page-btn.active {
-  background-color: #1976d2;
-  border-color: #1976d2;
+  background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
+  border-color: #42a5f5;
   color: white;
   font-weight: 600;
+  box-shadow: 0 2px 6px rgba(66, 165, 245, 0.3);
 }
 </style>
 
