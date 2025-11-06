@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import axios from "axios";
 // @ts-ignore
 import CalendarBase from "@/components/CalendarBase.vue";
@@ -56,6 +56,37 @@ const eventVisibilityMap = ref<Map<string, boolean>>(new Map());
 
 // ✅ 사이드바 검색 키워드
 const sidebarSearchKeyword = ref("");
+
+// ✅ localStorage 키 생성 (워크스페이스별로 관리)
+const getStorageKey = () => {
+  const wsId = workspaceId.value || localStorage.getItem("selectedWorkspaceId") || "default";
+  return `projectCalendar_visibility_${wsId}`;
+};
+
+// ✅ localStorage에서 숨김 상태 불러오기
+function loadVisibilityFromStorage() {
+  try {
+    const storageKey = getStorageKey();
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      eventVisibilityMap.value = new Map(Object.entries(parsed));
+    }
+  } catch (e) {
+    // 저장된 데이터가 없거나 파싱 실패 시 무시
+  }
+}
+
+// ✅ localStorage에 숨김 상태 저장
+function saveVisibilityToStorage() {
+  try {
+    const storageKey = getStorageKey();
+    const obj = Object.fromEntries(eventVisibilityMap.value);
+    localStorage.setItem(storageKey, JSON.stringify(obj));
+  } catch (e) {
+    // 저장 실패 시 무시
+  }
+}
 
 // ✅ OrbitGantt와 동일한 색상 팔레트 및 할당 로직 (확장된 색상 팔레트)
 const colorPalette = [
@@ -688,16 +719,33 @@ const fetchEvents = async () => {
 
     events.value = [...stoneEvents, ...taskEvents];
     
+    // ✅ localStorage에서 숨김 상태 불러오기 (이벤트 로드 전에 실행)
+    loadVisibilityFromStorage();
+    
     // ✅ 새로 로드된 이벤트들의 기본 visible 상태 설정 (기존 설정 유지)
     events.value.forEach(event => {
       if (!eventVisibilityMap.value.has(event.id)) {
         eventVisibilityMap.value.set(event.id, true); // 기본값: 표시
       }
     });
+    
+    // ✅ 변경사항 저장
+    saveVisibilityToStorage();
   } catch (e) {
     // 에러 처리 (로그 없음)
   }
 };
+
+// ✅ 워크스페이스 변경 감지
+watch(
+  () => workspaceId.value,
+  () => {
+    if (workspaceId.value) {
+      loadVisibilityFromStorage();
+      fetchEvents();
+    }
+  }
+);
 
 onMounted(fetchEvents);
 
@@ -743,6 +791,8 @@ const sidebarEventList = computed(() => {
 function toggleEventVisibility(eventId: string) {
   const currentVisible = eventVisibilityMap.value.get(eventId) ?? true;
   eventVisibilityMap.value.set(eventId, !currentVisible);
+  // ✅ 변경사항 즉시 localStorage에 저장
+  saveVisibilityToStorage();
 }
 
 // ✅ 필터링된 이벤트 (개별 숨김 설정 반영)
