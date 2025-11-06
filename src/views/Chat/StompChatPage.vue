@@ -247,9 +247,19 @@
                                         <div v-if="!searchResults.length" class="search-empty">검색 결과가 없습니다</div>
                                         <div v-else>
                                             <div v-for="r in searchResults" :key="r.index" class="result-row" @click="scrollToMessage(r.index)">
-                                                <div class="result-sender" :title="r.sender">{{ r.sender }}</div>
-                                                <div class="result-text">{{ r.snippet }}</div>
-                                                <div class="result-meta">{{ formatChatTime(r.time) }}</div>
+                                                <div class="result-content">
+                                                    <div class="result-header">
+                                                        <div class="result-sender-wrapper">
+                                                            <div class="result-avatar-small">
+                                                                <img v-if="r.profileImageUrl" :src="r.profileImageUrl" alt="profile" @error="onAvatarError($event)" />
+                                                                <img v-else :src="userDefault" alt="profile" />
+                                                            </div>
+                                                            <div class="result-sender" :title="r.sender">{{ r.sender }}</div>
+                                                        </div>
+                                                        <div class="result-meta">{{ formatChatTime(r.time) }}</div>
+                                                    </div>
+                                                    <div class="result-text" v-html="highlightSearchText(r.snippet, searchQuery)"></div>
+                                                </div>
                                             </div>
                                         </div>
                                     </template>
@@ -821,12 +831,23 @@ import { showSnackbar } from '@/services/snackbar.js';
                         if (text.includes(q)) {
                             const snippet = m.message.length > 120 ? (m.message.slice(0, 117) + '...') : m.message;
                             const sender = m.senderName || m.senderId || '익명';
-                            results.push({ index: i, snippet, time: m.lastSendTime, sender });
+                            results.push({ 
+                                index: i, 
+                                snippet, 
+                                time: m.lastSendTime, 
+                                sender,
+                                profileImageUrl: m.userProfileImageUrl || null
+                            });
                         }
                     }
                     this.searchResults = results;
                     this.searching = false;
                 });
+            },
+            highlightSearchText(text, query) {
+                if (!text || !query) return text;
+                const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                return text.replace(regex, '<mark class="search-highlight">$1</mark>');
             },
             scrollToMessage(index){
                 if (typeof index !== 'number') return;
@@ -1291,11 +1312,71 @@ import { showSnackbar } from '@/services/snackbar.js';
 .search-input{ height: 36px; border: 1px solid #E3E3E3; border-radius: 8px; padding: 0 12px; box-sizing: border-box; outline: none; min-width: 0; }
 .search-btn{ height: 36px; border-radius: 8px; border: 1px solid #E3E3E3; background: #FFE364; color: #2A2828; font-weight: 700; padding: 0 12px; min-width: 72px; box-sizing: border-box; white-space: nowrap; }
 .search-results{ max-height: 220px; overflow-y: auto; border-bottom: 1px solid #EEE; background: #FFF; }
-.result-row{ display: grid; grid-template-columns: 84px 1fr auto; gap: 8px; padding: 8px 12px; border-top: 1px solid #F7F7F7; cursor: pointer; align-items: center; }
-.result-sender{ font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-row{ 
+    padding: 12px; 
+    border-top: 1px solid #F7F7F7; 
+    cursor: pointer; 
+    transition: background 0.2s;
+}
 .result-row:hover{ background: #FAFAFA; }
-.result-text{ font-size: 12px; color: #333; }
-.result-meta{ font-size: 11px; color: #999; }
+.result-content{ 
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px; 
+}
+.result-header{ 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    gap: 8px; 
+}
+.result-sender-wrapper{ 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    flex: 1; 
+    min-width: 0;
+}
+.result-sender{ 
+    font-size: 14px; 
+    font-weight: 500;
+    color: #333; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
+.result-avatar-small{ 
+    flex-shrink: 0;
+    width: 20px; 
+    height: 20px; 
+    border-radius: 50%; 
+    overflow: hidden; 
+    background: #F5F5F5;
+}
+.result-avatar-small img{ 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    display: block; 
+}
+.result-meta{ 
+    font-size: 12px; 
+    color: #999; 
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.result-text{ 
+    font-size: 13px; 
+    color: #666; 
+    line-height: 1.5;
+    word-break: break-word;
+}
+.search-highlight{ 
+    background-color: #FFE364; 
+    color: #2A2828; 
+    font-weight: 500;
+    padding: 0 2px;
+}
 .chat-row.highlight .bubble{ outline: 2px solid #FFE364; box-shadow: 0 0 0 3px rgba(255,227,100,0.35); }
 .back-btn{ position: absolute; top: 4px; left: 4px; min-width: 28px; height: 28px; padding: 0; }
 .chat-header{ display: flex; align-items: center; gap: 8px; }

@@ -46,7 +46,7 @@
                                             </div>
                                             <div class="row-subtitle-wrap">
                                                 <span class="row-subtitle text-ellipsis-2">
-                                                    {{ (chat.messageType === 'FILE' && !chat.lastMessage) ? '파일이 전송되었습니다.' : (chat.lastMessage || '메시지가 없습니다.') }}
+                                                    {{ getLastMessageText(chat) }}
                                                 </span>
                                             </div>
                                         </td>
@@ -183,6 +183,22 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
             },
             onAvatarError(e) {
                 e.target.src = this.userDefault;
+            },
+            getLastMessageText(chat) {
+                if (!chat) return '메시지가 없습니다.';
+                
+                // 파일 메시지인 경우
+                if (chat.messageType === 'FILE') {
+                    return '파일이 전송되었습니다.';
+                }
+                
+                // 텍스트와 파일이 함께 있는 경우
+                if (chat.messageType === 'TEXT_WITH_FILE') {
+                    return chat.lastMessage || '파일이 전송되었습니다.';
+                }
+                
+                // 일반 텍스트 메시지
+                return chat.lastMessage || '메시지가 없습니다.';
             },
             formatChatTime(timestamp) {
                 if (!timestamp) return '';

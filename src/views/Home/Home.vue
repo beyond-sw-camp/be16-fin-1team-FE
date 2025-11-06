@@ -111,7 +111,7 @@
                       <span v-if="room.isVideoCallActive" class="video-call-indicator"></span>
                     </div>
                     <div class="chat-subtitle">
-                      {{ (room.messageType === 'FILE' && !room.lastMessage) ? '파일이 전송되었습니다.' : (room.lastMessage || '메시지가 없습니다.') }}
+                      {{ getLastMessageText(room) }}
                     </div>
                   </div>
                   <div class="chat-meta">
@@ -1381,6 +1381,23 @@ export default {
       await this.loadChatRooms();
     },
     
+    // 마지막 메시지 텍스트 가져오기
+    getLastMessageText(room) {
+        if (!room) return '메시지가 없습니다.';
+        
+        // 파일 메시지인 경우
+        if (room.messageType === 'FILE') {
+            return '파일이 전송되었습니다.';
+        }
+        
+        // 텍스트와 파일이 함께 있는 경우
+        if (room.messageType === 'TEXT_WITH_FILE') {
+            return room.lastMessage || '파일이 전송되었습니다.';
+        }
+        
+        // 일반 텍스트 메시지
+        return room.lastMessage || '메시지가 없습니다.';
+    },
     // 채팅 시간 포맷팅
     formatChatTime(timestamp) {
       if (!timestamp) return '';
