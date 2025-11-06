@@ -4949,7 +4949,7 @@ export default {
 
 .drive-container {
   height: calc(100vh - 64px);
-  background-color: #f5f5f5;
+  background-color: #fafafa;
 }
 
 .drive-layout {
@@ -4959,42 +4959,47 @@ export default {
 }
 
 .sidebar-col {
-  background-color: white;
-  border-right: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  border-right: 1px solid #e8e8e8;
   max-height: calc(100vh - 64px);
   overflow-y: auto;
   flex-shrink: 0;
   transition: width 0.1s ease;
+  box-shadow: 1px 0 2px rgba(0, 0, 0, 0.02);
 }
 
 .resizer {
-  width: 1px;
-  background-color: #e0e0e0;
+  width: 2px;
+  background-color: #e8e8e8;
   cursor: col-resize;
   flex-shrink: 0;
   user-select: none;
   position: relative;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .resizer:hover {
   background-color: #1976d2;
+  width: 3px;
 }
 
 .main-content-col {
   max-height: calc(100vh - 64px);
-  background-color: white;
+  background-color: #ffffff;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  box-shadow: -1px 0 2px rgba(0, 0, 0, 0.02);
 }
 
 /* Ensure the toolbar height matches the sidebar header */
 .main-content-col :deep(.v-toolbar) {
   min-height: 64px;
   height: 64px;
+  border-bottom: 1px solid #f0f0f0;
+  background: linear-gradient(to bottom, #ffffff, #fafafa);
 }
 
 /* 툴바 title Pretendard 폰트 */
@@ -5016,9 +5021,10 @@ export default {
 .sidebar-header {
   border-bottom: 1px solid #f0f0f0;
   height: 64px; /* match toolbar height */
-  padding: 0 16px !important; /* override pa-4 vertical padding, keep px-4 */
+  padding: 0 20px !important; /* override pa-4 vertical padding, keep px-4 */
   display: flex;
   align-items: center;
+  background: linear-gradient(to bottom, #ffffff, #fafafa);
 }
 
 .drive-root-title {
@@ -5209,7 +5215,8 @@ export default {
 
 .folder-label:hover {
   color: #1976d2;
-  background-color: #f5f5f5;
+  background-color: #f0f4ff;
+  transform: translateX(2px);
 }
 
 .folder-label.drag-over-tree {
@@ -5225,7 +5232,8 @@ export default {
 }
 
 .drive-table :deep(tbody tr:hover) {
-  background-color: #f5f5f5 !important;
+  background-color: #f8f9fa !important;
+  transition: background-color 0.15s ease;
 }
 
 /* 빈 폴더 상태일 때 hover 효과 비활성화 */
@@ -5289,14 +5297,17 @@ export default {
 }
 
 .clickable-row:hover {
-  background-color: #f5f5f5;
-  border-radius: 4px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 }
 
 .item-name {
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  letter-spacing: -0.2px;
   white-space: nowrap;
   min-width: 0;
   flex: 1;
@@ -5501,7 +5512,8 @@ export default {
   font-size: 13.5px;
   font-weight: 600;
   color: #5f6368;
-  letter-spacing: 0.3px;
+  letter-spacing: -0.1px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
 }
 
 .clickable-header {
@@ -5511,7 +5523,9 @@ export default {
 }
 
 .clickable-header:hover {
-  opacity: 0.7;
+  opacity: 0.8;
+  color: #1976d2;
+  transition: all 0.2s ease;
 }
 
 .drive-table :deep(table) {
@@ -5520,20 +5534,21 @@ export default {
 }
 
 .drive-table :deep(thead) {
-  background: linear-gradient(to bottom, #ffffff, #f5f5f5);
-  border-bottom: 2px solid #d3d3d3;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(to bottom, #ffffff, #fafafa);
+  border-bottom: 1px solid #e8e8e8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .drive-table :deep(thead th) {
   font-weight: 600;
   color: #3c4043;
-  padding: 14px 16px;
-  border-bottom: 2px solid #d3d3d3;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e8e8e8;
   text-transform: none;
   background-color: transparent;
   position: relative;
   font-size: 13.5px;
+  letter-spacing: -0.1px;
 }
 
 .drive-table :deep(thead th:first-child) {
@@ -5541,9 +5556,10 @@ export default {
 }
 
 .drive-table :deep(tbody td) {
-  padding: 12px 16px;
+  padding: 14px 20px;
   color: #202124;
-  font-size: 14.5px;
+  font-size: 14px;
+  border-bottom: 1px solid #f5f5f5;
 }
 
 /* 이름 셀 overflow 처리 */
@@ -5750,6 +5766,15 @@ export default {
   max-width: 200px;
   display: inline-block;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif !important;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #5f6368;
+  letter-spacing: -0.1px;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-item:hover .breadcrumb-text {
+  color: #1976d2;
 }
 
 /* 브레드크럼 컨테이너 overflow 처리 */
@@ -5936,15 +5961,19 @@ export default {
 
 .empty-folder-title {
   font-size: 18px;
-  font-weight: 500;
-  color: #5f6368;
-  margin-bottom: 8px;
+  font-weight: 600;
+  color: #3c4043;
+  margin-bottom: 10px;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  letter-spacing: -0.3px;
 }
 
 .empty-folder-subtitle {
   font-size: 14px;
-  color: #9aa0a6;
-  line-height: 1.5;
+  color: #80868b;
+  line-height: 1.6;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  letter-spacing: -0.1px;
 }
 </style>
 
