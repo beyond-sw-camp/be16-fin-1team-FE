@@ -172,7 +172,12 @@
               </v-list>
             </v-menu>
 
-            <v-btn text small @click="loadFolderContents(currentFolderId, currentRootType, currentRootId)">
+            <v-btn 
+              outlined
+              small 
+              class="refresh-btn"
+              @click="loadFolderContents(currentFolderId, currentRootType, currentRootId)"
+            >
               <v-icon small left>mdi-refresh</v-icon>
               새로고침
             </v-btn>
@@ -180,7 +185,13 @@
             <!-- 신규 메뉴 -->
             <v-menu v-model="isNewItemMenuOpen" :close-on-content-click="true" offset-y>
               <template #activator="{ props }">
-                <v-btn color="primary" depressed small v-bind="props">
+                <v-btn 
+                  color="primary" 
+                  elevation="0"
+                  small 
+                  class="new-btn"
+                  v-bind="props"
+                >
                   <v-icon small left>mdi-plus</v-icon>
                   신규
                 </v-btn>
@@ -5325,6 +5336,68 @@ export default {
   outline: none !important;
   border: none !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 새로고침 버튼 스타일 */
+.refresh-btn {
+  border-radius: 8px !important;
+  border: 1px solid #e0e0e0 !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  padding: 6px 16px !important;
+  color: #5f6368 !important;
+  background-color: white !important;
+}
+
+.refresh-btn:hover {
+  background-color: #f5f5f5 !important;
+  border-color: #1976d2 !important;
+  color: #1976d2 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.15) !important;
+}
+
+.refresh-btn :deep(.v-icon) {
+  transition: transform 0.3s ease !important;
+}
+
+.refresh-btn:hover :deep(.v-icon) {
+  transform: rotate(180deg);
+}
+
+/* 신규 버튼 스타일 */
+.new-btn {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  padding: 8px 16px !important;
+  letter-spacing: 0 !important;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+  border: none !important;
+}
+
+.new-btn:hover {
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%) !important;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3) !important;
+  transform: translateY(-1px);
+}
+
+.new-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(25, 118, 210, 0.2) !important;
+}
+
+.new-btn :deep(.v-icon) {
+  color: white !important;
+  margin-right: 4px !important;
+}
+
+.new-btn :deep(.v-btn__content) {
+  color: white !important;
+  font-size: 14px !important;
 }
 
 /* 새로고침 버튼 및 신규 버튼 테두리 제거 */
