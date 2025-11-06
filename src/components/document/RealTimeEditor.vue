@@ -15,13 +15,6 @@
 
     <div v-if="editor">
       <v-toolbar density="compact" class="editor-toolbar">
-        <v-btn-toggle v-model="toggleBold" variant="outlined" divided>
-          <v-btn @click="editor.chain().focus().toggleBold().run()" :class="{ 'is-active': editor.isActive('bold') }">
-            <v-icon>mdi-format-bold</v-icon>
-          </v-btn>
-        </v-btn-toggle>
-        
-        <v-divider vertical class="mx-2"></v-divider>
 
         <v-btn-toggle v-model="toggleHeading" variant="outlined" divided>
           <v-btn @click="editor.chain().focus().toggleHeading({ level: 1 }).run()" :class="{ 'is-active': editor.isActive('heading', { level: 1 }) }">
@@ -142,6 +135,12 @@
 
         <!-- 기타 스타일 버튼들 -->
         <v-btn-toggle v-model="toggleStyles" variant="outlined" divided>
+          <v-btn @click="editor.chain().focus().toggleBold().run()" :class="{ 'is-active': editor.isActive('bold') }">
+            <v-icon>mdi-format-bold</v-icon>
+          </v-btn>
+          <v-btn @click="editor.chain().focus().toggleItalic().run()" :class="{ 'is-active': editor.isActive('italic') }">
+            <v-icon>mdi-format-italic</v-icon>
+          </v-btn>
           <v-btn @click="editor.chain().focus().toggleUnderline().run()" :class="{ 'is-active': editor.isActive('underline') }">
             <v-icon>mdi-format-underline</v-icon>
           </v-btn>
@@ -525,7 +524,6 @@ const currentSelectionIds = ref(new Set()); // 현재 내가 선택한 라인 ID
 const lockedLines = ref(new Map()); // 잠긴 라인 목록 {lineId: userId}
 const onlineUsers = ref([]); // 온라인 사용자 목록
 
-const toggleBold = ref(null);
 const toggleHeading = ref(null);
 const toggleAlign = ref(null);
 const toggleColor = ref(null);
@@ -908,7 +906,9 @@ onMounted(async () => {
 
   editor.value = new Editor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Bold와 Italic이 제대로 작동하도록 명시적으로 활성화
+      }),
       UniqueIdExtension,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -1621,6 +1621,18 @@ const handleIncomingMessage = (message) => {
   margin-bottom: 0 !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
+}
+
+/* Bold 스타일 명시적으로 적용 */
+.ProseMirror strong,
+.ProseMirror b {
+  font-weight: 700 !important;
+}
+
+/* Italic 스타일 명시적으로 적용 */
+.ProseMirror em,
+.ProseMirror i {
+  font-style: italic !important;
 }
 
 .ProseMirror-focused {
