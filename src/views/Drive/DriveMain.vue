@@ -411,168 +411,241 @@
     </div>
 
     <!-- Create Folder Dialog -->
-    <v-dialog v-model="createFolderDialog" max-width="520" scroll-strategy="block">
-      <v-card class="create-dialog-card">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon class="mr-3" color="#4285f4" size="28">mdi-folder-plus</v-icon>
-          <div>
-            <div class="text-h6 font-weight-600">새 폴더 만들기</div>
-            <div class="text-caption grey--text text--darken-1 mt-1">폴더 이름을 입력하세요</div>
+    <v-dialog v-model="createFolderDialog" max-width="520" scroll-strategy="block" content-class="modern-dialog">
+      <v-card class="create-dialog-card modern-modal-card">
+        <v-card-title class="modern-modal-header">
+          <div class="d-flex align-center">
+            <div class="modern-icon-wrapper">
+              <v-icon color="#1a73e8" size="24">mdi-folder-plus</v-icon>
+            </div>
+            <div class="ml-3">
+              <div class="modern-modal-title">새 폴더 만들기</div>
+            </div>
           </div>
         </v-card-title>
-        <v-divider></v-divider>
-        <v-card-text class="pt-4 pb-2">
+        <v-card-text class="modern-modal-content">
           <v-text-field
             v-model="newFolderName"
             label="폴더 이름"
-            outlined
+            filled
+            rounded
             dense
             clearable
             counter="80"
             :maxlength="80"
             hide-details="auto"
             autofocus
-            :prepend-inner-icon="'mdi-folder-outline'"
+            class="modern-text-field"
             hint="공백과 특수문자 사용을 최소화해주세요."
             persistent-hint
             @keyup.enter="createFolder"
           ></v-text-field>
         </v-card-text>
-        <v-card-actions class="px-4 pb-4">
+        <v-card-actions class="modern-modal-actions">
           <v-spacer></v-spacer>
-          <v-btn text @click="createFolderDialog = false" class="mr-2" :disabled="isCreatingFolder">취소</v-btn>
-          <v-btn color="primary" depressed @click="createFolder" :disabled="isCreatingFolder" :loading="isCreatingFolder">
-            <v-icon small left>mdi-check</v-icon>만들기
+          <v-btn 
+            text 
+            @click="createFolderDialog = false" 
+            class="modern-cancel-btn" 
+            :disabled="isCreatingFolder"
+          >
+            취소
+          </v-btn>
+          <v-btn 
+            color="primary" 
+            depressed 
+            @click="createFolder" 
+            :disabled="isCreatingFolder" 
+            :loading="isCreatingFolder"
+            class="modern-primary-btn"
+          >
+            만들기
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Rename Dialog -->
-    <v-dialog v-model="renameDialog" max-width="520" scroll-strategy="block">
-      <v-card class="rename-dialog-card">
-        <v-card-title class="d-flex align-center">
-          <img 
-            v-if="isItemImage(renameItem || {})" 
-            :src="getItemIconImage(renameItem || {})" 
-            class="item-icon-image mr-2"
-            alt=""
-          />
-          <v-icon 
-            v-else 
-            class="mr-2" 
-            :color="getItemIconColor(renameItem || {})"
-          >
-            {{ getItemIcon(renameItem || {}) }}
-          </v-icon>
-          <div>
-            <div class="text-subtitle-1 font-weight-600">이름 변경</div>
-            <div class="text-caption grey--text text--darken-1 text-truncate" style="max-width: 360px;">
-              {{ renameItem?.name || '' }}
+    <v-dialog v-model="renameDialog" max-width="520" scroll-strategy="block" content-class="modern-dialog">
+      <v-card class="rename-dialog-card modern-modal-card">
+        <v-card-title class="modern-modal-header">
+          <div class="d-flex align-center">
+            <div class="modern-icon-wrapper">
+              <img 
+                v-if="isItemImage(renameItem || {})" 
+                :src="getItemIconImage(renameItem || {})" 
+                class="item-icon-image"
+                style="width: 24px; height: 24px;"
+                alt=""
+              />
+              <v-icon 
+                v-else 
+                :color="getItemIconColor(renameItem || {})"
+                size="24"
+              >
+                {{ getItemIcon(renameItem || {}) }}
+              </v-icon>
+            </div>
+            <div class="ml-3">
+              <div class="modern-modal-title">이름 변경</div>
+              <div class="modern-modal-subtitle text-truncate" style="max-width: 360px;">
+                {{ renameItem?.name || '' }}
+              </div>
             </div>
           </div>
         </v-card-title>
-        <v-card-text class="pt-2">
+        <v-card-text class="modern-modal-content">
           <v-text-field
             v-model="renameName"
             label="새 이름"
-            outlined
+            filled
+            rounded
             dense
             clearable
             counter="80"
             :maxlength="80"
             hide-details="auto"
             autofocus
-            :prepend-inner-icon="'mdi-rename-box'"
+            class="modern-text-field"
             hint="공백과 특수문자 사용을 최소화해주세요."
             persistent-hint
             @keyup.enter="confirmRename"
           ></v-text-field>
         </v-card-text>
-        <v-card-actions class="px-4 pb-4">
+        <v-card-actions class="modern-modal-actions">
           <v-spacer></v-spacer>
-          <v-btn text @click="renameDialog = false" :disabled="isRenaming">취소</v-btn>
-          <v-btn color="primary" depressed @click="confirmRename" :disabled="isRenaming" :loading="isRenaming">
-            <v-icon small left>mdi-check</v-icon>변경
+          <v-btn 
+            text 
+            @click="renameDialog = false" 
+            class="modern-cancel-btn" 
+            :disabled="isRenaming"
+          >
+            취소
+          </v-btn>
+          <v-btn 
+            color="primary" 
+            depressed 
+            @click="confirmRename" 
+            :disabled="isRenaming" 
+            :loading="isRenaming"
+            class="modern-primary-btn"
+          >
+            변경
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Delete Confirmation Dialog -->
-    <v-dialog v-model="deleteDialog" max-width="520" scroll-strategy="block">
-      <v-card class="delete-dialog-card">
-        <v-card-title class="d-flex align-center">
-          <img 
-            v-if="isItemImage(deleteItem || {})" 
-            :src="getItemIconImage(deleteItem || {})" 
-            class="item-icon-image mr-2"
-            alt=""
-          />
-          <v-icon 
-            v-else 
-            class="mr-2" 
-            color="error"
-          >
-            {{ getItemIcon(deleteItem || {}) }}
-          </v-icon>
-          <div>
-            <div class="text-subtitle-1 font-weight-600">삭제 확인</div>
-            <div class="text-caption grey--text text--darken-1 text-truncate" style="max-width: 360px;">
-              {{ deleteItem?.name || '' }}
+    <v-dialog v-model="deleteDialog" max-width="520" scroll-strategy="block" content-class="modern-dialog">
+      <v-card class="delete-dialog-card modern-modal-card">
+        <v-card-title class="modern-modal-header">
+          <div class="d-flex align-center">
+            <div class="modern-icon-wrapper delete-icon-wrapper">
+              <img 
+                v-if="isItemImage(deleteItem || {})" 
+                :src="getItemIconImage(deleteItem || {})" 
+                class="item-icon-image"
+                style="width: 24px; height: 24px;"
+                alt=""
+              />
+              <v-icon 
+                v-else 
+                color="#ea4335"
+                size="24"
+              >
+                {{ getItemIcon(deleteItem || {}) }}
+              </v-icon>
+            </div>
+            <div class="ml-3">
+              <div class="modern-modal-title">삭제 확인</div>
+              <div class="modern-modal-subtitle text-truncate" style="max-width: 360px;">
+                {{ deleteItem?.name || '' }}
+              </div>
             </div>
           </div>
         </v-card-title>
-        <v-card-text class="pt-4 pb-2">
-          <v-alert type="warning" border="left" colored-border density="compact" class="mb-3">
+        <v-card-text class="modern-modal-content">
+          <v-alert type="warning" border="left" colored-border density="compact" class="mb-3 modern-alert">
             <div class="text-body-2">
               삭제하면 돌이킬 수 없습니다. 정말 <strong>"{{ deleteItem?.name }}"</strong>을(를) 삭제하시겠습니까?
             </div>
           </v-alert>
         </v-card-text>
-        <v-card-actions class="px-4 pb-4">
+        <v-card-actions class="modern-modal-actions">
           <v-spacer></v-spacer>
-          <v-btn text @click="deleteDialog = false" :disabled="isDeleting">취소</v-btn>
-          <v-btn color="error" depressed @click="confirmDelete" :disabled="isDeleting" :loading="isDeleting">
-            <v-icon small left>mdi-delete</v-icon>삭제
+          <v-btn 
+            text 
+            @click="deleteDialog = false" 
+            class="modern-cancel-btn" 
+            :disabled="isDeleting"
+          >
+            취소
+          </v-btn>
+          <v-btn 
+            color="error" 
+            depressed 
+            @click="confirmDelete" 
+            :disabled="isDeleting" 
+            :loading="isDeleting"
+            class="modern-error-btn"
+          >
+            삭제
           </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- Create Document Dialog -->
-    <v-dialog v-model="createDocumentDialog" max-width="520" scroll-strategy="block">
-      <v-card class="create-dialog-card">
-        <v-card-title class="d-flex align-center pa-4">
-          <v-icon class="mr-3" color="#4285f4" size="28">mdi-file-document-plus</v-icon>
-          <div>
-            <div class="text-h6 font-weight-600">새 문서 만들기</div>
-            <div class="text-caption grey--text text--darken-1 mt-1">문서 제목을 입력하세요</div>
+    <v-dialog v-model="createDocumentDialog" max-width="520" scroll-strategy="block" content-class="modern-dialog">
+      <v-card class="create-dialog-card modern-modal-card">
+        <v-card-title class="modern-modal-header">
+          <div class="d-flex align-center">
+            <div class="modern-icon-wrapper">
+              <v-icon color="#1a73e8" size="24">mdi-file-document-plus</v-icon>
+            </div>
+            <div class="ml-3">
+              <div class="modern-modal-title">새 문서 만들기</div>
+            </div>
           </div>
         </v-card-title>
-        <v-divider></v-divider>
-        <v-card-text class="pt-4 pb-2">
+        <v-card-text class="modern-modal-content">
           <v-text-field
             v-model="newDocumentTitle"
             label="문서 제목"
-            outlined
+            filled
+            rounded
             dense
             clearable
             counter="80"
             :maxlength="80"
             hide-details="auto"
             autofocus
-            :prepend-inner-icon="'mdi-file-document-outline'"
+            class="modern-text-field"
             hint="공백과 특수문자 사용을 최소화해주세요."
             persistent-hint
             @keyup.enter="createDocument"
           ></v-text-field>
         </v-card-text>
-        <v-card-actions class="px-4 pb-4">
+        <v-card-actions class="modern-modal-actions">
           <v-spacer></v-spacer>
-          <v-btn text @click="createDocumentDialog = false" class="mr-2" :disabled="isCreatingDocument">취소</v-btn>
-          <v-btn color="primary" depressed @click="createDocument" :disabled="isCreatingDocument" :loading="isCreatingDocument">
-            <v-icon small left>mdi-check</v-icon>만들기
+          <v-btn 
+            text 
+            @click="createDocumentDialog = false" 
+            class="modern-cancel-btn" 
+            :disabled="isCreatingDocument"
+          >
+            취소
+          </v-btn>
+          <v-btn 
+            color="primary" 
+            depressed 
+            @click="createDocument" 
+            :disabled="isCreatingDocument" 
+            :loading="isCreatingDocument"
+            class="modern-primary-btn"
+          >
+            만들기
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -662,18 +735,39 @@
     </v-dialog>
 
     <!-- Upload Dialog -->
-    <v-dialog v-model="uploadDialog" max-width="760" scroll-strategy="block">
-      <v-card>
-        <v-card-title class="d-flex justify-space-between align-center">
-          <span>파일 업로드</span>
+    <v-dialog v-model="uploadDialog" max-width="760" scroll-strategy="block" content-class="modern-dialog">
+      <v-card class="modern-modal-card upload-dialog-card">
+        <v-card-title class="modern-modal-header">
           <div class="d-flex align-center">
-            <v-btn small text class="mr-2" @click="clearSelectedFiles" :disabled="selectedFiles.length === 0 || isUploading">비우기</v-btn>
-            <v-btn small color="primary" depressed @click="uploadSelectedFiles" :disabled="selectedFiles.length === 0 || isUploading || uploadStatus.hasErrors" :loading="isUploading">
-              <v-icon small left>mdi-upload</v-icon> 업로드
+            <div class="modern-icon-wrapper">
+              <v-icon color="#1a73e8" size="24">mdi-cloud-upload</v-icon>
+            </div>
+            <div class="ml-3">
+              <div class="modern-modal-title">파일 업로드</div>
+            </div>
+          </div>
+          <div class="d-flex align-center">
+            <v-btn 
+              text 
+              class="modern-cancel-btn mr-2" 
+              @click="clearSelectedFiles" 
+              :disabled="selectedFiles.length === 0 || isUploading"
+            >
+              비우기
+            </v-btn>
+            <v-btn 
+              color="primary" 
+              depressed 
+              @click="uploadSelectedFiles" 
+              :disabled="selectedFiles.length === 0 || isUploading || uploadStatus.hasErrors" 
+              :loading="isUploading"
+              class="modern-primary-btn"
+            >
+              업로드
             </v-btn>
           </div>
         </v-card-title>
-        <v-card-text>
+        <v-card-text class="modern-modal-content">
           <!-- Upload Progress -->
           <div v-if="isUploading" class="upload-progress mb-4">
             <v-progress-linear
@@ -695,15 +789,23 @@
           </div>
 
           <div
-            class="upload-zone"
+            class="upload-zone modern-upload-zone"
             :class="{ 'upload-zone-disabled': isUploading }"
             @dragover.prevent
             @drop.prevent="handleFileDrop"
           >
-            <v-icon size="64" color="primary">mdi-cloud-upload</v-icon>
-            <div class="text-h6 mt-2">파일을 여기에 드래그하거나</div>
-            <v-btn color="primary" class="mt-3" @click="$refs.fileInput.click()" :disabled="isUploading">
-              파일 추가
+            <div class="upload-icon-wrapper">
+              <v-icon size="56" color="#1a73e8">mdi-cloud-upload</v-icon>
+            </div>
+            <div class="upload-text-primary">파일을 여기에 드래그하거나</div>
+            <v-btn 
+              color="primary" 
+              depressed
+              class="mt-3 modern-primary-btn" 
+              @click="$refs.fileInput.click()" 
+              :disabled="isUploading"
+            >
+              파일 선택
             </v-btn>
             <input
               ref="fileInput"
@@ -764,9 +866,16 @@
             <div class="mt-3 text-body-1 grey--text">업로드 중...</div>
           </div>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="modern-modal-actions">
           <v-spacer></v-spacer>
-          <v-btn text @click="uploadDialog = false" :disabled="isUploading">닫기</v-btn>
+          <v-btn 
+            text 
+            @click="uploadDialog = false" 
+            :disabled="isUploading"
+            class="modern-cancel-btn"
+          >
+            닫기
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -5911,6 +6020,13 @@ export default {
   pointer-events: none;
 }
 
+/* 모던 업로드 영역은 위의 modern-upload-zone 스타일 사용 */
+.modern-upload-zone.upload-zone-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 .upload-limits-info {
   padding: 8px 12px;
   background: #f5f5f5;
@@ -6090,48 +6206,208 @@ export default {
   border-radius: 4px !important;
 }
 
-/* 다이얼로그 스타일 */
+/* 모던 다이얼로그 스타일 - 구글 드라이브 스타일 */
+.modern-dialog {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.modern-modal-card {
+  border-radius: 16px !important;
+  box-shadow: 0 8px 10px 1px rgba(0, 0, 0, 0.14), 
+              0 3px 14px 2px rgba(0, 0, 0, 0.12), 
+              0 5px 5px -3px rgba(0, 0, 0, 0.2) !important;
+  overflow: hidden;
+}
+
+.modern-modal-header {
+  padding: 24px 24px 20px 24px !important;
+  background: #ffffff !important;
+  border-bottom: none !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modern-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e8f0fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modern-modal-title {
+  font-size: 20px;
+  font-weight: 500;
+  color: #202124;
+  letter-spacing: 0;
+  line-height: 1.4;
+  font-family: 'Google Sans', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', sans-serif;
+}
+
+.modern-modal-subtitle {
+  font-size: 13px;
+  color: #5f6368;
+  margin-top: 4px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.modern-modal-content {
+  padding: 0 24px 8px 24px !important;
+}
+
+.modern-text-field {
+  margin-top: 8px;
+}
+
+.modern-text-field :deep(.v-input__control) {
+  min-height: 48px;
+}
+
+.modern-text-field :deep(.v-input__slot) {
+  background-color: #f1f3f4 !important;
+  border-radius: 8px !important;
+  padding: 0 16px !important;
+  transition: background-color 0.2s ease;
+}
+
+.modern-text-field :deep(.v-input__slot):hover {
+  background-color: #e8eaed !important;
+}
+
+.modern-text-field :deep(.v-input__slot):focus-within {
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 2px #1a73e8 !important;
+}
+
+.modern-text-field :deep(.v-label) {
+  color: #5f6368 !important;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.modern-text-field :deep(.v-input__control input) {
+  color: #202124 !important;
+  font-size: 14px;
+}
+
+.modern-modal-actions {
+  padding: 16px 24px 24px 24px !important;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modern-cancel-btn {
+  text-transform: none !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.25px !important;
+  padding: 0 24px !important;
+  min-width: 88px !important;
+  height: 36px !important;
+  color: #5f6368 !important;
+  border-radius: 4px !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.modern-cancel-btn:hover {
+  background-color: rgba(95, 99, 104, 0.08) !important;
+}
+
+.modern-primary-btn {
+  text-transform: none !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.25px !important;
+  padding: 0 24px !important;
+  min-width: 88px !important;
+  height: 36px !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.modern-primary-btn:hover {
+  box-shadow: none !important;
+}
+
+.modern-error-btn {
+  text-transform: none !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.25px !important;
+  padding: 0 24px !important;
+  min-width: 88px !important;
+  height: 36px !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.modern-error-btn:hover {
+  box-shadow: none !important;
+}
+
+.delete-icon-wrapper {
+  background: #fce8e6 !important;
+}
+
+.modern-alert {
+  border-radius: 8px !important;
+  background-color: #fef7e0 !important;
+}
+
+/* 업로드 다이얼로그 특별 스타일 */
+.upload-dialog-card .modern-modal-header {
+  padding-bottom: 16px !important;
+}
+
+.modern-upload-zone {
+  border: 2px dashed #dadce0;
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  background: #f8f9fa;
+  transition: all 0.2s ease;
+  margin-top: 16px;
+  cursor: pointer;
+}
+
+.modern-upload-zone:hover {
+  border-color: #1a73e8;
+  background: #e8f0fe;
+}
+
+.modern-upload-zone:active {
+  border-color: #1557b0;
+  background: #d2e3fc;
+}
+
+.upload-icon-wrapper {
+  margin-bottom: 16px;
+}
+
+.upload-text-primary {
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c4043;
+  margin-bottom: 8px;
+  font-family: 'Google Sans', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Noto Sans KR', sans-serif;
+}
+
+/* 기존 다이얼로그 스타일 (하위 호환성) */
 .create-dialog-card,
 .rename-dialog-card {
-  border-radius: 8px !important;
+  border-radius: 16px !important;
 }
 
 .create-dialog-card .v-card-title,
 .rename-dialog-card .v-card-title {
-  background: linear-gradient(to right, #f8f9fa 0%, #ffffff 100%);
-  border-bottom: 1px solid #e8eaed;
-}
-
-.create-dialog-card .v-text-field :deep(.v-input__prepend-inner) {
-  margin-right: 12px;
-  margin-top: 8px;
-}
-
-.create-dialog-card .v-text-field :deep(.v-input__prepend-inner .v-icon) {
-  color: #5f6368;
-}
-
-.create-dialog-card .v-card-actions .v-btn {
-  text-transform: none;
-  font-weight: 500;
-  letter-spacing: 0.25px;
-  padding: 0 20px !important;
-}
-
-.create-dialog-card .v-card-actions .v-btn--text {
-  color: #5f6368;
-}
-
-.create-dialog-card .v-card-actions .v-btn--text:hover {
-  background-color: #f5f5f5;
-}
-
-.create-dialog-card .v-card-actions .v-btn--depressed {
-  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
-}
-
-.create-dialog-card .v-card-actions .v-btn--depressed:hover {
-  box-shadow: 0 2px 4px 0 rgba(60, 64, 67, 0.3), 0 2px 6px 2px rgba(60, 64, 67, 0.15);
+  background: #ffffff !important;
+  border-bottom: none !important;
 }
 
 /* 상세 정보 모달 스타일 */
