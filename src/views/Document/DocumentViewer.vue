@@ -779,6 +779,18 @@ onBeforeRouteLeave((to, from, next) => {
   margin: 0 0 10pt 0;
 }
 
+/* Bold 스타일 명시적으로 적용 */
+.editor-content :deep(.ProseMirror strong),
+.editor-content :deep(.ProseMirror b) {
+  font-weight: 700 !important;
+}
+
+/* Italic 스타일 명시적으로 적용 */
+.editor-content :deep(.ProseMirror em),
+.editor-content :deep(.ProseMirror i) {
+  font-style: italic !important;
+}
+
 .editor-content :deep(.ProseMirror h1) {
   font-size: 26pt;
   margin: 20pt 0 6pt 0;
