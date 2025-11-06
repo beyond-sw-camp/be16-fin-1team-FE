@@ -254,7 +254,26 @@ const viewMode = ref('month'); // 'month' | 'week' | 'day'
 
 /* ===== Data ===== */
 const stones = ref([]);
-const colorPalette = ["#9B6BFF", "#4C9AFF", "#FF5A8A", "#FFD93D", "#6ECB63", "#FF9F68"];
+const colorPalette = [
+  "#9B6BFF", // 보라색
+  "#4C9AFF", // 파란색
+  "#FF5A8A", // 핑크색
+  "#FFD93D", // 노란색
+  "#6ECB63", // 초록색
+  "#FF9F68", // 주황색
+  "#A78BFA", // 연보라색
+  "#60A5FA", // 연파란색
+  "#F472B6", // 연핑크색
+  "#FBBF24", // 연노란색
+  "#34D399", // 민트색
+  "#FB923C", // 연주황색
+  "#C084FC", // 라벤더색
+  "#3B82F6", // 진파란색
+  "#EC4899", // 진핑크색
+  "#F59E0B", // 골드색
+  "#10B981", // 에메랄드색
+  "#F97316", // 오렌지색
+];
 const colorMap = new Map(); // stoneId -> color (동일 stoneId는 동일 색상)
 
 /* ===== Utils ===== */

@@ -148,7 +148,7 @@ import axios from "axios";
 import SearchUserModal from "@/components/modal/SearchUserModal.vue"; 
 import ScheduleDetailModal from "@/components/modal/ScheduleDetailModal.vue";
 import ManageSubscriptionModal from "@/components/modal/ManageSubscriptionModal.vue";
-import "@/assets/fullcalendar-custom.css";
+// ✅ fullcalendar-custom.css는 main.js에서 전역으로 import됨
 
 const isManageModalOpen = ref(false);
 
