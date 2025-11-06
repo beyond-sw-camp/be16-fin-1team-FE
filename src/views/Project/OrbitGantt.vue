@@ -3,7 +3,6 @@
     <!-- ✅ 상단 툴바 -->
     <div class="gantt-toolbar">
       <div class="left">
-        <strong>간트차트</strong>
         <span class="view-mode">
           <button 
             class="view-btn" 
@@ -306,26 +305,38 @@ function assignColors(arr, depth = 0) {
   });
 }
 
-/* ===== Attach tasks & assign colors ===== */
-function attachTasks(arr, map) {
+/* ===== 모든 스톤 수집 (재귀적으로 평탄화) ===== */
+function collectAllStones(arr) {
+  const out = [];
   arr.forEach((s) => {
+    out.push(s);
+    if (Array.isArray(s.childStone) && s.childStone.length) {
+      out.push(...collectAllStones(s.childStone));
+    }
+  });
+  return out;
+}
+
+/* ===== Attach tasks & assign colors ===== */
+function attachTasks(allStones, map) {
+  allStones.forEach((s) => {
     s.taskList = map.get(s.stoneId) || [];
     if (s.taskList) {
       s.taskList.forEach(t => {
         t.__stoneId = s.stoneId;
       });
     }
-    if (Array.isArray(s.childStone) && s.childStone.length) {
-      attachTasks(s.childStone, map);
-    }
   });
 }
 
-/* ===== Flatten ===== */
-function flatten(arr, parentId = null) {
+/* ===== Flatten: 모든 스톤을 독립적으로 처리하고 startTime 기준 정렬 ===== */
+function flatten(allStones) {
   const out = [];
-  arr.forEach((s) => {
+  
+  allStones.forEach((s) => {
     const color = colorMap.get(String(s.stoneId)) || "#9B6BFF";
+    
+    // 스톤 추가 (hasChildren은 taskList만 확인)
     out.push({
       id: s.stoneId,
       name: s.stoneName,
@@ -333,12 +344,14 @@ function flatten(arr, parentId = null) {
       end: parse(s.endTime),
       progress: s.milestone || 0,
       color,
-      parentId,
+      parentId: s.parentStoneId || null, // 원래 parentStoneId 저장 (참고용만)
       isTask: false,
-      hasChildren: (s.taskList?.length || 0) + (s.childStone?.length || 0) > 0,
+      hasChildren: (s.taskList?.length || 0) > 0, // taskList만 확인
       stoneId: s.stoneId,
+      parentStoneId: s.parentStoneId, // 원본 정보 저장
     });
 
+    // 태스크 추가 (스톤이 닫혀있지 않을 때만)
     if (Array.isArray(s.taskList) && !collapsedSet.value.has(s.stoneId)) {
       s.taskList.forEach((t) => {
         out.push({
@@ -354,14 +367,21 @@ function flatten(arr, parentId = null) {
         });
       });
     }
-
-    if (Array.isArray(s.childStone) && !collapsedSet.value.has(s.stoneId)) {
-      out.push(...flatten(s.childStone, s.stoneId));
-    }
   });
+  
+  // startTime 기준으로 정렬
+  out.sort((a, b) => a.start - b.start);
+  
   return out;
 }
-const flat = computed(() => flatten(stones.value));
+
+const flat = computed(() => {
+  if (!stones.value || stones.value.length === 0) return [];
+  // 모든 스톤을 평탄화하여 수집
+  const allStones = collectAllStones(stones.value);
+  return flatten(allStones);
+});
+
 const visibleItems = computed(() => flat.value);
 
 /* ===== Time scale ===== */
@@ -598,6 +618,7 @@ async function loadData(projectId) {
   ready.value = false;
   stones.value = [];
   colorMap.clear();
+  collapsedSet.value.clear(); // 초기화
 
   const root = await fetchStones(projectId);
   const ids = collectIds(root);
@@ -606,7 +627,18 @@ async function loadData(projectId) {
   results.forEach((r, i) => map.set(ids[i], r.status === "fulfilled" ? r.value : []));
 
   assignColors(root);
-  attachTasks(root, map);
+  
+  // 모든 스톤을 수집하여 태스크 첨부
+  const allStones = collectAllStones(root);
+  attachTasks(allStones, map);
+  
+  // parentStoneId가 null이 아닌 스톤들을 초기에 collapsed 상태로 설정
+  allStones.forEach((s) => {
+    if (s.parentStoneId !== null && s.taskList && s.taskList.length > 0) {
+      collapsedSet.value.add(s.stoneId);
+    }
+  });
+  
   stones.value = root;
 
   ready.value = true;
