@@ -487,10 +487,8 @@
               </v-icon>
             </div>
             <div class="ml-3">
-              <div class="modern-modal-title">이름 변경</div>
-              <div class="modern-modal-subtitle text-truncate" style="max-width: 360px;">
-                {{ renameItem?.name || '' }}
-              </div>
+              <div class="modern-modal-title text-truncate" style="max-width: 360px;">{{ renameItem?.name || '' }}</div>
+              <div class="modern-modal-subtitle">이름 변경</div>
             </div>
           </div>
         </v-card-title>
@@ -558,10 +556,8 @@
               </v-icon>
             </div>
             <div class="ml-3">
-              <div class="modern-modal-title">삭제 확인</div>
-              <div class="modern-modal-subtitle text-truncate" style="max-width: 360px;">
-                {{ deleteItem?.name || '' }}
-              </div>
+              <div class="modern-modal-title text-truncate" style="max-width: 360px;">{{ deleteItem?.name || '' }}</div>
+              <div class="modern-modal-subtitle">삭제 확인</div>
             </div>
           </div>
         </v-card-title>
@@ -651,88 +647,101 @@
       </v-card>
     </v-dialog>
 
-    <!-- Item Info Dialog -->
-    <v-dialog v-model="infoDialog" max-width="600" scroll-strategy="block">
-      <v-card class="info-dialog-card">
-        <v-card-title class="d-flex align-center pa-4">
-          <img 
-            v-if="isItemImage(infoItem || {})" 
-            :src="getItemIconImage(infoItem || {})" 
-            class="item-icon-image mr-3"
-            style="width: 28px; height: 28px;"
-            alt=""
-          />
-          <v-icon 
-            v-else 
-            class="mr-3" 
-            :color="getItemIconColor(infoItem || {})" 
-            size="28"
-          >
-            {{ getItemIcon(infoItem || {}) }}
-          </v-icon>
-          <div class="flex-grow-1">
-            <div class="text-h6 font-weight-600">상세 정보</div>
-            <div class="text-caption grey--text text--darken-1 mt-1 text-truncate" style="max-width: 400px;">
-              {{ infoItem?.name || '' }}
+    <!-- Item Info Side Panel -->
+    <v-navigation-drawer
+      v-model="infoDialog"
+      location="right"
+      temporary
+      width="400"
+      class="info-side-panel"
+    >
+      <div class="info-panel-content">
+        <div class="info-panel-header">
+          <div class="d-flex align-center flex-grow-1">
+            <div class="modern-icon-wrapper">
+              <img 
+                v-if="isItemImage(infoItem || {})" 
+                :src="getItemIconImage(infoItem || {})" 
+                class="item-icon-image"
+                style="width: 24px; height: 24px;"
+                alt=""
+              />
+              <v-icon 
+                v-else 
+                :color="getItemIconColor(infoItem || {})" 
+                size="24"
+              >
+                {{ getItemIcon(infoItem || {}) }}
+              </v-icon>
+            </div>
+            <div class="ml-3 flex-grow-1">
+              <div class="modern-modal-title text-truncate">{{ infoItem?.name || '' }}</div>
+              <div class="modern-modal-subtitle">상세 정보</div>
             </div>
           </div>
-          <v-btn icon @click="infoDialog = false" size="small">
-            <v-icon>mdi-close</v-icon>
+          <v-btn 
+            icon 
+            @click="infoDialog = false" 
+            size="small"
+            class="modern-close-btn"
+          >
+            <v-icon size="20">mdi-close</v-icon>
           </v-btn>
-        </v-card-title>
-        <v-divider></v-divider>
-        <v-card-text class="pa-0" v-if="isLoadingInfo">
-          <div class="d-flex justify-center align-center py-8">
-            <v-progress-circular indeterminate color="primary"></v-progress-circular>
+        </div>
+        
+        <div class="info-panel-body">
+          <div v-if="isLoadingInfo" class="info-loading">
+            <v-progress-circular indeterminate color="primary" size="48"></v-progress-circular>
           </div>
-        </v-card-text>
-        <v-card-text class="pa-4" v-else-if="itemInfo">
-          <v-list dense>
-            <v-list-item v-if="itemInfo.name" :title="'이름'" :subtitle="itemInfo.name" />
+          <div v-else-if="itemInfo" class="info-list-container">
+            <div v-if="itemInfo.name" class="info-list-item">
+              <div class="info-label">이름</div>
+              <div class="info-value">{{ itemInfo.name }}</div>
+            </div>
             
-            <v-list-item 
+            <div 
               v-if="itemInfo.folderName || itemInfo.parentFolderName"
-              :title="infoItem?.type === 'folder' ? '상위 폴더' : '폴더'"
-              :subtitle="itemInfo.folderName || itemInfo.parentFolderName || '루트'"
-            />
+              class="info-list-item"
+            >
+              <div class="info-label">{{ infoItem?.type === 'folder' ? '상위 폴더' : '폴더' }}</div>
+              <div class="info-value">{{ itemInfo.folderName || itemInfo.parentFolderName || '루트' }}</div>
+            </div>
             
-            <v-list-item 
+            <div 
               v-if="itemInfo.fileSize"
-              title="크기"
-              :subtitle="formatFileSize(itemInfo.fileSize)"
-            />
+              class="info-list-item"
+            >
+              <div class="info-label">크기</div>
+              <div class="info-value">{{ formatFileSize(itemInfo.fileSize) }}</div>
+            </div>
             
-            <v-list-item 
+            <div 
               v-if="itemInfo.creatorName"
-              title="생성자"
-              :subtitle="itemInfo.creatorName"
-            />
+              class="info-list-item"
+            >
+              <div class="info-label">생성자</div>
+              <div class="info-value">{{ itemInfo.creatorName }}</div>
+            </div>
             
-            <v-list-item 
+            <div 
               v-if="itemInfo.createdAt"
-              title="생성일"
-              :subtitle="formatDateTime(itemInfo.createdAt)"
-            />
+              class="info-list-item"
+            >
+              <div class="info-label">생성일</div>
+              <div class="info-value">{{ formatDateTime(itemInfo.createdAt) }}</div>
+            </div>
             
-            <v-list-item 
+            <div 
               v-if="itemInfo.updatedAt"
-              title="수정일"
-              :subtitle="formatDateTime(itemInfo.updatedAt)"
-            />
-          </v-list>
-        </v-card-text>
-        <v-divider></v-divider>
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <v-btn text color="error" @click="openDeleteDialog(infoItem)" :disabled="!infoItem || !canDelete(infoItem)">
-            <v-icon small left>mdi-delete</v-icon>삭제
-          </v-btn>
-          <v-btn color="primary" depressed @click="infoDialog = false">
-            닫기
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+              class="info-list-item"
+            >
+              <div class="info-label">수정일</div>
+              <div class="info-value">{{ formatDateTime(itemInfo.updatedAt) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </v-navigation-drawer>
 
     <!-- Upload Dialog -->
     <v-dialog v-model="uploadDialog" max-width="760" scroll-strategy="block" content-class="modern-dialog">
@@ -6360,6 +6369,114 @@ export default {
   background-color: #fef7e0 !important;
 }
 
+/* 상세 정보 사이드 패널 스타일 */
+.info-side-panel {
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.info-side-panel :deep(.v-navigation-drawer__content) {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.info-panel-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+}
+
+.info-panel-header {
+  padding: 24px;
+  border-bottom: 1px solid #f1f3f4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.info-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.info-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px 0;
+}
+
+.modern-close-btn {
+  color: #5f6368 !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.modern-close-btn:hover {
+  background-color: rgba(95, 99, 104, 0.08) !important;
+}
+
+.modern-info-content {
+  padding: 24px !important;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.info-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.info-list-item {
+  padding: 16px 0;
+  border-bottom: 1px solid #f1f3f4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-list-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #5f6368;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #202124;
+  font-weight: 400;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.modern-error-btn-text {
+  text-transform: none !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.25px !important;
+  padding: 0 16px !important;
+  min-width: auto !important;
+  height: 36px !important;
+  color: #ea4335 !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.modern-error-btn-text:hover {
+  background-color: rgba(234, 67, 53, 0.08) !important;
+}
+
+.modern-error-btn-text:disabled {
+  opacity: 0.38 !important;
+}
+
 /* 업로드 다이얼로그 특별 스타일 */
 .upload-dialog-card .modern-modal-header {
   padding-bottom: 16px !important;
@@ -6410,43 +6527,13 @@ export default {
   border-bottom: none !important;
 }
 
-/* 상세 정보 모달 스타일 */
+/* 상세 정보 모달 스타일 (하위 호환성) */
 .info-dialog-card {
-  border-radius: 8px !important;
+  border-radius: 16px !important;
 }
 
 .info-dialog-card .v-card-title {
-  background: linear-gradient(to right, #f8f9fa 0%, #ffffff 100%);
-  border-bottom: 1px solid #e8eaed;
-}
-
-.info-dialog-card .info-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #5f6368;
-  margin-bottom: 4px;
-}
-
-.info-dialog-card .info-value {
-  font-size: 14px;
-  color: #202124;
-  font-weight: 400;
-  line-height: 1.5;
-}
-
-.info-dialog-card .v-list-item {
-  padding: 12px 0;
-  min-height: auto;
-}
-
-.info-dialog-card .v-list-item:not(:last-child) {
-  border-bottom: 1px solid #f1f3f4;
-}
-
-.info-dialog-card .v-card-actions .v-btn {
-  text-transform: none;
-  font-weight: 500;
-  letter-spacing: 0.25px;
-  padding: 0 20px !important;
+  background: #ffffff !important;
+  border-bottom: none !important;
 }
 </style>
