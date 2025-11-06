@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import axios from "axios";
 // @ts-ignore
 import CalendarBase from "@/components/CalendarBase.vue";
@@ -10,6 +10,8 @@ import { useRoute } from "vue-router";
 import { getStoneDetail } from "@/services/stoneService.js";
 // @ts-ignore
 import { showSnackbar } from '@/services/snackbar.js';
+import EyeOutlineIcon from "@/assets/icons/calendar/eye-outline.svg";
+import EyeOffIcon from "@/assets/icons/calendar/eye-off.svg";
 
 const route = useRoute();
 const workspaceId = ref(
@@ -48,6 +50,12 @@ const events = ref<any[]>([]);
 const currentView = ref("dayGridMonth");
 const showSidebar = ref(false);
 const currentDate = ref(new Date());
+
+// ✅ 각 이벤트별 숨김 상태 관리 (eventId -> visible)
+const eventVisibilityMap = ref<Map<string, boolean>>(new Map());
+
+// ✅ 사이드바 검색 키워드
+const sidebarSearchKeyword = ref("");
 
 // ✅ OrbitGantt와 동일한 색상 팔레트 및 할당 로직 (확장된 색상 팔레트)
 const colorPalette = [
@@ -679,6 +687,13 @@ const fetchEvents = async () => {
     });
 
     events.value = [...stoneEvents, ...taskEvents];
+    
+    // ✅ 새로 로드된 이벤트들의 기본 visible 상태 설정 (기존 설정 유지)
+    events.value.forEach(event => {
+      if (!eventVisibilityMap.value.has(event.id)) {
+        eventVisibilityMap.value.set(event.id, true); // 기본값: 표시
+      }
+    });
   } catch (e) {
     // 에러 처리 (로그 없음)
   }
@@ -699,14 +714,43 @@ function toggleSidebar() {
   showSidebar.value = !showSidebar.value;
 }
 
-// ✅ 사이드바
-const sidebarItems = ref([
-  { name: "스톤 일정", color: "#A3B8FF", visible: true },
-  { name: "태스크 일정", color: "#FFD93D", visible: true },
-]);
-function toggleVisibility(item) {
-  item.visible = !item.visible;
+// ✅ 사이드바에 표시할 이벤트 목록 (검색 필터링 포함)
+const sidebarEventList = computed(() => {
+  let list = events.value.map(event => ({
+    id: event.id,
+    title: event.title,
+    type: event.type,
+    color: event.backgroundColor || event.color,
+    visible: eventVisibilityMap.value.get(event.id) ?? true,
+  }));
+  
+  // 검색 필터링
+  if (sidebarSearchKeyword.value.trim()) {
+    const keyword = sidebarSearchKeyword.value.trim().toLowerCase();
+    list = list.filter(item => 
+      item.title.toLowerCase().includes(keyword)
+    );
+  }
+  
+  // 타입별로 정렬 (스톤 먼저, 그 다음 태스크)
+  return list.sort((a, b) => {
+    if (a.type === b.type) return a.title.localeCompare(b.title);
+    return a.type === "STONE" ? -1 : 1;
+  });
+});
+
+// ✅ 개별 이벤트 표시/숨김 토글
+function toggleEventVisibility(eventId: string) {
+  const currentVisible = eventVisibilityMap.value.get(eventId) ?? true;
+  eventVisibilityMap.value.set(eventId, !currentVisible);
 }
+
+// ✅ 필터링된 이벤트 (개별 숨김 설정 반영)
+const filteredEvents = computed(() => {
+  return events.value.filter(event => {
+    return eventVisibilityMap.value.get(event.id) ?? true;
+  });
+});
 
 </script>
 
@@ -721,7 +765,9 @@ function toggleVisibility(item) {
       </div>
 
       <div class="right">
-        <button class="icon-btn" @click="toggleSidebar">👁️</button>
+        <button class="icon-btn" @click="toggleSidebar">
+          <img :src="EyeOutlineIcon" alt="일정 표시/숨기기" class="icon-img" />
+        </button>
         <div class="view-toggle">
           <button
             v-for="type in viewOptions"
@@ -738,7 +784,7 @@ function toggleVisibility(item) {
     <!-- 📅 캘린더 -->
     <div class="calendar-container">
       <CalendarBase
-        :events="events"
+        :events="filteredEvents"
         :initial-date="currentDate"
         :view-type="currentView"
         @event-click="openStoneModal"
@@ -881,15 +927,48 @@ function toggleVisibility(item) {
     <transition name="slide">
       <aside v-if="showSidebar" class="sidebar">
         <div class="sidebar-header">
+          <h3 class="sidebar-title">일정 표시 설정</h3>
           <button class="close-btn" @click="toggleSidebar">←</button>
         </div>
+        
+        <!-- 검색 입력 -->
+        <div class="sidebar-search">
+          <input
+            v-model="sidebarSearchKeyword"
+            type="text"
+            placeholder="일정 검색..."
+            class="search-input"
+          />
+        </div>
+        
+        <!-- 이벤트 목록 -->
         <div class="sidebar-body">
-          <div v-for="item in sidebarItems" :key="item.name" class="sidebar-item">
-            <button class="eye-btn" :class="{ off: !item.visible }" @click="toggleVisibility(item)">
-              {{ item.visible ? "👁️" : "🚫" }}
+          <div v-if="sidebarEventList.length === 0" class="empty-message">
+            {{ sidebarSearchKeyword.trim() ? '검색 결과가 없습니다.' : '일정이 없습니다.' }}
+          </div>
+          <div
+            v-for="item in sidebarEventList"
+            :key="item.id"
+            class="sidebar-item"
+            :class="{ 'is-hidden': !item.visible }"
+          >
+            <button 
+              class="eye-btn" 
+              :class="{ off: !item.visible }" 
+              @click="toggleEventVisibility(item.id)"
+              :title="item.visible ? '숨기기' : '보이기'"
+            >
+              <img 
+                :src="item.visible ? EyeOutlineIcon : EyeOffIcon" 
+                :alt="item.visible ? '보기' : '숨기기'"
+                class="eye-icon"
+              />
             </button>
-            <span class="dot" :style="{ background: item.color }"></span>
-            <span>{{ item.name }}</span>
+            <span 
+              class="dot" 
+              :style="{ background: item.color }"
+            ></span>
+            <span class="event-title">{{ item.title }}</span>
           </div>
         </div>
       </aside>
@@ -979,7 +1058,13 @@ function toggleVisibility(item) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  padding: 0;
+}
+
+.icon-img {
+  width: 20px;
+  height: 20px;
+  transition: opacity 0.2s ease;
 }
 
 .icon-btn:hover {
@@ -987,6 +1072,10 @@ function toggleVisibility(item) {
   border-color: var(--brand);
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(255, 204, 51, 0.15);
+}
+
+.icon-btn:hover .icon-img {
+  opacity: 0.8;
 }
 
 /* 월/주/일 변경 버튼 */
@@ -1123,7 +1212,7 @@ function toggleVisibility(item) {
   position: absolute;
   top: 90px;
   right: 0;
-  width: 300px;
+  width: 320px;
   height: calc(100% - 110px);
   background: var(--surface);
   box-shadow: var(--shadow-hover);
@@ -1132,14 +1221,25 @@ function toggleVisibility(item) {
   border: 1px solid var(--border);
   border-right: none;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .sidebar-header {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: var(--gap-m);
   padding-bottom: var(--gap-s);
   border-bottom: 1px solid var(--divider);
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-strong);
+  margin: 0;
 }
 
 .close-btn {
@@ -1164,10 +1264,54 @@ function toggleVisibility(item) {
   transform: translateY(-1px);
 }
 
+/* 검색 입력 */
+.sidebar-search {
+  margin-bottom: var(--gap-m);
+  padding-bottom: var(--gap-s);
+  border-bottom: 1px solid var(--divider);
+}
+
+.sidebar-search .search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-search .search-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(255, 204, 51, 0.1);
+}
+
+.sidebar-search .search-input::placeholder {
+  color: var(--text-weak);
+}
+
 .sidebar-body {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-s);
+  gap: var(--gap-xxs);
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.sidebar-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-body::-webkit-scrollbar-thumb {
+  background: var(--brand);
+  border-radius: 4px;
+}
+
+.sidebar-body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .sidebar-item {
@@ -1176,33 +1320,68 @@ function toggleVisibility(item) {
   gap: var(--gap-xs);
   font-size: 14px;
   color: var(--text);
-  padding: var(--gap-xs);
+  padding: 8px var(--gap-xs);
   border-radius: 8px;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .sidebar-item:hover {
   background: var(--surface-2);
 }
 
+.sidebar-item.is-hidden {
+  opacity: 0.5;
+}
+
+.event-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.empty-message {
+  padding: var(--gap-xl) var(--gap-m);
+  text-align: center;
+  color: var(--text-weak);
+  font-size: 14px;
+}
+
 .eye-btn {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 18px;
-  transition: transform 0.2s ease;
+  transition: all 0.2s ease;
   padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.eye-icon {
+  width: 20px;
+  height: 20px;
+  transition: opacity 0.2s ease;
 }
 
 .eye-btn:hover {
   transform: scale(1.1);
 }
 
+.eye-btn:hover .eye-icon {
+  opacity: 0.8;
+}
+
 .eye-btn.off {
-  opacity: 0.3;
+  opacity: 0.4;
+}
+
+.eye-btn.off:hover {
+  opacity: 0.6;
 }
 
 .dot {
