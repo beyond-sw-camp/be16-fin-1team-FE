@@ -651,9 +651,6 @@
         <v-divider></v-divider>
         <v-card-actions class="pa-4">
           <v-spacer></v-spacer>
-          <v-btn text @click="openRenameDialog(infoItem)" :disabled="!infoItem">
-            <v-icon small left>mdi-pencil</v-icon>이름 변경
-          </v-btn>
           <v-btn text color="error" @click="openDeleteDialog(infoItem)" :disabled="!infoItem || !canDelete(infoItem)">
             <v-icon small left>mdi-delete</v-icon>삭제
           </v-btn>
