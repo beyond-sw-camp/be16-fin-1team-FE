@@ -3,7 +3,7 @@
     <!-- 헤더 영역 -->
     <div class="todo-header">
         <div class="left-group">
-        <span class="todo-title">개인 To-Do</span>
+        <span class="todo-title">To-Do</span>
         <button class="calendar-btn" @click="toggleCalendar">📅</button>
 
             <!-- 날짜 선택 팝업 (📅 버튼 바로 밑으로 이동) -->
@@ -327,10 +327,10 @@ const deleteTodo = async () => {
 
 <style scoped>
 .todo-card {
-  background: #fff;
+  background: #FFFFFF;
   border-radius: 16px;
   padding: 18px 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   height: 100%;
   width: 100%;
   display: flex;
@@ -342,44 +342,61 @@ const deleteTodo = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0px 2px 5px;
+  border-bottom: 1px solid rgb(233, 233, 233);
+  flex-shrink: 0;
 }
 
 .left-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   position: relative;
+}
+
+.todo-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1C0F0F;
+  margin: 0;
 }
 
 .calendar-btn {
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
   border-radius: 50%;
   padding: 6px;
   transition: all 0.25s ease;
+  color: #1C0F0F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* hover 시 노란색 강조 효과 */
 .calendar-btn:hover {
-  background: #f4ce53;
+  background: #FFF8D8;
   transform: scale(1.1);
-  box-shadow: 0 2px 6px rgba(244, 206, 83, 0.4);
-}
-
-.calendar-btn:hover {
-  transform: scale(1.1);
-  color: #f5c518;
+  box-shadow: 0 2px 6px #FFE364;
 }
 
 .add-btn {
-  background: #000;
-  color: #fff;
+  background: #2A2828;
+  color: #FFFFFF;
   border: none;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+.add-btn:hover {
+  background: #1C0F0F;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(42, 40, 40, 0.3);
 }
 
 /* 달력 팝업 */
@@ -388,52 +405,93 @@ const deleteTodo = async () => {
   top: 50%; /* 버튼 세로 중앙 기준 */
   left: calc(100% + 8px); /* 버튼 오른쪽에 약간 띄워서 */
   transform: translateY(-50%); /* 세로 중앙 정렬 */
-  background: #fff;
-  border: 1px solid #ddd;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E5;
   border-radius: 8px;
   padding: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.calendar-input {
+  border: 1px solid #E5E5E5;
+  border-radius: 6px;
+  padding: 6px;
+  font-size: 13px;
+}
+
+.selected-date {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+  font-weight: 500;
 }
 
 /* To-Do 리스트 */
 .todo-list {
-  margin-top: 10px;
+  margin-top: 8px;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 10px;
   overflow-y: auto;
   scrollbar-gutter: stable;
+  padding-right: 4px;
+}
+.todo-list::-webkit-scrollbar {
+  width: 6px;
+}
+.todo-list::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+.todo-list::-webkit-scrollbar-thumb {
+  background: #D0D0D0;
+  border-radius: 3px;
+}
+.todo-list::-webkit-scrollbar-thumb:hover {
+  background: #B0B0B0;
 }
 .todo-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  border-radius: 10px;
-  padding: 10px 14px;
-  transition: 0.25s;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  transition: all 0.25s ease;
   cursor: pointer;
 }
 .todo-item.active {
-  background: #f4ce53;
-  color: #000;
+  background: #FFF8D8;
+  color: #1C0F0F;
 }
 .todo-item.done {
-  background: #f5f5f5;
-  color: #777;
+  background: #F5F5F5;
+  color: #888;
   text-decoration: line-through;
+}
+.todo-item.active:hover {
+  background: #FFE364;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(244, 206, 83, 0.25);
 }
 
 .todo-checkbox {
   width: 18px;
   height: 18px;
-  accent-color: #000;
+  accent-color: #FFE364;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .todo-text {
   flex: 1;
   font-size: 15px;
+  font-weight: 500;
+  color: #1C0F0F;
+}
+.todo-item.done .todo-text {
+  color: #888;
 }
 
 /* 모달 공통 */
@@ -474,7 +532,7 @@ const deleteTodo = async () => {
 
 .warning-icon {
   font-size: 40px;
-  color: #f4ce53;
+  color: #FFE364;
   margin-bottom: 10px;
 }
 .confirm-title {
@@ -569,8 +627,8 @@ const deleteTodo = async () => {
   transition: 0.2s;
 }
 .input-box:focus {
-  border-color: #f5c518;
-  box-shadow: 0 0 0 2px rgba(245, 197, 24, 0.25);
+  border-color: #FFE364;
+  box-shadow: 0 0 0 2px rgba(255, 227, 100, 0.25);
 }
 
 /* 체크박스 */
@@ -626,12 +684,16 @@ const deleteTodo = async () => {
 }
 
 .modal-footer .confirm {
-  background: #f5c518;
-  color: #000;
+  background: #FFE364;
+  color: #1C0F0F;
   border: none;
   border-radius: 6px;
   padding: 8px 16px;
   font-weight: 600;
+  transition: all 0.2s ease;
+}
+.modal-footer .confirm:hover {
+  background: #F4CE53;
 }
 
 .bookmark-item {
@@ -677,9 +739,9 @@ const deleteTodo = async () => {
 .edit-modal .modal-title {
   font-size: 20px;
   font-weight: 700;
-  color: #222;
+  color: #1C0F0F;
   text-align: center;
-  border-bottom: 2px solid #f4ce53;
+  border-bottom: 2px solid #FFE364;
   padding-bottom: 10px;
 }
 
@@ -708,8 +770,8 @@ const deleteTodo = async () => {
 }
 
 .edit-modal input:focus {
-  border-color: #f4ce53;
-  box-shadow: 0 0 0 2px rgba(244, 206, 83, 0.3);
+  border-color: #FFE364;
+  box-shadow: 0 0 0 2px rgba(255, 227, 100, 0.3);
   outline: none;
 }
 
@@ -756,12 +818,12 @@ const deleteTodo = async () => {
 }
 
 .edit-modal .confirm {
-  background: #f4ce53;
-  color: #000;
+  background: #FFE364;
+  color: #1C0F0F;
   border: none;
 }
 .edit-modal .confirm:hover {
-  background: #ffdb5c;
+  background: #F4CE53;
 }
 
 /* 체크박스 영역 */
@@ -831,8 +893,8 @@ const deleteTodo = async () => {
 }
 
 .modal-footer .confirm {
-  background: #f5c518 !important;
-  color: #000 !important;
+  background: #FFE364 !important;
+  color: #1C0F0F !important;
 }
 
 .confirm-actions .cancel {

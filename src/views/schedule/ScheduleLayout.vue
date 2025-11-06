@@ -63,6 +63,7 @@ const underlineStyle = computed(() => {
 <style scoped>
 .schedule-layout {
   width: 100%;
+  background: #F5F5F5;
 }
 
 /* 탭 헤더 컨테이너 */
@@ -71,10 +72,10 @@ const underlineStyle = computed(() => {
   display: flex;
   align-items: center;
   gap: 36px;
-  border-bottom: 2px solid #eaeaea;
-  background: #fafafa;
+  border-bottom: 2px solid #E5E5E5;
+  background: #FFFFFF;
   padding: 16px 40px 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04); /* ✅ 얇은 그림자 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   z-index: 10;
 }
 
@@ -94,7 +95,7 @@ const underlineStyle = computed(() => {
 
 /* 활성 탭 */
 .tab.active {
-  color: #000;
+  color: #1C0F0F;
   font-weight: 700;
 }
 
@@ -105,7 +106,7 @@ const underlineStyle = computed(() => {
   left: 40px;
   width: 100px; /* 탭 밑줄 길이 */
   height: 2px;
-  background-color: #f5c518;
+  background-color: #FFE364;
   border-radius: 4px;
   transition: transform 0.3s ease;
 }

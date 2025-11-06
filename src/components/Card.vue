@@ -57,22 +57,23 @@ export default {
 
 <style scoped>
 .card-wrapper {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
   min-height: 0;
 }
 
 .card-wrapper:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .card-elevated {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .card-h-full {

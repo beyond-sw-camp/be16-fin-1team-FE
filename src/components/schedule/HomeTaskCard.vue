@@ -157,17 +157,22 @@ async function confirmDelete() {
   flex-direction: column;
   background: #fff;
   border-radius: 16px;
-  padding: 12px 24px;
+  padding: 0;
   box-sizing: border-box;
 }
 
 /* ✅ 타이틀 고정 */
 .title {
-  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 18px;
-  margin-top: 8px;
-  margin-bottom: 16px;
-  color: #333;
+  font-weight: 700;
+  color: #1C0F0F;
+  margin: 0 10px;
+  padding: 20px 10px 15px;
+  border-bottom: 1px solid rgb(233, 233, 233);
+  flex-shrink: 0;
 }
 
 /* ✅ 내용 컨테이너 */
@@ -176,6 +181,8 @@ async function confirmDelete() {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  margin-top: 0;
+  padding: 0 16px 12px 16px;
 }
 
 /* ✅ 태스크가 없을 때도 카드 크기 유지 */
@@ -225,7 +232,7 @@ async function confirmDelete() {
 
 /* ✅ 진행중 / 완료 색상 구분 */
 .task-item:not(.done) {
-  background-color: #f4ce53;
+  background-color: #FFF8D8;
 }
 .task-item.done {
   background-color: #f5f5f5;
@@ -235,7 +242,7 @@ async function confirmDelete() {
 
 /* ✅ hover 효과 */
 .task-item:not(.done):hover {
-  background-color: #f6d969;
+  background-color: #FFE364;
   transform: translateY(-2px);
 }
 .task-item.done:hover {
