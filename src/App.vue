@@ -138,6 +138,7 @@ export default {
               // Update chat unread badge when NEW_CHAT_MESSAGE
               if (String(payload.type).toUpperCase() === 'NEW_CHAT_MESSAGE') {
                 setChatUnreadCount(title);
+                return; // NEW_CHAT_MESSAGE는 스낵바 표시하지 않음
               } else {
                 // Broadcast for header notification list (fallback createdAt: now)
                 // NEW_CHAT_MESSAGE는 종 모양 알림에 표시하지 않음
