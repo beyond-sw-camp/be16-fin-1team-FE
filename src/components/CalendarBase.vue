@@ -27,7 +27,7 @@ onMounted(() => {
     initialView: props.viewType || "dayGridMonth",
     ...(props.initialDate ? { initialDate: props.initialDate } : {}),
     events: props.events ?? [],
-    displayEventTime: false,
+    displayEventTime: props.viewType === 'timeGridWeek' || props.viewType === 'timeGridDay', // ✅ 주/일 뷰에서만 시간 표시
     // ✅ 1일짜리 이벤트도 항상 표시되도록 설정
     dayMaxEvents: false, // 모든 이벤트 표시 (제한 없음)
     moreLinkClick: 'popover', // "더보기" 링크 클릭 시 팝오버 표시

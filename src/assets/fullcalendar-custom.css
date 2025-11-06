@@ -110,8 +110,7 @@
 
 /* 이벤트 카드 - 개선된 디자인 */
 .fc-event {
-  border: none !important;
-  /* ✅ color는 이벤트 객체의 color 속성에서 설정 (흰색) */
+  border: none; /* 기본 테두리 없음 (구독 유저 일정용) */
   font-size: 14px;
   font-weight: 500;
   border-radius: 6px;
@@ -126,23 +125,24 @@
   white-space: nowrap;
 }
 
-/* ✅ 이벤트 텍스트 색상: 모든 이벤트에 흰색 텍스트 적용 */
+/* ✅ 내 일정 커스텀 스타일 (배경 불투명도 30% + 굵은 테두리) */
+.my-schedule-event {
+  border: 3px solid #A5B4FF !important; /* 굵은 테두리 (내 전용 색상) */
+  /* border-width와 border-color는 인라인 스타일로도 설정되지만, CSS에서 명시적으로 설정하여 확실히 적용 */
+}
+
+/* 이벤트 텍스트 색상: 모든 이벤트에 흰색 텍스트 적용 */
 .fc-event,
 .fc-event-title,
 .fc-daygrid-event,
 .fc-daygrid-event-title,
 .fc-timegrid-event,
 .fc-timegrid-event-title {
-  color: #616161 !important; /* 흰색 텍스트 강제 적용 */
+  color: #616161 !important;
 }
 
-/* ✅ 이벤트 배경색 강제 적용 (하루 일정 포함) */
-.fc-event,
-.fc-daygrid-event,
-.fc-timegrid-event {
-  /* backgroundColor 속성이 설정되면 자동으로 적용됨 */
-  /* borderColor도 자동으로 적용됨 */
-}
+/* 이벤트 배경색 및 테두리색 적용 */
+/* backgroundColor와 borderColor는 이벤트 객체에서 설정한 값이 인라인 스타일로 자동 적용됨 */
 
 /* ✅ 하루 일정의 경우에도 배경색이 보이도록 */
 .fc-daygrid-event-dot {
