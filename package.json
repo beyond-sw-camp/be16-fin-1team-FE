@@ -40,6 +40,7 @@
     "@vue-flow/minimap": "^1.5.4",
     "apexcharts": "^4.2.0",
     "axios": "^1.12.2",
+    "chart.js": "^4.5.1",
     "core-js": "^3.8.3",
     "d3": "^7.9.0",
     "docx": "^9.5.1",
@@ -49,16 +50,17 @@
     "html-to-docx": "^1.8.0",
     "jwt-decode": "^4.0.0",
     "lodash": "^4.17.21",
+    "openvidu-browser": "^2.31.0",
     "pinia": "^3.0.3",
     "prosemirror-state": "^1.4.3",
     "sockjs-client": "^1.6.1",
     "uuid": "^13.0.0",
     "vue": "^3.5.21",
+    "vue-chartjs": "^5.3.3",
     "vue-router": "^4.5.1",
     "vue3-apexcharts": "^1.10.0",
     "vuetify": "^3.10.3",
-    "webstomp-client": "^1.2.6",
-    "openvidu-browser": "^2.31.0"
+    "webstomp-client": "^1.2.6"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
