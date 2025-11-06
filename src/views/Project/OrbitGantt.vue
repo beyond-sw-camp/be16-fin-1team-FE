@@ -2,16 +2,41 @@
   <div class="orbit-gantt-wrap">
     <!-- ✅ 상단 툴바 -->
     <div class="gantt-toolbar">
-      <div class="left"><strong>간트차트</strong></div>
+      <div class="left">
+        <strong>간트차트</strong>
+        <span class="view-mode">
+          <button 
+            class="view-btn" 
+            :class="{ active: viewMode === 'month' }"
+            @click="viewMode = 'month'"
+          >
+            월
+          </button>
+          <button 
+            class="view-btn" 
+            :class="{ active: viewMode === 'week' }"
+            @click="viewMode = 'week'"
+          >
+            주
+          </button>
+          <button 
+            class="view-btn" 
+            :class="{ active: viewMode === 'day' }"
+            @click="viewMode = 'day'"
+          >
+            일
+          </button>
+        </span>
+      </div>
       <div class="right">
         <button class="btn" @click="zoomOut">－</button>
         <span class="zoom">{{ Math.round(zoom * 100) }}%</span>
         <button class="btn" @click="zoomIn">＋</button>
-        <button class="btn" @click="scrollToday">Today</button>
+        <button class="btn btn-today" @click="scrollToday">오늘</button>
       </div>
     </div>
 
-    <!-- ✅ 스크롤 컨테이너 -->
+    <!-- ✅ 간트차트 컨테이너 -->
     <div
       ref="scrollHost"
       class="gantt-scroll"
@@ -20,124 +45,179 @@
       @mouseup="onMouseUp"
       @mousemove="onMouseDrag"
     >
-      <div v-if="!ready" class="empty">데이터 불러오는 중…</div>
+      <div v-if="!ready" class="empty">
+        <div class="loading-spinner"></div>
+        <div>데이터 불러오는 중…</div>
+      </div>
 
       <template v-else>
-        <!-- 날짜 헤더 -->
-        <svg :width="svgWidth" :height="headerHeight" class="gantt-axis">
-          <g v-for="(m, i) in months" :key="m.key">
-            <rect
-              :x="m.x"
-              y="0"
-              :width="m.w"
-              :height="headerMonthHeight"
-              :class="['axis-month-bg', i % 2 === 0 ? 'even' : 'odd']"
-            />
-            <text :x="m.x + 8" :y="headerMonthHeight - 10" class="axis-month-text">
-              {{ m.label }}
-            </text>
-          </g>
-
-          <g v-for="d in days" :key="d.key">
-            <rect
-              :x="d.x"
-              :y="headerMonthHeight"
-              :width="d.w"
-              :height="headerDayHeight"
-              class="axis-day-bg"
-            />
-            <text
-              :x="d.x + 6"
-              :y="headerMonthHeight + headerDayHeight - 8"
-              class="axis-day-text"
+        <!-- 왼쪽 작업 목록 영역 -->
+        <div class="gantt-task-list" :style="{ width: taskListWidth + 'px' }">
+          <div class="task-list-header">
+            <div class="header-cell">작업</div>
+          </div>
+          <div class="task-list-body">
+            <div
+              v-for="(item, index) in visibleItems"
+              :key="item.id"
+              class="task-row"
+              :class="{ 'is-task': item.isTask, 'is-stone': !item.isTask, even: index % 2 === 0 }"
+              @click="toggleCollapse(item)"
             >
-              {{ d.label }}
-            </text>
-          </g>
+              <div class="task-cell">
+                <span 
+                  class="task-color-dot" 
+                  :style="{ backgroundColor: item.color }"
+                ></span>
+                <span class="task-name">{{ item.name }}</span>
+                <span 
+                  v-if="item.hasChildren" 
+                  class="collapse-icon"
+                  @click.stop="toggleCollapse(item)"
+                >
+                  {{ collapsedSet.has(item.id) ? '▶' : '▼' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          <!-- 오늘 가이드 -->
-          <g v-if="todayX >= 0">
-            <line :x1="todayX" y1="0" :x2="todayX" :y2="headerHeight" class="today-dashed-line" />
-            <circle :cx="todayX" :cy="headerMonthHeight + headerDayHeight - 13" r="10" class="today-circle" />
-          </g>
-        </svg>
-
-        <!-- 본문 -->
-        <svg :width="svgWidth" :height="bodyHeight" class="gantt-body">
-          <!-- 줄무늬 -->
-          <g v-for="(row, i) in visibleRows" :key="row.key">
-            <rect
-              :x="0"
-              :y="row.y"
-              :width="svgWidth"
-              :height="rowHeight"
-              :class="['grid-row', row.even ? 'even' : 'odd']"
-            />
-          </g>
-
-          <!-- 오늘 라인 -->
-          <line v-if="todayX >= 0" :x1="todayX" y1="0" :x2="todayX" :y2="bodyHeight" class="today-line" />
-
-          <!-- 연결선 -->
-          <g v-for="dep in dependencies" :key="dep.key">
-            <path :d="dep.path" class="dep-link" />
-          </g>
-
-          <!-- 바 -->
-          <g
-            v-for="b in visibleBars"
-            :key="b.key"
-            @mouseenter="showTooltip(b, $event)"
-            @mouseleave="hideTooltip"
-            @click="toggleCollapse(b)"
-          >
-            <!-- 배경 바: 스톤=진한(88), 태스크=연한(44) -->
-            <rect
-              :x="b.x"
-              :y="b.y"
-              :width="b.w"
-              :height="barHeight"
-              rx="6"
-              :fill="b.isTask ? b.color + '44' : b.color + '88'"
-              :stroke="b.color"
-              class="bar"
-              :data-task="b.isTask"
-            />
-
-            <!-- 진행률 -->
-            <rect
-              :x="b.x"
-              :y="b.y"
-              :width="Math.max(2, b.w * (b.progress / 100))"
-              :height="barHeight"
-              rx="6"
-              :fill="b.color"
-              class="bar-progress"
-            />
-
-            <!-- 라벨 -->
-            <text :x="b.x + b.w + 10" :y="b.y + barHeight / 1.5" class="bar-label">
-
-              <tspan :fill="b.color">●</tspan>
-              {{ b.name }}
-              <!-- ▼/▶ 접기 아이콘 -->
-              <tspan
-                v-if="b.hasChildren"
-                class="collapse-icon"
-                @click.stop="toggleCollapse(b)"
+        <!-- 오른쪽 타임라인 영역 -->
+        <div class="gantt-timeline">
+          <!-- 날짜 헤더 -->
+          <div class="timeline-header" :style="{ width: timelineWidth + 'px' }">
+            <!-- 월 헤더 (월/주 모드에서만 표시) -->
+            <div v-if="viewMode !== 'day'" class="month-row">
+              <div 
+                v-for="(m, i) in visibleMonths" 
+                :key="'m-' + m.key"
+                class="month-cell"
+                :style="{
+                  left: m.x + 'px',
+                  width: m.w + 'px',
+                  backgroundColor: '#FAFAFA'
+                }"
               >
-                {{ collapsedSet.has(b.id) ? '▶' : '▼' }}
-              </tspan>
-            </text>
-          </g>
-        </svg>
+                {{ m.label }}
+              </div>
+            </div>
+            <!-- 일/주 헤더 -->
+            <div class="day-row" :style="{ marginTop: viewMode === 'day' ? '0' : '0' }">
+              <div 
+                v-for="d in visibleDays" 
+                :key="'d-' + d.key"
+                class="day-cell"
+                :style="{
+                  left: d.x + 'px',
+                  width: d.w + 'px'
+                }"
+                :class="{ 'is-today': d.isToday, 'is-weekend': d.isWeekend }"
+              >
+                {{ d.label }}
+              </div>
+              <!-- 오늘 표시 원 -->
+              <div 
+                v-if="todayX >= 0" 
+                class="today-indicator"
+                :style="{ left: (todayX - 10) + 'px' }"
+              >
+                <div class="today-circle"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 본문 바 영역 -->
+          <div 
+            class="timeline-body" 
+            :style="{ 
+              width: timelineWidth + 'px',
+              height: bodyHeight + 'px'
+            }"
+          >
+            <!-- 그리드 배경 -->
+            <div 
+              v-for="(item, index) in visibleItems"
+              :key="'row-' + item.id"
+              class="grid-row"
+              :class="{ even: index % 2 === 0 }"
+              :style="{ top: (index * rowHeight) + 'px', height: rowHeight + 'px' }"
+            ></div>
+
+            <!-- 오늘 세로선 -->
+            <div 
+              v-if="todayX >= 0" 
+              class="today-vertical-line"
+              :style="{ 
+                left: todayX + 'px',
+                height: bodyHeight + 'px'
+              }"
+            ></div>
+
+            <!-- 간트 바 -->
+            <div
+              v-for="b in visibleBars"
+              :key="'bar-' + b.key"
+              class="gantt-bar-wrapper"
+              :style="{
+                left: b.x + 'px',
+                top: b.y + 'px',
+                width: b.w + 'px',
+                height: barHeight + 'px'
+              }"
+              @mouseenter="showTooltip(b, $event)"
+              @mouseleave="hideTooltip"
+              @click.stop="selectBar(b)"
+            >
+              <!-- 배경 바 (전체 기간) -->
+              <div 
+                class="bar-background"
+                :style="{
+                  backgroundColor: b.isTask ? hexToRgba(b.color, 0.25) : hexToRgba(b.color, 0.35),
+                  borderColor: b.color,
+                  borderRadius: '6px'
+                }"
+              ></div>
+              <!-- 진행률 바 -->
+              <div 
+                class="bar-progress"
+                :style="{
+                  width: Math.max(2, (b.progress / 100) * 100) + '%',
+                  backgroundColor: b.color,
+                  borderRadius: '6px'
+                }"
+              ></div>
+              <!-- 호버 효과 -->
+              <div class="bar-hover"></div>
+            </div>
+          </div>
+        </div>
 
         <!-- 툴팁 -->
-        <div v-show="tooltip.visible" class="tooltip" :style="tooltip.style">
-          <div class="t-name">{{ tooltip.data.name }}</div>
-          <div class="t-line"><span>기간</span><span>{{ tooltip.data.start }} ~ {{ tooltip.data.end }}</span></div>
-          <div class="t-line"><span>진행률</span><span>{{ tooltip.data.progress }}%</span></div>
-          <div v-if="tooltip.isToday" class="t-line today-mark">🌟 오늘 해당</div>
+        <div 
+          v-show="tooltip.visible" 
+          class="tooltip" 
+          :style="tooltip.style"
+        >
+          <div class="tooltip-header">
+            <span 
+              class="tooltip-color-dot" 
+              :style="{ backgroundColor: tooltip.data.color }"
+            ></span>
+            <div class="tooltip-name">{{ tooltip.data.name }}</div>
+          </div>
+          <div class="tooltip-content">
+            <div class="tooltip-row">
+              <span class="tooltip-label">기간</span>
+              <span class="tooltip-value">{{ tooltip.data.start }} ~ {{ tooltip.data.end }}</span>
+            </div>
+            <div class="tooltip-row">
+              <span class="tooltip-label">진행률</span>
+              <span class="tooltip-value">{{ tooltip.data.progress }}%</span>
+            </div>
+            <div v-if="tooltip.isToday" class="tooltip-row today-mark">
+              <span>🌟 오늘 해당</span>
+            </div>
+          </div>
         </div>
       </template>
     </div>
@@ -157,11 +237,12 @@ const props = defineProps({
 
 /* ===== Layout consts ===== */
 const rowHeight = 40;
-const barHeight = 20;
-const headerMonthHeight = 26;
-const headerDayHeight = 32;
+const barHeight = 24;
+const headerMonthHeight = 32;
+const headerDayHeight = 36;
 const headerHeight = headerMonthHeight + headerDayHeight;
-const pxPerDayBase = 32;
+const pxPerDayBase = 40;
+const taskListWidth = 280;
 
 /* ===== Refs ===== */
 const zoom = ref(1);
@@ -170,16 +251,35 @@ const scrollHost = ref(null);
 const hostWidth = ref(1200);
 const hostHeight = ref(480);
 const collapsedSet = ref(new Set());
+const viewMode = ref('month'); // 'month' | 'week' | 'day'
 
 /* ===== Data ===== */
 const stones = ref([]);
 const colorPalette = ["#9B6BFF", "#4C9AFF", "#FF5A8A", "#FFD93D", "#6ECB63", "#FF9F68"];
-const colorMap = new Map(); // stoneId -> color
+const colorMap = new Map(); // stoneId -> color (동일 stoneId는 동일 색상)
 
 /* ===== Utils ===== */
 const parse = (x) => new Date(x);
 const toDateOnly = (d) => d.toISOString().slice(0, 10);
 const dayDiff = (a, b) => Math.round((a - b) / 86400000);
+const hexToRgba = (hex, alpha) => {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+const getWeekStart = (date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // 월요일 시작
+  return new Date(d.setDate(diff));
+};
+const getWeekEnd = (date) => {
+  const start = getWeekStart(date);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return end;
+};
 
 /* ===== API ===== */
 async function fetchStones(projectId) {
@@ -191,20 +291,37 @@ async function fetchTasks(stoneId) {
   return data.result || [];
 }
 
-/* ===== Attach tasks & assign colors (stone 고정색 + 하위 계승) ===== */
-function attachTasks(arr, map, parentColor = null, depth = 0) {
+/* ===== 색상 할당: 동일 stoneId는 동일 색상 유지 ===== */
+function assignColors(arr, depth = 0) {
   arr.forEach((s, i) => {
-    const color = parentColor || colorPalette[(i + depth) % colorPalette.length];
-    colorMap.set(String(s.stoneId), color);
-    s.__color = color;
-    s.taskList = map.get(s.stoneId) || [];
+    if (!colorMap.has(String(s.stoneId))) {
+      const color = colorPalette[colorMap.size % colorPalette.length];
+      colorMap.set(String(s.stoneId), color);
+    }
+    s.__color = colorMap.get(String(s.stoneId));
+    
     if (Array.isArray(s.childStone) && s.childStone.length) {
-      attachTasks(s.childStone, map, color, depth + 1);
+      assignColors(s.childStone, depth + 1);
     }
   });
 }
 
-/* ===== Flatten (태스크는 부모색 그대로) ===== */
+/* ===== Attach tasks & assign colors ===== */
+function attachTasks(arr, map) {
+  arr.forEach((s) => {
+    s.taskList = map.get(s.stoneId) || [];
+    if (s.taskList) {
+      s.taskList.forEach(t => {
+        t.__stoneId = s.stoneId;
+      });
+    }
+    if (Array.isArray(s.childStone) && s.childStone.length) {
+      attachTasks(s.childStone, map);
+    }
+  });
+}
+
+/* ===== Flatten ===== */
 function flatten(arr, parentId = null) {
   const out = [];
   arr.forEach((s) => {
@@ -219,6 +336,7 @@ function flatten(arr, parentId = null) {
       parentId,
       isTask: false,
       hasChildren: (s.taskList?.length || 0) + (s.childStone?.length || 0) > 0,
+      stoneId: s.stoneId,
     });
 
     if (Array.isArray(s.taskList) && !collapsedSet.value.has(s.stoneId)) {
@@ -232,6 +350,7 @@ function flatten(arr, parentId = null) {
           color,
           parentId: s.stoneId,
           isTask: true,
+          stoneId: s.stoneId,
         });
       });
     }
@@ -243,6 +362,7 @@ function flatten(arr, parentId = null) {
   return out;
 }
 const flat = computed(() => flatten(stones.value));
+const visibleItems = computed(() => flat.value);
 
 /* ===== Time scale ===== */
 const minStart = computed(() => {
@@ -257,54 +377,106 @@ const maxEnd = computed(() => {
   if (p && d) return new Date(Math.max(p, d));
   return p || d || new Date();
 });
+
+// 뷰 모드별 기본 픽셀 값
+const pxPerDayBaseByMode = computed(() => {
+  switch (viewMode.value) {
+    case 'day': return 60;
+    case 'week': return 25;
+    case 'month':
+    default: return 40;
+  }
+});
+
+const pxPerDay = computed(() => pxPerDayBaseByMode.value * zoom.value);
 const totalDays = computed(() => Math.max(1, dayDiff(maxEnd.value, minStart.value) + 1));
-const pxPerDay = computed(() => pxPerDayBase * zoom.value);
-const svgWidth = computed(() => totalDays.value * pxPerDay.value + 200);
+const timelineWidth = computed(() => totalDays.value * pxPerDay.value);
 const bodyHeight = computed(() => flat.value.length * rowHeight);
 
 /* ===== Axis ===== */
-const months = computed(() => {
-  if (!flat.value.length) return [];
+const visibleMonths = computed(() => {
+  if (viewMode.value === 'day' || !flat.value.length) return [];
   const arr = [];
   const start0 = new Date(minStart.value);
   start0.setDate(1);
   let cursor = start0;
   while (cursor <= maxEnd.value) {
-    const label = `${cursor.getFullYear()}.${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+    const label = viewMode.value === 'week' 
+      ? `${cursor.getFullYear()}.${String(cursor.getMonth() + 1).padStart(2, "0")}`
+      : `${cursor.getFullYear()}.${String(cursor.getMonth() + 1).padStart(2, "0")}`;
     const start = new Date(cursor);
-    const end = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+    // 해당 월의 마지막 날과 maxEnd 중 작은 값으로 설정
+    const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+    const actualEnd = monthEnd > maxEnd.value ? maxEnd.value : monthEnd;
+    
+    // 시작일이 minStart보다 작으면 minStart부터 시작
+    const actualStart = start < minStart.value ? minStart.value : start;
+    
     arr.push({
       key: label,
       label,
-      x: Math.max(0, dayDiff(start, minStart.value) * pxPerDay.value),
-      w: (dayDiff(end, start) + 1) * pxPerDay.value,
+      x: Math.max(0, dayDiff(actualStart, minStart.value) * pxPerDay.value),
+      w: (dayDiff(actualEnd, actualStart) + 1) * pxPerDay.value,
     });
     cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
   }
   return arr;
 });
-const days = computed(() => {
+
+const visibleDays = computed(() => {
   if (!flat.value.length) return [];
   const arr = [];
   const d = new Date(minStart.value);
-  while (d <= maxEnd.value) {
-    arr.push({
-      key: toDateOnly(d),
-      x: dayDiff(d, minStart.value) * pxPerDay.value,
-      w: pxPerDay.value,
-      label: String(d.getDate()).padStart(2, "0"),
-    });
-    d.setDate(d.getDate() + 1);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // 주 모드: 주 단위로 표시
+  if (viewMode.value === 'week') {
+    let weekStart = getWeekStart(d);
+    while (weekStart <= maxEnd.value) {
+      const weekEnd = getWeekEnd(weekStart);
+      const displayEnd = weekEnd > maxEnd.value ? maxEnd.value : weekEnd;
+      const isToday = today >= weekStart && today <= displayEnd;
+      
+      arr.push({
+        key: `week-${toDateOnly(weekStart)}`,
+        x: dayDiff(weekStart, minStart.value) * pxPerDay.value,
+        w: (dayDiff(displayEnd, weekStart) + 1) * pxPerDay.value,
+        label: `${String(weekStart.getMonth() + 1).padStart(2, '0')}.${String(weekStart.getDate()).padStart(2, '0')}`,
+        isToday,
+        isWeekend: false,
+      });
+      weekStart = new Date(weekEnd);
+      weekStart.setDate(weekStart.getDate() + 1);
+    }
+  } else {
+    // 일/월 모드: 일 단위로 표시
+    while (d <= maxEnd.value) {
+      const dayDate = new Date(d);
+      const isToday = dayDate.getTime() === today.getTime();
+      const dayOfWeek = dayDate.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      
+      arr.push({
+        key: toDateOnly(d),
+        x: dayDiff(d, minStart.value) * pxPerDay.value,
+        w: pxPerDay.value,
+        label: String(d.getDate()),
+        isToday,
+        isWeekend,
+      });
+      d.setDate(d.getDate() + 1);
+    }
   }
   return arr;
 });
 
-/* ===== Bars & links ===== */
+/* ===== Bars ===== */
 const bars = computed(() =>
   flat.value.map((s, i) => {
     const x = dayDiff(s.start, minStart.value) * pxPerDay.value;
     const w = Math.max(pxPerDay.value, (dayDiff(s.end, s.start) + 1) * pxPerDay.value);
-    const y = i * rowHeight + 10;
+    const y = i * rowHeight + (rowHeight - barHeight) / 2;
     return {
       key: s.id,
       id: s.id,
@@ -313,30 +485,15 @@ const bars = computed(() =>
       progress: s.progress,
       start: toDateOnly(s.start),
       end: toDateOnly(s.end),
-      color: s.color,        // HEX(예: #9B6BFF)
+      color: s.color,
       parentId: s.parentId,
       isTask: s.isTask,
       hasChildren: s.hasChildren,
+      stoneId: s.stoneId,
     };
   })
 );
 const visibleBars = computed(() => bars.value);
-const visibleRows = computed(() => flat.value.map((_, i) => ({ key: i, y: i * rowHeight, even: i % 2 === 0 })));
-
-const dependencies = computed(() => {
-  const byId = new Map(bars.value.map((b) => [b.key, b]));
-  const out = [];
-  bars.value.forEach((b) => {
-    if (b.parentId && byId.has(b.parentId)) {
-      const p = byId.get(b.parentId);
-      const x1 = p.x + p.w, y1 = p.y + barHeight / 2;
-      const x2 = b.x,       y2 = b.y + barHeight / 2;
-      const mx = (x1 + x2) / 2;
-      out.push({ key: `${p.key}->${b.key}`, path: `M${x1} ${y1} C${mx} ${y1},${mx} ${y2},${x2} ${y2}` });
-    }
-  });
-  return out;
-});
 
 /* ===== Today pointer ===== */
 const todayX = computed(() => {
@@ -354,7 +511,14 @@ function showTooltip(b, ev) {
   tooltip.value.data = b;
   const today = new Date().toISOString().slice(0, 10);
   tooltip.value.isToday = b.start <= today && b.end >= today;
-  tooltip.value.style = { left: `${ev.clientX + 12}px`, top: `${ev.clientY + 12}px` };
+  
+  const rect = scrollHost.value?.getBoundingClientRect();
+  if (rect) {
+    tooltip.value.style = { 
+      left: `${ev.clientX - rect.left + 12}px`, 
+      top: `${ev.clientY - rect.top + 12}px` 
+    };
+  }
 }
 function hideTooltip() {
   tooltip.value.visible = false;
@@ -367,44 +531,66 @@ function toggleCollapse(b) {
   else collapsedSet.value.add(b.id);
 }
 
+/* ===== Bar selection ===== */
+function selectBar(b) {
+  console.log('Selected bar:', b);
+}
+
 /* ===== Scroll/Zoom/Drag ===== */
 let dragging = false;
 let dragStart = { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 };
 
 function fitScrollHeight() {
   if (!scrollHost.value) return;
-  const rect = scrollHost.value.getBoundingClientRect();
-  const available = window.innerHeight - rect.top - 16;
-  hostHeight.value = Math.max(320, available);
-  scrollHost.value.style.maxHeight = hostHeight.value + "px";
+  // 마일스톤 탭과 동일한 크기로 설정 (fixed positioning)
+  const available = window.innerHeight - 240 - 15; // top: 240px, bottom: 15px
+  hostHeight.value = Math.max(400, available);
+  scrollHost.value.style.height = hostHeight.value + "px";
 }
+
 function onWheelScroll(e) {
   if (!scrollHost.value) return;
-  if (e.shiftKey) scrollHost.value.scrollLeft += e.deltaY * 1.2;
-  else            scrollHost.value.scrollTop  += e.deltaY * 1.2;
+  if (e.shiftKey) {
+    scrollHost.value.scrollLeft += e.deltaY * 1.2;
+  } else {
+    scrollHost.value.scrollTop += e.deltaY * 1.2;
+  }
   e.preventDefault();
 }
 function onMouseDown(e) {
+  if (e.target.closest('.gantt-bar-wrapper')) return;
   dragging = true;
   dragStart = {
-    x: e.clientX, y: e.clientY,
+    x: e.clientX,
+    y: e.clientY,
     scrollLeft: scrollHost.value.scrollLeft,
-    scrollTop:  scrollHost.value.scrollTop,
+    scrollTop: scrollHost.value.scrollTop,
   };
+  scrollHost.value.style.cursor = 'grabbing';
 }
-function onMouseUp()   { dragging = false; }
+function onMouseUp() {
+  dragging = false;
+  if (scrollHost.value) scrollHost.value.style.cursor = 'grab';
+}
 function onMouseDrag(e) {
   if (!dragging || !scrollHost.value) return;
   const dx = e.clientX - dragStart.x;
   const dy = e.clientY - dragStart.y;
   scrollHost.value.scrollLeft = dragStart.scrollLeft - dx;
-  scrollHost.value.scrollTop  = dragStart.scrollTop  - dy;
+  scrollHost.value.scrollTop = dragStart.scrollTop - dy;
 }
-function zoomIn()  { zoom.value = Math.min(3,   zoom.value + 0.1); }
-function zoomOut() { zoom.value = Math.max(0.5, zoom.value - 0.1); }
+function zoomIn() {
+  zoom.value = Math.min(3, zoom.value + 0.1);
+}
+function zoomOut() {
+  zoom.value = Math.max(0.5, zoom.value - 0.1);
+}
 function scrollToday() {
   if (!scrollHost.value || todayX.value < 0) return;
-  scrollHost.value.scrollTo({ left: Math.max(0, todayX.value - hostWidth.value * 0.3), behavior: "smooth" });
+  scrollHost.value.scrollTo({ 
+    left: Math.max(0, todayX.value - hostWidth.value * 0.3), 
+    behavior: "smooth" 
+  });
 }
 
 /* ===== Data load ===== */
@@ -419,7 +605,8 @@ async function loadData(projectId) {
   const map = new Map();
   results.forEach((r, i) => map.set(ids[i], r.status === "fulfilled" ? r.value : []));
 
-  attachTasks(root, map);   // 색상 & 태스크 주입
+  assignColors(root);
+  attachTasks(root, map);
   stones.value = root;
 
   ready.value = true;
@@ -448,20 +635,28 @@ watch(
     await nextTick();
   }
 );
+watch(
+  () => viewMode.value,
+  () => {
+    // 뷰 모드 변경 시 줌 리셋 또는 조정
+    nextTick(() => {
+      if (scrollHost.value && todayX.value >= 0) {
+        scrollToday();
+      }
+    });
+  }
+);
 
 onMounted(() => {
-  // 가시영역 폭 추적
   const roHost = new ResizeObserver(([e]) => (hostWidth.value = e.contentRect.width));
   if (scrollHost.value) roHost.observe(scrollHost.value);
 
-  // 높이 자동 맞춤
   const roDoc = new ResizeObserver(() => fitScrollHeight());
   roDoc.observe(document.body);
 
   fitScrollHeight();
   window.addEventListener("resize", fitScrollHeight);
 
-  // 로드 후 오늘로 스크롤
   watchEffect(() => {
     if (todayX.value >= 0 && ready.value) scrollToday();
   });
@@ -473,13 +668,21 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* === 컨테이너 === */
+/* === 컨테이너 - 마일스톤 탭과 동일한 크기 === */
 .orbit-gantt-wrap {
-  background: #fff;
+  position: fixed;
+  top: 240px;
+  left: 280px;
+  right: 16px;
+  bottom: 15px;
+  width: auto;
+  height: auto;
+  background: #FFFFFF;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 /* === 툴바 === */
@@ -487,104 +690,482 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
-  border-bottom: 1px solid #eee;
-  background: #fafafa;
+  padding: 12px 20px;
+  border-bottom: 1px solid #E5E5E5;
+  background: #FAFAFA;
+  flex-shrink: 0;
 }
-.btn {
-  border: 1px solid #ddd;
-  border-radius: 8px;
+
+.gantt-toolbar .left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.gantt-toolbar .left strong {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.view-mode {
+  display: flex;
+  gap: 0;
+  border: 1px solid #DDD;
+  border-radius: 6px;
+  overflow: hidden;
   background: #fff;
-  margin-left: 6px;
-  padding: 4px 10px;
-  cursor: pointer;
 }
-.btn:hover { background: #f7f7f7; }
+
+.view-btn {
+  padding: 6px 16px;
+  border: none;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-right: 1px solid #DDD;
+}
+
+.view-btn:last-child {
+  border-right: none;
+}
+
+.view-btn:hover {
+  background: #F7F7F7;
+}
+
+.view-btn.active {
+  background: #4C9AFF;
+  color: #fff;
+  font-weight: 600;
+}
+
+.view-btn.active:hover {
+  background: #3A8AEF;
+}
+
+.gantt-toolbar .right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  border: 1px solid #DDD;
+  border-radius: 6px;
+  background: #fff;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  color: #333;
+}
+
+.btn:hover {
+  background: #F7F7F7;
+  border-color: #BBB;
+}
+
+.btn-today {
+  background: #333;
+  color: #fff;
+  border-color: #333;
+  font-weight: 500;
+}
+
+.btn-today:hover {
+  background: #444;
+  border-color: #444;
+}
+
+.zoom {
+  font-size: 13px;
+  color: #666;
+  min-width: 50px;
+  text-align: center;
+  font-weight: 500;
+}
 
 /* === 스크롤 박스 === */
 .gantt-scroll {
   flex: 1;
   overflow: auto;
-  min-height: 320px;
   cursor: grab;
   position: relative;
+  display: flex;
+  min-height: 0;
+}
+
+.gantt-scroll:active {
+  cursor: grabbing;
 }
 
 /* === 빈 상태 === */
-.empty { padding: 24px; color: #888; }
-
-/* === 헤더 === */
-.axis-month-bg { fill: #f3f3f3; }
-.axis-day-bg   { fill: #ffffff; }
-.axis-month-text { font-size: 13px; fill: #333; font-weight: 600; }
-.axis-day-text   { font-size: 11px; fill: #666; }
-.axis-month-bg.even { fill: #f6e787; }
-.axis-month-bg.odd  { fill: #fbb980; }
-
-/* === 행 === */
-.grid-row.even { fill: #fff; }
-.grid-row.odd  { fill: #fafafa; }
-
-/* === 바 === */
-.bar {
-  rx: 6;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.06));
-  opacity: 0.9;      /* 기본 약간 투명 */
-}
-.bar:hover {
-  transform: scale(1.02);
-  opacity: 1;        /* hover 시 또렷하게 */
-}
-.bar-progress { opacity: 0.95; }
-.bar-label {
-  fill: #333;
-  font-size: 12px;
-  font-weight: 500;
-  dominant-baseline: middle;
-  pointer-events: none;
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: #888;
+  gap: 16px;
+  width: 100%;
 }
 
-/* === 연결선 === */
-.dep-link {
-  stroke: #cfd3d8;
-  stroke-width: 1.2;
-  fill: none;
-  opacity: 0.8;
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4c9aff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
-/* === 오늘 === */
-.today-line { stroke: #4c9aff; stroke-width: 2; stroke-dasharray: 4 4; opacity: 0.9; }
-.today-dashed-line { stroke: #4c9aff; stroke-width: 1.5; stroke-dasharray: 4 4; opacity: 0.9; }
-.today-circle { fill: none; stroke: #4c9aff; stroke-width: 2; }
-.axis-day-text.today-text { fill: #4c9aff; font-weight: 700; }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
-/* === 툴팁 === */
-.tooltip {
-  position: fixed;
-  background: rgba(255,255,255,0.95);
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  padding: 8px 12px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
-  font-size: 12px;
+/* === 작업 목록 영역 === */
+.gantt-task-list {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: #fff;
+  border-right: 2px solid #E5E5E5;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-list-header {
+  position: sticky;
+  top: 0;
+  z-index: 11;
+  background: #F8F9FA;
+  border-bottom: 2px solid #E5E5E5;
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 14px;
   color: #333;
-  z-index: 9999;
-  backdrop-filter: blur(4px);
 }
-.tooltip .t-name { font-weight: 600; margin-bottom: 4px; }
-.tooltip .t-line { display: flex; justify-content: space-between; gap: 10px; }
-.tooltip .today-mark { color: #4c9aff; font-weight: 600; margin-top: 4px; }
+
+.task-list-body {
+  flex: 1;
+}
+
+.task-row {
+  height: 40px;
+  border-bottom: 1px solid #F0F0F0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.task-row.even {
+  background: #fff;
+}
+
+.task-row:not(.even) {
+  background: #FAFAFA;
+}
+
+.task-row:hover {
+  background: #F0F7FF;
+}
+
+.task-row.is-task {
+  padding-left: 32px;
+  font-size: 13px;
+}
+
+.task-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  font-size: 14px;
+  color: #333;
+}
+
+.task-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.task-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .collapse-icon {
-  fill: #888;
+  color: #999;
   font-size: 12px;
   cursor: pointer;
   user-select: none;
-  margin-right: 4px;
-  transition: fill 0.2s ease;
-}
-.collapse-icon:hover {
-  fill: #555;
+  transition: color 0.2s;
+  padding: 2px 6px;
+  margin-left: 4px;
 }
 
+.collapse-icon:hover {
+  color: #4C9AFF;
+}
+
+/* === 타임라인 영역 === */
+.gantt-timeline {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-width: 0;
+}
+
+.timeline-header {
+  position: sticky;
+  top: 0;
+  z-index: 9;
+  background: #fff;
+}
+
+.month-row {
+  height: 32px;
+  position: relative;
+  display: flex;
+  border-bottom: 1px solid #E5E5E5;
+}
+
+.month-cell {
+  position: absolute;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  border-right: 1px solid #E5E5E5;
+}
+
+.month-cell:last-child {
+  border-right: none;
+}
+
+.day-row {
+  height: 36px;
+  position: relative;
+  border-bottom: 1px solid #E5E5E5;
+  display: flex;
+}
+
+.day-cell {
+  position: absolute;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  border-right: 1px solid #F0F0F0;
+}
+
+.day-cell.is-weekend {
+  background: #FAFAFA;
+}
+
+.day-cell.is-today {
+  color: #4C9AFF;
+  font-weight: 700;
+  background: #F0F7FF;
+}
+
+.today-indicator {
+  position: absolute;
+  top: -10px;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.today-circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #4C9AFF;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(76, 154, 255, 0.3);
+}
+
+/* === 본문 영역 === */
+.timeline-body {
+  position: relative;
+  flex: 1;
+}
+
+.grid-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.grid-row.even {
+  background: #fff;
+}
+
+.grid-row:not(.even) {
+  background: #FAFAFA;
+}
+
+.today-vertical-line {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  background: #4C9AFF;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.today-vertical-line::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -5px;
+  width: 12px;
+  height: 12px;
+  background: #4C9AFF;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(76, 154, 255, 0.4);
+}
+
+/* === 간트 바 === */
+.gantt-bar-wrapper {
+  position: absolute;
+  z-index: 6;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gantt-bar-wrapper:hover {
+  transform: translateY(-1px);
+  z-index: 7;
+}
+
+.bar-background {
+  width: 100%;
+  height: 100%;
+  border: 1.5px solid;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s;
+}
+
+.gantt-bar-wrapper:hover .bar-background {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bar-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  opacity: 0.95;
+  transition: width 0.3s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.bar-hover {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(255, 255, 255, 0.15);
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: 6px;
+}
+
+.gantt-bar-wrapper:hover .bar-hover {
+  opacity: 1;
+}
+
+/* === 툴팁 === */
+.tooltip {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  color: #333;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  min-width: 220px;
+  pointer-events: none;
+}
+
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #F0F0F0;
+}
+
+.tooltip-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip-name {
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+  font-size: 14px;
+}
+
+.tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tooltip-label {
+  color: #666;
+  font-size: 12px;
+}
+
+.tooltip-value {
+  font-weight: 500;
+  color: #333;
+  font-size: 12px;
+}
+
+.today-mark {
+  color: #4C9AFF;
+  font-weight: 600;
+  margin-top: 4px;
+  font-size: 12px;
+}
 </style>

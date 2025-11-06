@@ -440,7 +440,10 @@
     </div>
     
     <!-- 다른 탭들 -->
-    <div v-else class="other-tabs" :class="{ 'documents-tab-active': activeTab === 'documents' }">
+    <div v-else class="other-tabs" :class="{ 
+      'documents-tab-active': activeTab === 'documents',
+      'gantt-tab-active': activeTab === 'gantt'
+    }">
       <div v-if="activeTab === 'dashboard'" class="dashboard-container">
         <ProjectDashboard 
           :project-id="$route.query.id" 
@@ -451,6 +454,7 @@
       </div>
       <div v-if="activeTab === 'gantt'" class="gantt-section">
         <!-- projectId가 준비된 다음에만 렌더 -->
+        <!-- 간트차트는 자체적으로 fixed positioning 처리 -->
         <OrbitGantt v-if="projectId" :project-id="projectId" />
       </div>
       <div v-if="activeTab === 'documents'" class="project-drive-container">
@@ -5719,7 +5723,8 @@ export default {
   height: 100%;
 }
 
-.other-tabs.documents-tab-active {
+.other-tabs.documents-tab-active,
+.other-tabs.gantt-tab-active {
   padding: 0;
   flex: 1;
   display: flex;
@@ -5738,6 +5743,15 @@ export default {
   flex-direction: column;
   overflow: hidden;
   position: relative;
+}
+
+.gantt-section {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  /* OrbitGantt 컴포넌트가 자체적으로 fixed positioning 사용 */
 }
 
 .dashboard-placeholder {
