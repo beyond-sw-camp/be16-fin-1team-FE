@@ -11,6 +11,7 @@ export const useScheduleStore = defineStore("schedule", {
     milestones: [],
     tasks: [],
     todos: [],
+    myTasks: [],
     personalSchedules: [],
     error: null,
   }),
