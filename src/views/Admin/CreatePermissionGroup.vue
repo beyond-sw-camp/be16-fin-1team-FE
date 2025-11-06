@@ -79,6 +79,7 @@
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { showSnackbar } from '@/services/snackbar.js';
 
 export default {
   name: "CreatePermissionGroup",
@@ -174,7 +175,7 @@ export default {
         );
 
         if (response.data.statusCode === 201) {
-          alert('권한 그룹이 성공적으로 생성되었습니다.');
+          showSnackbar('권한 그룹이 성공적으로 생성되었습니다.');
           this.goBack();
         }
       } catch (error) {

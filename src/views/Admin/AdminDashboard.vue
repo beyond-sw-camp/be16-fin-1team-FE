@@ -259,6 +259,26 @@
       @confirm-delete="confirmDeleteWorkspace"
     />
     
+    <!-- 권한 그룹 삭제 확인 모달 -->
+    <ConfirmModal
+      :show="showDeletePermissionGroupModal"
+      title="권한 그룹 삭제"
+      :message="deletePermissionGroupMessage"
+      warning-text="이 작업은 되돌릴 수 없습니다."
+      confirm-button-text="삭제"
+      loading-text="삭제 중..."
+      :loading="deletePermissionGroupLoading"
+      @close="closeDeletePermissionGroupModal"
+      @confirm="confirmDeletePermissionGroup"
+    />
+    
+    <!-- 권한 그룹 사용자 추가/제거 모달 -->
+    <AddPermissionGroupUsersModal
+      v-model="showAddPermissionGroupUsersModal"
+      :permission-group-id="selectedPermissionGroupId"
+      @users-updated="handleUsersUpdated"
+    />
+    
   </div>
 </template>
 
@@ -270,6 +290,9 @@ import MemberManagement from './MemberManagement.vue';
 import DeleteWorkspaceModal from '../Workspace/DeleteWorkspaceModal.vue';
 import StoneTreeNode from './StoneTreeNode.vue';
 import MilestoneForest from '@/components/MilestoneForest.vue';
+import ConfirmModal from '@/components/modal/ConfirmModal.vue';
+import AddPermissionGroupUsersModal from '@/components/modal/AddPermissionGroupUsersModal.vue';
+import { showSnackbar } from '@/services/snackbar.js';
 
 export default {
   name: "AdminDashboard",
@@ -278,7 +301,9 @@ export default {
     MemberManagement,
     DeleteWorkspaceModal,
     StoneTreeNode,
-    MilestoneForest
+    MilestoneForest,
+    ConfirmModal,
+    AddPermissionGroupUsersModal
   },
   data() {
     return {
@@ -310,6 +335,16 @@ export default {
       showWorkspaceNameModal: false,
       newWorkspaceName: '',
       showDeleteWorkspaceModal: false,
+      
+      // 권한 그룹 삭제 모달 관련
+      showDeletePermissionGroupModal: false,
+      deletePermissionGroupMessage: '',
+      deletePermissionGroupLoading: false,
+      selectedGroupForDelete: null,
+      
+      // 권한 그룹 사용자 추가/제거 모달 관련
+      showAddPermissionGroupUsersModal: false,
+      selectedPermissionGroupId: null,
       
       // 사용자 그룹 관련 데이터
       groupSearchQuery: '',
@@ -558,12 +593,18 @@ export default {
         return;
       }
       
-      // 권한 그룹 사용자 추가/제거 페이지로 이동
-      this.$router.push(`/admin/permission-group/${group.accessGroupId}/add-users`);
+      // 권한 그룹 사용자 추가/제거 모달 열기
+      this.selectedPermissionGroupId = group.accessGroupId;
+      this.showAddPermissionGroupUsersModal = true;
       this.activeActionMenu = null;
     },
     
-    async deleteGroup(group) {
+    handleUsersUpdated() {
+      // 사용자 업데이트 후 권한 그룹 목록 새로고침
+      this.loadPermissionGroups();
+    },
+    
+    deleteGroup(group) {
       // 기본 그룹 삭제 방지
       if (group.accessGroupName === '일반 유저 그룹' || group.accessGroupName === '관리자 그룹') {
         alert('기본 권한 그룹은 삭제할 수 없습니다.');
@@ -571,46 +612,65 @@ export default {
         return;
       }
 
-      // 권한 그룹 삭제 확인
-      if (confirm(`${group.accessGroupName} 그룹을 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) {
-        try {
-          const token = localStorage.getItem('token');
-          const userId = localStorage.getItem('userId') || 'user123';
-          
-          const response = await axios.delete(
-            `http://localhost:8080/workspace-service/access/${group.accessGroupId}/delete`,
-            {
-              headers: {
-                'X-User-Id': userId,
-                'Authorization': `Bearer ${token}`
-              }
+      // 삭제 확인 모달 표시
+      this.selectedGroupForDelete = group;
+      this.deletePermissionGroupMessage = `<strong>${group.accessGroupName}</strong> 그룹을 삭제하시겠습니까?`;
+      this.showDeletePermissionGroupModal = true;
+      this.activeActionMenu = null;
+    },
+    
+    closeDeletePermissionGroupModal() {
+      this.showDeletePermissionGroupModal = false;
+      this.selectedGroupForDelete = null;
+      this.deletePermissionGroupMessage = '';
+    },
+    
+    async confirmDeletePermissionGroup() {
+      if (!this.selectedGroupForDelete) {
+        return;
+      }
+
+      this.deletePermissionGroupLoading = true;
+      
+      try {
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId') || 'user123';
+        
+        const response = await axios.delete(
+          `http://localhost:8080/workspace-service/access/${this.selectedGroupForDelete.accessGroupId}/delete`,
+          {
+            headers: {
+              'X-User-Id': userId,
+              'Authorization': `Bearer ${token}`
             }
-          );
-          
-          if (response.data.statusCode === 200) {
-            alert('권한 그룹이 성공적으로 삭제되었습니다.');
-            // 목록 새로고침
-            await this.loadPermissionGroups();
-          } else {
-            alert('권한 그룹 삭제에 실패했습니다.');
           }
-        } catch (error) {
-          console.error('권한 그룹 삭제 실패:', error);
-          
-          // 백엔드에서 반환하는 구체적인 오류 메시지 처리
-          if (error.response && error.response.data) {
-            const errorMessage = error.response.data.statusMessage || error.response.data.message;
-            if (errorMessage) {
-              alert(`삭제 실패: ${errorMessage}`);
-            } else {
-              alert('권한 그룹 삭제 중 오류가 발생했습니다.');
-            }
+        );
+        
+        if (response.data.statusCode === 200) {
+          this.closeDeletePermissionGroupModal();
+          // 목록 새로고침
+          await this.loadPermissionGroups();
+          // 성공 메시지는 스낵바로 표시
+          showSnackbar('권한 그룹이 성공적으로 삭제되었습니다.');
+        } else {
+          alert('권한 그룹 삭제에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('권한 그룹 삭제 실패:', error);
+        
+        // 백엔드에서 반환하는 구체적인 오류 메시지 처리
+        if (error.response && error.response.data) {
+          const errorMessage = error.response.data.statusMessage || error.response.data.message;
+          if (errorMessage) {
+            alert(`삭제 실패: ${errorMessage}`);
           } else {
             alert('권한 그룹 삭제 중 오류가 발생했습니다.');
           }
-        } finally {
-          this.activeActionMenu = null;
+        } else {
+          alert('권한 그룹 삭제 중 오류가 발생했습니다.');
         }
+      } finally {
+        this.deletePermissionGroupLoading = false;
       }
     },
     
