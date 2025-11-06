@@ -90,11 +90,11 @@ function saveVisibilityToStorage() {
 
 // ✅ OrbitGantt와 동일한 색상 팔레트 및 할당 로직 (확장된 색상 팔레트)
 const colorPalette = [
-  "#9B6BFF", // 보라색
-  "#4C9AFF", // 파란색
-  "#FF5A8A", // 핑크색
   "#FFD93D", // 노란색
   "#6ECB63", // 초록색
+  "#9B6BFF", // 보라색
+  "#FF5A8A", // 핑크색
+  "#4C9AFF", // 파란색
   "#FF9F68", // 주황색
   "#A78BFA", // 연보라색
   "#FF4B4B", // 코랄색색
