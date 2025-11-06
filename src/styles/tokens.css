@@ -22,6 +22,20 @@
   --chip-bg: #F0F2F6;
   --chip-text: #353A42;
   
+  /* ApexCharts Design Tokens */
+  --ink-1: #111827;
+  --ink-2: #6B7280;
+  --ink-muted: #9CA3AF;
+  --brand-chart: #5BA8FF;
+  --brand-weak-chart: #E7F2FF;
+  --brand-strong-chart: #2F7CE9;
+  --ok: #34D399;
+  --warn: #F59E0B;
+  --danger: #F87171;
+  --grid: #E5E7EB;
+  --card: #ffffff;
+  --shadow: 0 6px 20px rgba(0,0,0,.06);
+  
   /* Radius */
   --radius-xl: 16px;
   --radius-2xl: 20px;

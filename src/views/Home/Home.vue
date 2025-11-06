@@ -42,11 +42,29 @@
                 </div>
                 <div v-else>
                   <div class="gantt-bar-wrapper" v-for="project in myProjects" :key="project.id">
-                    <div class="gantt-bar" :style="project.style" @click="goToProject(project)">
-                      <div class="progress-fill" :style="{ width: project.progress + '%', backgroundColor: project.progressColor }"></div>
+                    <div 
+                      class="gantt-bar" 
+                      :style="{ 
+                        ...project.style, 
+                        background: `linear-gradient(180deg, ${project.backgroundColor}FF 0%, ${project.backgroundColor}E6 100%)`,
+                        borderColor: project.progress > 0 ? project.progressColor + '40' : 'rgba(0, 0, 0, 0.1)'
+                      }" 
+                      @click="goToProject(project)"
+                    >
+                      <div 
+                        class="progress-fill" 
+                        :style="{ 
+                          width: project.progress + '%',
+                          background: project.progress > 0 
+                            ? `linear-gradient(180deg, ${project.progressColor}E6 0%, ${project.progressColor}FF 100%)`
+                            : 'transparent'
+                        }"
+                      ></div>
                       <div class="bar-content">
                         <div class="project-name">{{ project.name }}</div>
-                        <div class="project-progress">{{ project.progress }}%</div>
+                        <div class="project-progress" :class="{ 'progress-zero': project.progress === 0 }">
+                          {{ project.progress }}%
+                        </div>
                       </div>
                     </div>
                     <div class="project-period" :style="{ left: project.style.left }">{{ formatProjectPeriod(project.startTime, project.endTime) }}</div>
@@ -445,12 +463,12 @@ export default {
       return `${Math.max(0, Math.min(100, position))}%`;
     },
     
-    // Today 라인 표시 여부
+    // Today 라인 표시 여부 (프로젝트)
     showTodayLine() {
-      if (this.pendingTasks.length === 0) return false;
+      if (this.myProjects.length === 0) return false;
       
       const today = new Date();
-      const range = this.getTaskDateRange();
+      const range = this.getProjectDateRange();
       
       return today >= range.start && today <= range.end;
     },
@@ -735,7 +753,8 @@ export default {
             return {
               ...project,
               style: this.calculateProjectStyle(startDate, endDate, now),
-              progressColor: this.getProjectColor(project.id)
+              backgroundColor: this.getProjectColor(project.id),
+              progressColor: this.getProjectColorStrong(project.id)
             };
           });
         }
@@ -902,9 +921,17 @@ export default {
         widthPercent
       });
       
+      // 마지막 라벨 위치에 맞춰 오른쪽 여백 조정 (라벨이 왼쪽으로 20px 이동했으므로)
+      // 컨테이너 너비 기준으로 약 5-8% 여백 (라벨 위치에 맞춤)
+      const rightMargin = 8; // 퍼센트 단위
+      const maxWidth = Math.min(100 - rightMargin, widthPercent);
+      // 오른쪽 끝에 닿지 않도록 조정
+      const adjustedLeftPercent = leftPercent;
+      const adjustedWidthPercent = Math.min(maxWidth, 100 - leftPercent - rightMargin);
+      
       return {
-        left: `${Math.max(0, leftPercent)}%`,
-        width: `${Math.min(100, widthPercent)}%`
+        left: `${Math.max(0, adjustedLeftPercent)}%`,
+        width: `${Math.max(0, Math.min(adjustedWidthPercent, 100 - leftPercent - rightMargin))}%`
       };
     },
     
@@ -1061,9 +1088,17 @@ export default {
       const leftPercent = (taskStartOffset / totalRangeDays) * 100;
       const widthPercent = (taskDuration / totalRangeDays) * 100;
       
+      // 마지막 라벨 위치에 맞춰 오른쪽 여백 조정 (라벨이 왼쪽으로 20px 이동했으므로)
+      // 컨테이너 너비 기준으로 약 5-8% 여백 (라벨 위치에 맞춤)
+      const rightMargin = 8; // 퍼센트 단위
+      const maxWidth = Math.min(100 - rightMargin, widthPercent);
+      // 오른쪽 끝에 닿지 않도록 조정
+      const adjustedLeftPercent = leftPercent;
+      const adjustedWidthPercent = Math.min(maxWidth, 100 - leftPercent - rightMargin);
+      
       return {
-        left: `${Math.max(0, leftPercent)}%`,
-        width: `${Math.min(100, widthPercent)}%`,
+        left: `${Math.max(0, adjustedLeftPercent)}%`,
+        width: `${Math.max(0, Math.min(adjustedWidthPercent, 100 - leftPercent - rightMargin))}%`,
         backgroundColor: this.getTaskColor(task.id)
       };
     },
@@ -1096,7 +1131,7 @@ export default {
       return lightColors[Math.abs(hash) % lightColors.length];
     },
     
-    // Project ID 기반 약간 진한 밝은 색상 생성
+    // Project ID 기반 색상 생성 (파란색 제외, 태스크처럼 다양하게)
     getProjectColor(projectId) {
       // projectId를 숫자로 변환 (해시 함수)
       let hash = 0;
@@ -1105,23 +1140,51 @@ export default {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
       }
       
-      // 약간 진한 파스텔 색상 팔레트
+      // 파란색 계열 제외한 다양한 색상 팔레트 (배경용 - 연한 색상)
       const lightColors = [
-        '#FFCCCB', // 약간 진한 핑크
-        '#FFD699', // 약간 진한 주황
-        '#FFF380', // 약간 진한 노랑
-        '#C0F0C0', // 약간 진한 민트
-        '#C0E4FF', // 약간 진한 하늘
-        '#D6D6F5', // 약간 진한 라벤더
-        '#FFCCE5', // 약간 진한 장미
-        '#FFE6CC', // 약간 진한 살구
-        '#D4EED4', // 약간 진한 초록
-        '#E8D5F0', // 약간 진한 보라
-        '#CCE9FF', // 약간 진한 파랑
-        '#FFF59D', // 약간 진한 레몬
+        '#FFE4E1', // 연한 핑크
+        '#FFE4B5', // 연한 주황
+        '#FFFACD', // 연한 노랑
+        '#E0FFE0', // 연한 민트
+        '#E6E6FA', // 연한 라벤더
+        '#FFE4F0', // 연한 장미
+        '#FFF4E6', // 연한 살구
+        '#E8F5E9', // 연한 초록
+        '#F3E5F5', // 연한 보라
+        '#FFF9C4', // 연한 레몬
+        '#F0E6FF', // 연한 라일락
+        '#FFE8E8', // 연한 코랄
       ];
       
       return lightColors[Math.abs(hash) % lightColors.length];
+    },
+    
+    // Project ID 기반 진한 색상 생성 (진행률 fill용)
+    getProjectColorStrong(projectId) {
+      // projectId를 숫자로 변환 (해시 함수)
+      let hash = 0;
+      const str = String(projectId);
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      
+      // 파란색 계열 제외한 다양한 색상 팔레트 (진행률용 - 진한 색상)
+      const strongColors = [
+        '#FF6B9D', // 진한 핑크
+        '#FF8C42', // 진한 주황
+        '#FFC947', // 진한 노랑
+        '#4ECDC4', // 진한 민트
+        '#9B6BFF', // 진한 라벤더
+        '#FFAB6B', // 진한 살구
+        '#66BB6A', // 진한 초록
+        '#AB47BC', // 진한 보라
+        '#FFD54F', // 진한 레몬
+        '#BA68C8', // 진한 라일락
+        '#FF8A80', // 진한 코랄
+        '#F06292', // 진한 로즈
+      ];
+      
+      return strongColors[Math.abs(hash) % strongColors.length];
     },
     
     // Task 기간 포맷팅
@@ -1673,7 +1736,7 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .gantt-header {
@@ -1681,8 +1744,9 @@ export default {
   height: auto;
   margin-bottom: 10px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #E0E0E0;
+  border-bottom: 1px solid var(--grid, #E5E7EB);
   overflow: visible;
+  z-index: 1;
 }
 
 .month-labels {
@@ -1692,8 +1756,13 @@ export default {
   font-weight: 700;
   font-size: 12px;
   line-height: 14px;
-  color: #666666;
+  color: var(--ink-2, #6B7280);
   padding-bottom: 6px;
+  padding-right: 8px; /* 오른쪽 여백 추가 */
+}
+
+.month-labels span:last-child {
+  transform: translateX(-20px); /* 마지막 라벨을 왼쪽으로 이동 */
 }
 
 .month-labels span {
@@ -1701,14 +1770,7 @@ export default {
 }
 
 .month-labels span::after {
-  content: '';
-  position: absolute;
-  bottom: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 1px;
-  height: 8px;
-  background: #E0E0E0;
+  display: none; /* 헤더의 세로선은 제거 (배경으로 처리) */
 }
 
 .today-line {
@@ -1729,15 +1791,16 @@ export default {
   transform: translateX(-50%);
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 10px;
-  line-height: 12px;
-  color: #FF4444;
-  background: #FFFFFF;
-  padding: 2px 6px;
-  border-radius: 3px;
+  font-size: 12px;
+  line-height: 14px;
+  color: #fff;
+  background: var(--warn, #F59E0B);
+  padding: 4px 8px;
+  border-radius: 8px;
   white-space: nowrap;
   z-index: 11;
   pointer-events: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .today-line::after {
@@ -1747,7 +1810,8 @@ export default {
   bottom: 0;
   left: 0;
   width: 2px;
-  border-left: 2px dashed rgba(255, 68, 68, 0.6);
+  border-left: 2px dashed var(--warn, #F59E0B);
+  opacity: 0.8;
 }
 
 .gantt-bars {
@@ -1756,8 +1820,15 @@ export default {
   min-height: 320px; /* 강제 상승 */
   max-height: 500px;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: hidden; /* 가로 스크롤바 제거 */
   z-index: 1;
+  background-color: #FFFFFF;
+  padding-right: 0;
+  padding-left: 8px;
+  padding-top: 8px;
+  padding-bottom: 0;
+  border-radius: 0 0 8px 8px;
+  margin-right: 0;
 }
 
 .gantt-bars::-webkit-scrollbar {
@@ -1787,21 +1858,25 @@ export default {
 
 .gantt-bar {
   position: absolute;
-  height: 30px;
-  border-radius: 8px;
+  height: 32px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   padding: 0 16px;
   z-index: 2;
-  background: #E9ECEF;
+  background: linear-gradient(180deg, var(--gantt-bar-bg, #F3F4F6) 0%, rgba(243, 244, 246, 0.9) 100%);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .gantt-bar:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow, 0 6px 20px rgba(0,0,0,.08));
+  filter: brightness(1.05);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 .progress-fill {
@@ -1809,15 +1884,17 @@ export default {
   left: 0;
   top: 0;
   height: 100%;
-  border-radius: 8px;
-  transition: width 0.3s ease, background-color 0.3s ease;
+  border-radius: 10px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
   z-index: 1;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3);
 }
 
 .bar-content {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
   width: 100%;
   position: relative;
   z-index: 2;
@@ -1826,14 +1903,15 @@ export default {
 
 .project-name {
   font-family: 'Pretendard', sans-serif;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 13px;
   line-height: 16px;
-  color: #2A2828;
+  color: var(--ink-1, #111827);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
 .project-period {
@@ -1850,9 +1928,24 @@ export default {
 .project-progress {
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 16px;
-  color: #000000;
+  color: var(--ink-1, #111827);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.project-progress.progress-zero {
+  background: rgba(243, 244, 246, 0.9);
+  color: var(--ink-muted, #9CA3AF);
+  border-color: rgba(0, 0, 0, 0.08);
+  font-weight: 600;
 }
 
 /* 채팅 카드 */
@@ -2273,6 +2366,7 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding-right: 0;
 }
 
 .task-timeline-wrapper::-webkit-scrollbar {
@@ -2299,7 +2393,7 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden; /* 섹션 하단까지만 표시, 넘치는 오늘선 클립 */
+  overflow: visible; /* Today 라인이 끝까지 보이도록 */
 }
 
 /* Task 타임라인 헤더 */
@@ -2307,7 +2401,9 @@ export default {
   position: relative;
   margin-bottom: 10px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #E0E0E0;
+  border-bottom: 1px solid var(--grid, #E5E7EB);
+  overflow: visible;
+  z-index: 1;
 }
 
 .task-timeline-labels {
@@ -2317,7 +2413,12 @@ export default {
   font-weight: 700;
   font-size: 12px;
   line-height: 14px;
-  color: #666666;
+  color: var(--ink-2, #6B7280);
+  padding-right: 8px; /* 오른쪽 여백 추가 */
+}
+
+.task-timeline-labels .task-label:last-child {
+  transform: translateX(-20px); /* 마지막 라벨을 왼쪽으로 이동 */
 }
 
 .task-label {
@@ -2325,14 +2426,7 @@ export default {
 }
 
 .task-label::after {
-  content: '';
-  position: absolute;
-  bottom: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 1px;
-  height: 8px;
-  background: #E0E0E0;
+  display: none; /* 헤더의 세로선은 제거 (배경으로 처리) */
 }
 
 .task-today-line {
@@ -2353,15 +2447,16 @@ export default {
   transform: translateX(-50%);
   font-family: 'Pretendard', sans-serif;
   font-weight: 700;
-  font-size: 10px;
-  line-height: 12px;
-  color: #FF4444;
-  background: #FFFFFF;
-  padding: 2px 6px;
-  border-radius: 3px;
+  font-size: 12px;
+  line-height: 14px;
+  color: #fff;
+  background: var(--warn, #F59E0B);
+  padding: 4px 8px;
+  border-radius: 8px;
   white-space: nowrap;
   z-index: 11;
   pointer-events: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .task-today-line::after {
@@ -2371,7 +2466,8 @@ export default {
   bottom: 0;
   left: 0;
   width: 2px;
-  border-left: 2px dashed rgba(255, 68, 68, 0.6);
+  border-left: 2px dashed var(--warn, #F59E0B);
+  opacity: 0.8;
 }
 
 /* Task 바들 영역 */
@@ -2380,6 +2476,56 @@ export default {
   flex: 1;
   min-height: 0; /* 동적 높이로 대체 */
   z-index: 1;
+  background-color: #FFFFFF;
+  padding: 8px;
+  padding-right: 0;
+  padding-bottom: 0;
+  padding-left: 8px;
+  padding-top: 8px;
+  border-radius: 0 0 8px 8px;
+  overflow-y: auto;
+  overflow-x: hidden; /* 가로 스크롤바 제거 */
+  margin-right: 0;
+}
+
+.task-timeline-bars::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.task-timeline-bars::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.task-timeline-bars::-webkit-scrollbar-track {
+  background: transparent !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+.task-timeline-bars::-webkit-scrollbar-thumb {
+  background: #D0D0D0 !important;
+  border-radius: 3px !important;
+  transition: background 0.2s ease;
+  border: none !important;
+}
+
+.task-timeline-bars::-webkit-scrollbar-thumb:hover {
+  background: #B0B0B0 !important;
+}
+
+.task-timeline-bars::-webkit-scrollbar-corner {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Firefox 스크롤바 */
+.task-timeline-bars {
+  scrollbar-width: thin;
+  scrollbar-color: #D0D0D0 transparent;
 }
 
 .task-bar-wrapper {
@@ -2415,12 +2561,14 @@ export default {
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   min-width: 60px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--brand-chart, #5BA8FF);
 }
 
 .task-bar:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow, 0 6px 20px rgba(0,0,0,.06));
+  filter: brightness(1.1);
 }
 
 .task-bar-content {
