@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
-import axios from "axios";
+import http from "@/utils/http";
 // @ts-ignore
 import CalendarBase from "@/components/CalendarBase.vue";
 // @ts-ignore
@@ -158,7 +158,7 @@ async function loadExistingParticipants(stoneId) {
   try {
     const userId = localStorage.getItem('id');
     
-    const response = await axios.get(
+    const response = await http.get(
       `/workspace-service/stone/${stoneId}`,
       {
         headers: {
@@ -179,7 +179,7 @@ async function loadExistingParticipants(stoneId) {
           // 이메일이 없으면 사용자 정보 조회
           if (!email && participant.userId) {
             try {
-              const userResponse = await axios.get(
+              const userResponse = await http.get(
                 `/user-service/user/${participant.userId}`,
                 {
                   headers: {
@@ -221,7 +221,7 @@ async function loadUserGroupList() {
   try {
     const userId = localStorage.getItem('id');
     
-    const response = await axios.get(
+    const response = await http.get(
       `/workspace-service/groups?workspaceId=${workspaceId.value}`,
       {
         headers: {
@@ -256,7 +256,7 @@ async function loadGroupMembers() {
       return;
     }
     
-    const response = await axios.get(
+    const response = await http.get(
       `/workspace-service/groups/${selectedGroupItem.groupId}`,
       {
         headers: {
@@ -303,7 +303,7 @@ async function loadGroupMembersForSelection() {
       return;
     }
     
-    const response = await axios.get(
+    const response = await http.get(
       `/workspace-service/groups/${selectedGroupItem.groupId}`,
       {
         headers: {
@@ -356,7 +356,7 @@ async function searchUsers() {
     isParticipantSearching.value = true;
     const userId = localStorage.getItem('id');
     
-    const response = await axios.post(
+    const response = await http.post(
       `/workspace-service/workspace/participants/search`,
       {
         workspaceId: workspaceId.value,
@@ -415,7 +415,7 @@ async function loadUserEmail(user) {
   
   try {
     const userId = localStorage.getItem('id');
-    const response = await axios.get(
+    const response = await http.get(
       `/user-service/user/${user.id}`,
       {
         headers: {
@@ -498,7 +498,7 @@ async function confirmUserSelection() {
     const stoneId = selectedStoneForParticipants.value.stoneId || selectedStoneForParticipants.value.id;
     const participantIds = allSelectedUsers.value.map(p => p.id);
     
-    const response = await axios.patch(
+    const response = await http.patch(
       `/workspace-service/stone/participant/join`,
       {
         stoneId: stoneId,
@@ -614,11 +614,15 @@ async function openStoneModal(eventData) {
       
       showModal.value = true;
     } else {
-      alert(response.statusMessage || '스톤 정보를 불러오는데 실패했습니다.');
+      // alert(response.statusMessage || '스톤 정보를 불러오는데 실패했습니다.');
+      showSnackbar(response.statusMessage || '스톤 정보를 불러오는데 실패했습니다.', { color: 'error', timeout: 5000 });
+
     }
   } catch (error) {
     const errorMessage = error.message || '스톤 정보를 불러오는데 실패했습니다.';
-    alert(errorMessage);
+    // alert(errorMessage);
+    showSnackbar(errorMessage, { color: 'error', timeout: 5000 });
+
   } finally {
     isLoadingStoneDetail.value = false;
   }
@@ -638,10 +642,10 @@ const fetchEvents = async () => {
     const userId = localStorage.getItem("id");
 
     const [stoneRes, taskRes] = await Promise.all([
-      axios.get(`/workspace-service/workspace/${workspaceId.value}/my-stones`, {
+      http.get(`/workspace-service/workspace/${workspaceId.value}/my-stones`, {
         headers: { "X-User-Id": userId },
       }),
-      axios.get(`/workspace-service/workspace/${workspaceId.value}/my-tasks`, {
+      http.get(`/workspace-service/workspace/${workspaceId.value}/my-tasks`, {
         headers: { "X-User-Id": userId },
       }),
     ]);

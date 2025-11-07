@@ -4,7 +4,7 @@ const todoApi = {
   /** todo 조회 */
   fetchTodos(workspaceId) {
     const userId = localStorage.getItem("id");
-    return http.get(`user-service/todo/${workspaceId}`, {
+    return http.get(`/user-service/todo/${workspaceId}`, {
       headers: { "X-User-Id": userId },
     });
   },
@@ -12,7 +12,7 @@ const todoApi = {
   /** todo 등록 */
   createTodo(data) {
     const userId = localStorage.getItem("id");
-    return http.post(`user-service/todo`, data, {
+    return http.post(`/user-service/todo`, data, {
       headers: { "X-User-Id": userId },
     });
   },
@@ -21,13 +21,9 @@ const todoApi = {
   toggleComplete(todoId, done) {
     const userId = localStorage.getItem("id");
     const endpoint = done ? "completion" : "incompletion";
-    return http.put(
-      `user-service/todo/${endpoint}/${todoId}`,
-      {},
-      {
-        headers: { "X-User-Id": userId },
-      }
-    );
+    return http.put(`/user-service/todo/${endpoint}/${todoId}`, {}, {
+      headers: { "X-User-Id": userId },
+    });
   },
 };
 
