@@ -190,8 +190,9 @@ export default {
     // 권한 그룹의 기존 멤버 로드
     async loadExistingMembers() {
       try {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/access/group-detail/${this.permissionGroupId}`,
+          `${baseURL}/workspace-service/access/group-detail/${this.permissionGroupId}`,
           {
             headers: {
               'X-User-Id': localStorage.getItem('userId'),
@@ -221,8 +222,9 @@ export default {
     async loadUserGroups() {
       try {
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId;
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/groups?workspaceId=${workspaceId}`,
+          `${baseURL}/workspace-service/groups?workspaceId=${workspaceId}`,
           {
             headers: {
               'X-User-Id': localStorage.getItem('userId'),
@@ -251,8 +253,9 @@ export default {
     // 개별 사용자 목록 로드 (권한그룹 미소속 사용자)
     async loadIndividualUsers() {
       try {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.post(
-          'http://localhost:8080/workspace-service/workspace/participants/search',
+          `${baseURL}/workspace-service/workspace/participants/search`,
           {
             workspaceId: this.workspaceStore.getCurrentWorkspaceId,
             searchKeyword: ""
@@ -287,8 +290,9 @@ export default {
     // 개별 사용자 검색
     async searchIndividualUsers() {
       try {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.post(
-          'http://localhost:8080/workspace-service/workspace/participants/search',
+          `${baseURL}/workspace-service/workspace/participants/search`,
           {
             workspaceId: this.workspaceStore.getCurrentWorkspaceId,
             searchKeyword: this.individualSearchQuery.trim()
@@ -329,8 +333,9 @@ export default {
       }
       
       try {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.post(
-          'http://localhost:8080/workspace-service/groups/search',
+          `${baseURL}/workspace-service/groups/search`,
           {
             workspaceId: this.workspaceStore.getCurrentWorkspaceId,
             groupName: this.groupSearchQuery.trim()
@@ -369,8 +374,9 @@ export default {
       
       try {
         // 그룹 상세 조회 API 호출
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/groups/${group.groupId}`,
+          `${baseURL}/workspace-service/groups/${group.groupId}`,
           {
             headers: {
               'X-User-Id': localStorage.getItem('userId'),
@@ -439,10 +445,11 @@ export default {
       try {
         // 선택된 사용자들의 userId 리스트 생성
         const userIdList = this.selectedUsers.map(user => user.userId);
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         // 백엔드 API 호출
         const response = await axios.patch(
-          `http://localhost:8080/workspace-service/access/${this.permissionGroupId}/users`,
+          `${baseURL}/workspace-service/access/${this.permissionGroupId}/users`,
           {
             userIdList: userIdList
           },

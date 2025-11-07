@@ -237,7 +237,7 @@ export default {
   methods: {
     async fetchWorkspaceUnreadCount(){
       try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const storeWs = this.workspaceStore.getCurrentWorkspace?.workspaceId;
         const lsWs = localStorage.getItem('selectedWorkspaceId');
         const workspaceId = storeWs || lsWs;
@@ -253,7 +253,8 @@ export default {
         const userId = localStorage.getItem('id') || 'user123';
         console.log('현재 사용자 ID:', userId);
         
-        const response = await axios.get('http://localhost:8080/workspace-service/workspace', {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const response = await axios.get(`${baseURL}/workspace-service/workspace`, {
           headers: {
             'X-User-Id': userId
           }
@@ -392,7 +393,7 @@ export default {
 
         // 1. 워크스페이스 API - maxStorage 가져오기
         const workspaceResponse = await axios.get(
-          `http://localhost:8080/workspace-service/workspace/${currentWorkspace.workspaceId}`,
+          `${import.meta.env.VITE_API_BASE_URL}/workspace-service/workspace/${currentWorkspace.workspaceId}`,
           {
             headers: {
               'X-User-Id': userId,
@@ -467,7 +468,7 @@ export default {
         const userId = localStorage.getItem('id') || 'user123';
         
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/project/${currentWorkspace.workspaceId}`,
+          `${import.meta.env.VITE_API_BASE_URL}/workspace-service/project/${currentWorkspace.workspaceId}`,
           {
             headers: {
               'X-User-Id': userId

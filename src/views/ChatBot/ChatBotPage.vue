@@ -107,7 +107,7 @@ async function handleSend() {
   scrollToBottom();
   isLoading.value = true;
   try {
-    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
     const body = { workspaceId: selectedWorkspaceId, content: text };
     const { data } = await axios.post(`${baseURL}/workspace-service/chatbot/message`, body, {
       headers: { 'Content-Type': 'application/json' }
@@ -152,7 +152,7 @@ async function showGuide(){
 onMounted(loadHistory);
 async function loadHistory() {
   try {
-    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
     const { data } = await axios.get(`${baseURL}/workspace-service/chatbot/workspaces/${selectedWorkspaceId}/chat/messages`);
     const list = Array.isArray(data?.result) ? data.result : [];
     const mapped = list.map(item => ({

@@ -185,7 +185,7 @@ export default {
       this.showCreateModal = false;
     },
     async onCalendarModalSave(form){
-      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+      const baseURL = import.meta.env.VITE_API_BASE_URL;
       const workspaceId = localStorage.getItem('selectedWorkspaceId') || 'ws_1';
       try {
         if (form.calendarType === 'ToDo' || form.calendarType === 'TODO') {

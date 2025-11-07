@@ -748,7 +748,8 @@ const remoteSelectionHighlights = computed(() => {
 // 온라인 사용자 목록 가져오기
 const fetchOnlineUsers = async () => {
   try {
-    const response = await axios.get(`http://localhost:8080/drive-service/documentLine/document/${props.documentId}/online-users`);
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
+    const response = await axios.get(`${baseURL}/drive-service/documentLine/document/${props.documentId}/online-users`);
     if (response.data && response.data.result) {
       onlineUsers.value = response.data.result.map(user => ({
         userId: user.userId,

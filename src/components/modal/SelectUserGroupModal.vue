@@ -117,9 +117,10 @@ const loadGroupList = async () => {
   try {
     const userId = localStorage.getItem('id');
     const workspaceId = props.workspaceId || localStorage.getItem('selectedWorkspaceId');
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
     
     const response = await axios.get(
-      `http://localhost:8080/workspace-service/groups?workspaceId=${workspaceId}`,
+      `${baseURL}/workspace-service/groups?workspaceId=${workspaceId}`,
       {
         headers: {
           'X-User-Id': userId
@@ -154,8 +155,9 @@ const searchGroups = async () => {
     const userId = localStorage.getItem('id');
     const workspaceId = props.workspaceId || localStorage.getItem('selectedWorkspaceId');
     
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
     const response = await axios.post(
-      `http://localhost:8080/workspace-service/groups/search`,
+      `${baseURL}/workspace-service/groups/search`,
       {
         workspaceId: workspaceId,
         groupName: keyword.value.trim()

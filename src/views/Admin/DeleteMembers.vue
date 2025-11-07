@@ -159,9 +159,10 @@ export default {
         const lsUserEmailRaw = localStorage.getItem('email') || localStorage.getItem('userEmail') || '';
 
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || localStorage.getItem('selectedWorkspaceId') || 'ws_1';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.post(
-          'http://localhost:8080/workspace-service/workspace/participants/search',
+          `${baseURL}/workspace-service/workspace/participants/search`,
           { 
             workspaceId: workspaceId,
             searchKeyword: keyword 
@@ -273,7 +274,8 @@ export default {
           .map(u => u.userId)
           .filter(Boolean);
         
-        const deleteUrl = `http://localhost:8080/workspace-service/workspace/${workspaceId}/participants`;
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const deleteUrl = `${baseURL}/workspace-service/workspace/${workspaceId}/participants`;
         
         const requestData = {
           userIdList: userIdList

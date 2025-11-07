@@ -214,13 +214,10 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
                 return `${month}월 ${day}일`;
             },
             async createChatRoom() {
-                // const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-                // await axios.post(`${baseURL}/chat/room/group/create?roomName=${this.newRoomTitle}`, null);
-                // this.showCreateRoomModal = false;
-                // this.loadChatRooms();
+                // TODO: 채팅방 생성 기능 구현
             },
             async loadChatRooms() {
-                const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                const baseURL = import.meta.env.VITE_API_BASE_URL;
                 const response = await axios.get(`${baseURL}/chat-service/chat/room/list/ws_1`);
                 this.chatRoomList = response.data.result;
             }

@@ -498,8 +498,9 @@ export default {
         const userId = localStorage.getItem('userId') || 'user123'; // 실제 사용자 ID로 교체 필요
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_1';
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/access/group-list/${workspaceId}`,
+          `${baseURL}/workspace-service/access/group-list/${workspaceId}`,
           {
             headers: {
               'X-User-Id': userId,
@@ -570,9 +571,10 @@ export default {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId') || 'user123';
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_2';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/workspace/${workspaceId}`,
+          `${baseURL}/workspace-service/workspace/${workspaceId}`,
           {
             headers: {
               'X-User-Id': userId,
@@ -738,8 +740,9 @@ export default {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId') || 'user123';
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.delete(
-          `http://localhost:8080/workspace-service/access/${this.selectedGroupForDelete.accessGroupId}/delete`,
+          `${baseURL}/workspace-service/access/${this.selectedGroupForDelete.accessGroupId}/delete`,
           {
             headers: {
               'X-User-Id': userId,
@@ -853,9 +856,10 @@ export default {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId') || 'user123';
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_2';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.patch(
-          `http://localhost:8080/workspace-service/workspace/${workspaceId}/name`,
+          `${baseURL}/workspace-service/workspace/${workspaceId}/name`,
           { workspaceName: newName },
           {
             headers: {
@@ -910,9 +914,10 @@ export default {
       try {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId') || localStorage.getItem('id');
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.delete(
-          `http://localhost:8080/workspace-service/workspace/${workspaceData.workspaceId}`,
+          `${baseURL}/workspace-service/workspace/${workspaceData.workspaceId}`,
           {
             headers: {
               'X-User-Id': userId,
@@ -978,7 +983,8 @@ export default {
         console.log('현재 워크스페이스 정보:', this.workspaceStore.getCurrentWorkspace);
         
         // GET 방식으로 사용자 그룹 목록 조회
-        const url = `http://localhost:8080/workspace-service/groups?workspaceId=${workspaceId}`;
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const url = `${baseURL}/workspace-service/groups?workspaceId=${workspaceId}`;
         console.log('API 요청 URL:', url);
         
         const response = await axios.get(url, {
@@ -1060,9 +1066,10 @@ export default {
         const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         const userId = localStorage.getItem('userId') || localStorage.getItem('id');
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId;
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.post(
-          'http://localhost:8080/workspace-service/groups/search',
+          `${baseURL}/workspace-service/groups/search`,
           {
             workspaceId: workspaceId,
             groupName: this.groupSearchQuery.trim()
@@ -1106,9 +1113,10 @@ export default {
         try {
           const token = localStorage.getItem('token');
           const userId = localStorage.getItem('userId') || localStorage.getItem('id');
+          const baseURL = import.meta.env.VITE_API_BASE_URL;
           
           const response = await axios.put(
-            `http://localhost:8080/workspace-service/groups/${group.id}`,
+            `${baseURL}/workspace-service/groups/${group.id}`,
             {
               groupName: newName.trim()
             },
@@ -1159,9 +1167,10 @@ export default {
         
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId') || localStorage.getItem('id');
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.delete(
-          `http://localhost:8080/workspace-service/groups/${this.selectedUserGroupForDelete.id}`,
+          `${baseURL}/workspace-service/groups/${this.selectedUserGroupForDelete.id}`,
           {
             headers: {
               'X-User-Id': userId,
@@ -1214,9 +1223,10 @@ export default {
       try {
         const token = localStorage.getItem('accessToken');
         const userId = localStorage.getItem('userId');
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.post(
-          `http://localhost:8080/workspace-service/groups/${groupId}/grouping`,
+          `${baseURL}/workspace-service/groups/${groupId}/grouping`,
           {
             userIdList: userIdList
           },
@@ -1264,9 +1274,10 @@ export default {
         const userId = localStorage.getItem('userId') || 'user123';
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_2';
         console.log('워크스페이스 ID:', workspaceId);
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/workspace/admin/tree/${workspaceId}`,
+          `${baseURL}/workspace-service/workspace/admin/tree/${workspaceId}`,
           {
             headers: {
               'X-User-Id': userId,
@@ -1411,9 +1422,10 @@ export default {
         const userId = localStorage.getItem('userId') || 'user123';
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_2';
         console.log('워크스페이스 ID:', workspaceId);
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/workspace/admin/${workspaceId}`,
+          `${baseURL}/workspace-service/workspace/admin/${workspaceId}`,
           {
             headers: {
               'X-User-Id': userId,
@@ -1478,9 +1490,10 @@ export default {
         const userId = localStorage.getItem('userId') || 'user123';
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_2';
         console.log('워크스페이스 ID:', workspaceId);
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/workspace/admin/group-progress/${workspaceId}`,
+          `${baseURL}/workspace-service/workspace/admin/group-progress/${workspaceId}`,
           {
             headers: {
               'X-User-Id': userId,

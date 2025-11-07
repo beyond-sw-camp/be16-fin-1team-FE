@@ -1022,7 +1022,7 @@ export default {
       this.summaryDialogText = '';
       
       try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         console.log('[summary] request roomId=', room?.roomId);
         const { data } = await axios.get(`${baseURL}/workspace-service/chatbot/message/chat-room/${room.roomId}`);
         console.log('[summary] response data=', data);
@@ -1366,7 +1366,7 @@ export default {
     // 채팅방 목록 로드
     async loadChatRooms() {
       try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const workspaceId = localStorage.getItem('selectedWorkspaceId') || 'ws_1';
         const response = await axios.get(`${baseURL}/chat-service/chat/room/list/${workspaceId}`);
         this.chatRooms = response.data.result || [];
@@ -1497,8 +1497,6 @@ export default {
     async uploadFilesToFolder(folderId, files) {
       console.log('[DnD] 파일 업로드:', { folderId, files });
       // TODO: API 호출
-      // const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-      // await axios.post(`${baseURL}/drive/upload`, { folderId, files });
     },
     
     // 폴더 새로고침 (TODO: 실제 API 연결)

@@ -27,9 +27,10 @@ export const connectStomp = (documentId, userId, onMessageCallback, onConnectCal
     }
   }
   
+  const baseURL = import.meta.env.VITE_API_BASE_URL;
   client = new Client({
     webSocketFactory: () => {
-      return new SockJS('http://localhost:8080/drive-service/ws/editor');
+      return new SockJS(`${baseURL}/drive-service/ws/editor`);
     },
     reconnectDelay: 5000,
     debug: (str) => {
