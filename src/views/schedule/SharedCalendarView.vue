@@ -151,17 +151,17 @@ import ManageSubscriptionModal from "@/components/modal/ManageSubscriptionModal.
 
 // ✅ 유저별 색상 팔레트 (프로젝트 캘린더와 유사한 색상)
 const userColorPalette = [
-  "#9B6BFF", // 보라색
-  "#4C9AFF", // 파란색
-  "#FF5A8A", // 핑크색
   "#FFD93D", // 노란색
   "#6ECB63", // 초록색
+  "#FF5A8A", // 핑크색
+  "#9B6BFF", // 보라색
+  "#4C9AFF", // 파란색
+  "#34D399", // 민트색
   "#FF9F68", // 주황색
   "#A78BFA", // 연보라색
   "#FF4B4B", // 코랄색
   "#F472B6", // 연핑크색
   "#FBBF24", // 연노란색
-  "#34D399", // 민트색
   "#FB923C", // 연주황색
   "#C084FC", // 라벤더색
   "#3B82F6", // 진파란색
@@ -329,13 +329,24 @@ function processMultiDayEvent(startTime, endTime, baseEvent) {
   const isFullDay = (startHour === 0 && startMin === 0 && startSec === 0) && 
                     ((endHour === 23 && endMin === 59) || (endHour === 0 && endMin === 0 && endSec === 0));
   
-  // 멀티데이 이벤트를 하나의 이벤트로 유지 (FullCalendar가 자동으로 연속된 바로 표시)
-  // 시간 정보는 유지되며, 주/일 뷰에서 시간대로 표시됨
+  // // 멀티데이 이벤트를 하나의 이벤트로 유지 (FullCalendar가 자동으로 연속된 바로 표시)
+  // // 시간 정보는 유지되며, 주/일 뷰에서 시간대로 표시됨
+  // return [{
+  //   ...baseEvent,
+  //   start: startTime,
+  //   end: endTime,
+  //   allDay: isFullDay && isSameDay, // 같은 날이고 하루 종일이면 allDay, 아니면 시간대로 표시
+  // }];
+
+  // 월뷰(dayGridMonth)에서는 같은 날짜면 allDay로 강제해서 '채워진 카드'로 렌더
+  const forceAllDayForMonth =
+  (window?.FullCalendar?.Calendar && (calendar?.view?.type === 'dayGridMonth')) && isSameDay;
+
   return [{
     ...baseEvent,
     start: startTime,
     end: endTime,
-    allDay: isFullDay && isSameDay, // 같은 날이고 하루 종일이면 allDay, 아니면 시간대로 표시
+    allDay: forceAllDayForMonth ? true : (isFullDay && isSameDay),
   }];
 }
 
@@ -378,36 +389,29 @@ const fetchSharedData = async () => {
       // ✅ 유저별 고정 색상 할당
       const userColor = getColorForUserId(s.targetUserId);
       
+      const userEventsList = [];
+      (s.sharedCalendars || []).forEach((ev) => {
+        const baseEvent = {
+          id: ev.calendarId,
+          title: `[${s.targetUserName}] ${ev.calendarName}`,
+          color: "#FFFFFF", // 텍스트 색상: 흰색
+          backgroundColor: hexToRgba(userColor, EVENT_BACKGROUND_OPACITY),
+          // 테두리 없음 (구독 유저 일정)
+          type: s.targetUserId,
+        };
+        
+        // 멀티데이 이벤트 처리 (연속된 바로 표시되도록, 시간 정보 유지)
+        const processedEvents = processMultiDayEvent(ev.startedAt, ev.endedAt, baseEvent);
+        userEventsList.push(...processedEvents);
+      });
+      
       return {
         subscriptionId: s.id,
         targetUserId: s.targetUserId,
         targetUserName: s.targetUserName,
         visible: true,
         color: userColor, // 사이드바 표시용 색상
-        events: (s.sharedCalendars || []).map((ev) => {
-          const startDate = new Date(ev.startedAt);
-          const endDate = new Date(ev.endedAt);
-          startDate.setHours(0, 0, 0, 0);
-          endDate.setHours(0, 0, 0, 0);
-          const isSingleDay = startDate.getTime() === endDate.getTime();
-          
-          const eventData = {
-            id: ev.calendarId,
-            title: `[${s.targetUserName}] ${ev.calendarName}`,
-            start: ev.startedAt,
-            color: "#FFFFFF", // 텍스트 색상: 흰색
-            backgroundColor: hexToRgba(userColor, EVENT_BACKGROUND_OPACITY),
-            // 테두리 없음 (구독 유저 일정)
-            type: s.targetUserId,
-            allDay: true,
-          };
-          
-          if (!isSingleDay) {
-            eventData.end = ev.endedAt;
-          }
-          
-          return eventData;
-        }),
+        events: userEventsList,
       };
     });
 
@@ -464,10 +468,11 @@ const renderCalendar = () => {
 
   calendar = new FC.Calendar(calendarEl.value, {
     initialView: viewType.value,
+    eventDisplay: 'block',
     height: "auto",
     displayEventTime: false,
     headerToolbar: false,
-    // ✅ 1일짜리 이벤트도 항상 표시되도록 설정
+    // 1일짜리 이벤트도 항상 표시되도록 설정
     dayMaxEvents: false,
     moreLinkClick: 'popover',
     events: visibleEvents,
