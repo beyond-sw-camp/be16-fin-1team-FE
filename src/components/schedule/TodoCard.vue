@@ -425,6 +425,22 @@ const deleteTodo = async () => {
   color: #666;
   margin-bottom: 12px;
   font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* 빈 상태 메시지 */
+.empty {
+  color: #888;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  margin-top: 50px;
 }
 
 /* To-Do 리스트 */

@@ -85,8 +85,8 @@
         <div class="gantt-timeline">
           <!-- 날짜 헤더 -->
           <div class="timeline-header" :style="{ width: timelineWidth + 'px' }">
-            <!-- 월 헤더 (월/주 모드에서만 표시) -->
-            <div v-if="viewMode !== 'day'" class="month-row">
+            <!-- 월 헤더 (모든 모드에서 표시) -->
+            <div class="month-row">
               <div 
                 v-for="(m, i) in visibleMonths" 
                 :key="'m-' + m.key"
@@ -100,8 +100,8 @@
                 {{ m.label }}
               </div>
             </div>
-            <!-- 일/주 헤더 -->
-            <div class="day-row" :style="{ marginTop: viewMode === 'day' ? '0' : '0' }">
+            <!-- 일/주 헤더 (월 모드에서는 표시하지 않음) -->
+            <div v-if="viewMode !== 'month'" class="day-row" :style="{ marginTop: viewMode === 'day' ? '0' : '0' }">
               <div 
                 v-for="d in visibleDays" 
                 :key="'d-' + d.key"
@@ -423,7 +423,7 @@ const pxPerDayBaseByMode = computed(() => {
     case 'day': return 60;
     case 'week': return 25;
     case 'month':
-    default: return 40;
+    default: return 15; // 월 모드는 가로폭을 줄여서 한 눈에 볼 수 있도록
   }
 });
 
@@ -434,15 +434,13 @@ const bodyHeight = computed(() => flat.value.length * rowHeight);
 
 /* ===== Axis ===== */
 const visibleMonths = computed(() => {
-  if (viewMode.value === 'day' || !flat.value.length) return [];
+  if (!flat.value.length) return [];
   const arr = [];
   const start0 = new Date(minStart.value);
   start0.setDate(1);
   let cursor = start0;
   while (cursor <= maxEnd.value) {
-    const label = viewMode.value === 'week' 
-      ? `${cursor.getFullYear()}.${String(cursor.getMonth() + 1).padStart(2, "0")}`
-      : `${cursor.getFullYear()}.${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+    const label = `${cursor.getFullYear()}.${String(cursor.getMonth() + 1).padStart(2, "0")}`;
     const start = new Date(cursor);
     // 해당 월의 마지막 날과 maxEnd 중 작은 값으로 설정
     const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
@@ -464,6 +462,9 @@ const visibleMonths = computed(() => {
 
 const visibleDays = computed(() => {
   if (!flat.value.length) return [];
+  // 월 모드에서는 일 헤더를 표시하지 않음
+  if (viewMode.value === 'month') return [];
+  
   const arr = [];
   const d = new Date(minStart.value);
   const today = new Date();

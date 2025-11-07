@@ -191,7 +191,7 @@ export default {
       try {
         const id = localStorage.getItem('id');
         if (!id) return;
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const { data } = await axios.get(`${baseURL}/user-service/user/${id}`);
         this.userInfo = data?.result || this.userInfo;
       } catch (_) {}
@@ -206,7 +206,7 @@ export default {
     async logout() {
       this.userMenu = false;
       try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const accessToken = localStorage.getItem('accessToken');
         const headers = { 'Content-Type': 'application/json' };
         if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
@@ -226,7 +226,7 @@ export default {
     async loadNotifications() {
       try {
         this.notifLoading = true;
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const accessToken = localStorage.getItem('accessToken');
         const headers = { 'Content-Type': 'application/json' };
         if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
@@ -244,7 +244,7 @@ export default {
       // optimistic remove
       const removed = this.notifList.splice(index, 1);
       try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const accessToken = localStorage.getItem('accessToken');
         const headers = { 'Content-Type': 'application/json' };
         if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;

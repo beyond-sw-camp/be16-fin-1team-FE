@@ -205,8 +205,14 @@ async function confirmDelete() {
 .empty {
   color: #888;
   font-size: 14px;
+  font-weight: 500;
   text-align: center;
-  line-height: 180px; /* 🔹 빈 상태일 때도 동일한 높이 유지 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  margin-top: 100px;
 }
 
 /* ✅ 리스트 내부 */

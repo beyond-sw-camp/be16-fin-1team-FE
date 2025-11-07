@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 /**
  * 프로젝트 사람 중심 개요 조회 API

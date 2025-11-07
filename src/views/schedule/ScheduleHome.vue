@@ -331,7 +331,14 @@ function prevMs() {
 .empty {
   color: #888;
   font-weight: 500;
-  font-size: 15px;
+  font-size: 14px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 40px;
 }
 
 /* 마일스톤 헤더 */
@@ -499,6 +506,9 @@ function prevMs() {
   overflow-y: auto; /* ✅ 내부 스크롤 */
   padding-right: 6px;
   margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* 스크롤바 커스터마이징 (Chrome 기준) */
@@ -573,10 +583,16 @@ function prevMs() {
 }
 
 /* 빈 상태 */
-.empty {
+.schedule-scroll .empty {
   color: #888;
   font-size: 14px;
+  font-weight: 500;
   text-align: center;
-  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 50px;
 }
 </style>

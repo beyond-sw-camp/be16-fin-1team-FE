@@ -748,7 +748,8 @@ const remoteSelectionHighlights = computed(() => {
 // 온라인 사용자 목록 가져오기
 const fetchOnlineUsers = async () => {
   try {
-    const response = await axios.get(`http://localhost:8080/drive-service/documentLine/document/${props.documentId}/online-users`);
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
+    const response = await axios.get(`${baseURL}/drive-service/documentLine/document/${props.documentId}/online-users`);
     if (response.data && response.data.result) {
       onlineUsers.value = response.data.result.map(user => ({
         userId: user.userId,
@@ -908,6 +909,8 @@ onMounted(async () => {
     extensions: [
       StarterKit.configure({
         // Bold와 Italic이 제대로 작동하도록 명시적으로 활성화
+        bulletList: false,
+        orderedList: false,
       }),
       UniqueIdExtension,
       TextAlign.configure({

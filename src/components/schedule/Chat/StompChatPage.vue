@@ -91,9 +91,15 @@
                             </div>
                             <div v-if="selectedFiles && selectedFiles.length" class="attach-preview">
                                 <div v-for="(file, i) in selectedFiles" :key="i" class="preview-item">
-                                    <div class="thumb-wrap">
-                                        <img v-if="isImage(file?.name || file?.type) && selectedPreviewUrls[i]" :src="selectedPreviewUrls[i]" alt="preview" class="thumb" />
-                                        <div v-else class="file-chip">{{ file?.name || '파일' }}</div>
+                                    <div class="preview-wrap">
+                                        <div class="preview-icon">
+                                            <img v-if="isImage(file?.name || file?.type) && selectedPreviewUrls[i]" :src="selectedPreviewUrls[i]" alt="preview" class="preview-thumb" />
+                                            <v-icon v-else :icon="getFileIcon(file?.name || file?.type)" size="32" :color="getFileIconColor(file?.name || file?.type)"></v-icon>
+                                        </div>
+                                        <div class="preview-info">
+                                            <div class="preview-name">{{ file?.name || '파일' }}</div>
+                                            <div v-if="file?.size" class="preview-size">{{ formatFileSize(file.size) }}</div>
+                                        </div>
                                         <button class="remove-btn" @click="removeSelectedFile(i)" aria-label="첨부 삭제">×</button>
                                     </div>
                                 </div>
@@ -204,9 +210,19 @@
                                         <div v-if="!searchResults.length" class="search-empty">검색 결과가 없습니다</div>
                                         <div v-else>
                                             <div v-for="r in searchResults" :key="r.index" class="result-row" @click="scrollToMessage(r.index)">
+                                                <div class="result-content">
+                                                    <div class="result-header">
+                                                        <div class="result-sender-wrapper">
+                                                            <div class="result-avatar-small">
+                                                                <img v-if="r.profileImageUrl" :src="r.profileImageUrl" alt="profile" @error="onAvatarError($event)" />
+                                                                <img v-else :src="userDefault" alt="profile" />
+                                                            </div>
                                                 <div class="result-sender" :title="r.sender">{{ r.sender }}</div>
-                                                <div class="result-text">{{ r.snippet }}</div>
+                                                        </div>
                                                 <div class="result-meta">{{ formatChatTime(r.time) }}</div>
+                                                    </div>
+                                                    <div class="result-text" v-html="highlightSearchText(r.snippet, searchQuery)"></div>
+                                                </div>
                                             </div>
                                         </div>
                                     </template>
@@ -236,6 +252,7 @@
 import stompManager from '@/services/stompService.js';
 import userDefault from '@/assets/icons/chat/user_defualt.svg';
 import axios from 'axios';
+import { showSnackbar } from '@/services/snackbar.js';
 
 
     export default {
@@ -432,9 +449,97 @@ import axios from 'axios';
                 if (kb < 1024) return `${kb.toFixed(1)} KB`;
                 const mb = kb/1024; return `${mb.toFixed(1)} MB`;
             },
+            getFileIcon(nameOrType) {
+                if (!nameOrType) return 'mdi-file';
+                const ext = String(nameOrType).toLowerCase().match(/\.([a-zA-Z0-9]+)$/)?.[1] || '';
+                const type = String(nameOrType).toLowerCase();
+                
+                // 이미지
+                if (/(png|jpg|jpeg|gif|webp|bmp|svg)$/.test(ext) || type.startsWith('image/')) {
+                    return 'mdi-image';
+                }
+                // PDF
+                if (ext === 'pdf' || type.includes('pdf')) {
+                    return 'mdi-file-pdf-box';
+                }
+                // Word
+                if (/(doc|docx)$/.test(ext) || type.includes('word') || type.includes('document')) {
+                    return 'mdi-file-word-box';
+                }
+                // Excel
+                if (/(xls|xlsx)$/.test(ext) || type.includes('excel') || type.includes('spreadsheet')) {
+                    return 'mdi-file-excel-box';
+                }
+                // PowerPoint
+                if (/(ppt|pptx)$/.test(ext) || type.includes('powerpoint') || type.includes('presentation')) {
+                    return 'mdi-file-powerpoint-box';
+                }
+                // 동영상
+                if (/(mp4|avi|mov|wmv|flv|mkv|webm)$/.test(ext) || type.startsWith('video/')) {
+                    return 'mdi-file-video';
+                }
+                // 오디오
+                if (/(mp3|wav|ogg|flac|aac)$/.test(ext) || type.startsWith('audio/')) {
+                    return 'mdi-file-music';
+                }
+                // 압축파일
+                if (/(zip|rar|7z|tar|gz)$/.test(ext) || type.includes('zip') || type.includes('compressed')) {
+                    return 'mdi-folder-zip';
+                }
+                // 텍스트
+                if (/(txt|md|log)$/.test(ext) || type.includes('text/')) {
+                    return 'mdi-file-document';
+                }
+                // 코드 파일
+                if (/(js|ts|jsx|tsx|html|css|json|xml|yaml|yml)$/.test(ext)) {
+                    return 'mdi-code-tags';
+                }
+                // 기본 파일
+                return 'mdi-file';
+            },
+            getFileIconColor(nameOrType) {
+                if (!nameOrType) return '#757575';
+                const ext = String(nameOrType).toLowerCase().match(/\.([a-zA-Z0-9]+)$/)?.[1] || '';
+                const type = String(nameOrType).toLowerCase();
+                
+                // PDF - 빨간색
+                if (ext === 'pdf' || type.includes('pdf')) {
+                    return '#F44336';
+                }
+                // Word - 파란색
+                if (/(doc|docx)$/.test(ext) || type.includes('word') || type.includes('document')) {
+                    return '#2196F3';
+                }
+                // Excel - 초록색
+                if (/(xls|xlsx)$/.test(ext) || type.includes('excel') || type.includes('spreadsheet')) {
+                    return '#4CAF50';
+                }
+                // PowerPoint - 주황색
+                if (/(ppt|pptx)$/.test(ext) || type.includes('powerpoint') || type.includes('presentation')) {
+                    return '#FF9800';
+                }
+                // 이미지 - 보라색
+                if (/(png|jpg|jpeg|gif|webp|bmp|svg)$/.test(ext) || type.startsWith('image/')) {
+                    return '#9C27B0';
+                }
+                // 동영상 - 빨간색
+                if (/(mp4|avi|mov|wmv|flv|mkv|webm)$/.test(ext) || type.startsWith('video/')) {
+                    return '#E91E63';
+                }
+                // 오디오 - 분홍색
+                if (/(mp3|wav|ogg|flac|aac)$/.test(ext) || type.startsWith('audio/')) {
+                    return '#E91E63';
+                }
+                // 압축파일 - 주황색
+                if (/(zip|rar|7z|tar|gz)$/.test(ext) || type.includes('zip') || type.includes('compressed')) {
+                    return '#FF9800';
+                }
+                // 기본 회색
+                return '#757575';
+            },
             async loadHistory() {
                 if (!this.roomId) return;
-                const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                const baseURL = import.meta.env.VITE_API_BASE_URL;
                 try {
                     const { data } = await axios.get(`${baseURL}/chat-service/chat/room/${this.roomId}/history`);
                     const list = data?.result || [];
@@ -597,12 +702,23 @@ import axios from 'axios';
                         if (text.includes(q)) {
                             const snippet = m.message.length > 120 ? (m.message.slice(0, 117) + '...') : m.message;
                             const sender = m.senderName || m.senderId || '익명';
-                            results.push({ index: i, snippet, time: m.lastSendTime, sender });
+                            results.push({ 
+                                index: i, 
+                                snippet, 
+                                time: m.lastSendTime, 
+                                sender,
+                                profileImageUrl: m.userProfileImageUrl || null
+                            });
                         }
                     }
                     this.searchResults = results;
                     this.searching = false;
                 });
+            },
+            highlightSearchText(text, query) {
+                if (!text || !query) return text;
+                const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                return text.replace(regex, '<mark class="search-highlight">$1</mark>');
             },
             scrollToMessage(index){
                 if (typeof index !== 'number') return;
@@ -625,7 +741,7 @@ import axios from 'axios';
             },
             async fetchParticipants(){
                 try {
-                    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                    const baseURL = import.meta.env.VITE_API_BASE_URL;
                     const url = `${baseURL}/chat-service/chat/room/${this.roomId}/participants`;
                     const { data } = await axios.get(url);
                     const list = Array.isArray(data?.result) ? data.result : [];
@@ -637,7 +753,7 @@ import axios from 'axios';
             },
             async fetchFiles(){
                 try {
-                    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                    const baseURL = import.meta.env.VITE_API_BASE_URL;
                     const url = `${baseURL}/chat-service/chat/room/${this.roomId}/files`;
                     const { data } = await axios.get(url);
                     const list = Array.isArray(data?.result) ? data.result : [];
@@ -655,9 +771,38 @@ import axios from 'axios';
             onFilesSelected(event) {
                 const files = Array.from(event.target.files || []);
                 if (!files.length) return;
-                const nextFiles = (this.selectedFiles || []).concat(files);
+                
+                const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+                const validFiles = [];
+                const invalidFiles = [];
+                
+                // 파일 크기 체크
+                files.forEach(file => {
+                    if (file.size > MAX_FILE_SIZE) {
+                        invalidFiles.push(file);
+                    } else {
+                        validFiles.push(file);
+                    }
+                });
+                
+                // 크기 초과 파일이 있으면 스낵바 표시
+                if (invalidFiles.length > 0) {
+                    const fileNames = invalidFiles.map(f => f.name).join(', ');
+                    showSnackbar(
+                        `파일 크기가 50MB를 초과합니다: ${fileNames.length > 50 ? fileNames.substring(0, 50) + '...' : fileNames}`,
+                        { color: 'error', timeout: 5000 }
+                    );
+                }
+                
+                // 유효한 파일만 추가
+                if (validFiles.length === 0) {
+                    try { if (this.$refs.fileInput) this.$refs.fileInput.value = ''; } catch(_) {}
+                    return;
+                }
+                
+                const nextFiles = (this.selectedFiles || []).concat(validFiles);
                 // 미리보기 URL 생성 (신규만)
-                const newUrls = files.map(f => {
+                const newUrls = validFiles.map(f => {
                     try { return URL.createObjectURL(f); } catch(_) { return null; }
                 });
                 const nextUrls = (this.selectedPreviewUrls || []).concat(newUrls);
@@ -679,10 +824,55 @@ import axios from 'axios';
                 // 파일 인풋 초기화
                 try { if (this.$refs.fileInput) this.$refs.fileInput.value = ''; } catch(_) {}
             },
+            async convertImageToSvg(file) {
+                return new Promise((resolve, reject) => {
+                    if (!this.isImage(file?.name || file?.type)) {
+                        resolve(file); // 이미지가 아니면 원본 파일 반환
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const base64 = e.target.result;
+                            const mimeType = file.type || 'image/png';
+                            
+                            // SVG로 감싸기
+                            const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="100%" viewBox="0 0 1 1" preserveAspectRatio="none">
+  <image x="0" y="0" width="1" height="1" xlink:href="${base64}"/>
+</svg>`;
+                            
+                            // SVG 파일로 변환
+                            const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
+                            const svgFile = new File([svgBlob], file.name.replace(/\.[^/.]+$/, '') + '.svg', { 
+                                type: 'image/svg+xml',
+                                lastModified: file.lastModified 
+                            });
+                            
+                            resolve(svgFile);
+                        } catch (error) {
+                            console.warn('SVG 변환 실패, 원본 파일 사용:', error);
+                            resolve(file); // 실패 시 원본 파일 반환
+                        }
+                    };
+                    reader.onerror = () => {
+                        console.warn('파일 읽기 실패, 원본 파일 사용');
+                        resolve(file); // 실패 시 원본 파일 반환
+                    };
+                    reader.readAsDataURL(file);
+                });
+            },
             async uploadSelectedFiles() {
-                const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                const baseURL = import.meta.env.VITE_API_BASE_URL;
                 const form = new FormData();
-                this.selectedFiles.forEach((f) => form.append('fileList', f));
+                
+                // 이미지 파일을 SVG로 변환
+                const convertedFiles = await Promise.all(
+                    this.selectedFiles.map(file => this.convertImageToSvg(file))
+                );
+                
+                convertedFiles.forEach((f) => form.append('fileList', f));
                 return await axios.post(`${baseURL}/chat-service/chat/upload`, form, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
@@ -774,11 +964,71 @@ import axios from 'axios';
 .search-input{ height: 36px; border: 1px solid #E3E3E3; border-radius: 8px; padding: 0 12px; box-sizing: border-box; outline: none; min-width: 0; }
 .search-btn{ height: 36px; border-radius: 8px; border: 1px solid #E3E3E3; background: #FFE364; color: #2A2828; font-weight: 700; padding: 0 12px; min-width: 72px; box-sizing: border-box; white-space: nowrap; }
 .search-results{ max-height: 220px; overflow-y: auto; border-bottom: 1px solid #EEE; background: #FFF; }
-.result-row{ display: grid; grid-template-columns: 84px 1fr auto; gap: 8px; padding: 8px 12px; border-top: 1px solid #F7F7F7; cursor: pointer; align-items: center; }
-.result-sender{ font-size: 12px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-row{ 
+    padding: 12px; 
+    border-top: 1px solid #F7F7F7; 
+    cursor: pointer; 
+    transition: background 0.2s;
+}
 .result-row:hover{ background: #FAFAFA; }
-.result-text{ font-size: 12px; color: #333; }
-.result-meta{ font-size: 11px; color: #999; }
+.result-content{ 
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px; 
+}
+.result-header{ 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    gap: 8px; 
+}
+.result-sender-wrapper{ 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    flex: 1; 
+    min-width: 0;
+}
+.result-sender{ 
+    font-size: 14px; 
+    font-weight: 500;
+    color: #333; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
+.result-avatar-small{ 
+    flex-shrink: 0;
+    width: 20px; 
+    height: 20px; 
+    border-radius: 50%; 
+    overflow: hidden; 
+    background: #F5F5F5;
+}
+.result-avatar-small img{ 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    display: block; 
+}
+.result-meta{ 
+    font-size: 12px; 
+    color: #999; 
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.result-text{ 
+    font-size: 13px; 
+    color: #666; 
+    line-height: 1.5;
+    word-break: break-word;
+}
+.search-highlight{ 
+    background-color: #FFE364; 
+    color: #2A2828; 
+    font-weight: 500;
+    padding: 0 2px;
+}
 .chat-row.highlight .bubble{ outline: 2px solid #FFE364; box-shadow: 0 0 0 3px rgba(255,227,100,0.35); }
 .back-btn{ position: absolute; top: 4px; left: 4px; min-width: 28px; height: 28px; padding: 0; }
 .chat-header{ display: flex; align-items: center; gap: 8px; }
@@ -807,7 +1057,7 @@ import axios from 'axios';
 .date-sep .line{ height: 1px; background: #E5E5E5; }
 .date-sep .label{ font-size: 12px; color: #000; background: #FFF; border: 1px solid #E5E5E5; border-radius: 999px; padding: 4px 10px; }
 
-.chat-footer{ background: #2A2828; border-radius: 0 0 15px 15px; padding: 16px; display: flex; align-items: center; gap: 12px; width: 100%; align-self: stretch; box-sizing: border-box; margin-left: 0; margin-right: 0; --composer-height: 36px; }
+.chat-footer{ background: #2A2828; border-radius: 0 0 15px 15px; padding: 16px; display: flex; align-items: center; gap: 12px; width: 100%; align-self: stretch; box-sizing: border-box; margin-left: 0; margin-right: 0; margin-top: 0; flex-shrink: 0; --composer-height: 36px; }
 .composer{ flex: 1 1 auto; display: grid; grid-template-columns: var(--composer-height) 1fr var(--composer-height); align-items: center; background: #FFFFFF; border: 1px solid #DDDDDD; border-radius: calc(var(--composer-height) / 2); padding: 0 10px; height: var(--composer-height); box-sizing: border-box; }
 .icon-btn{ width: var(--composer-height); height: var(--composer-height); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; }
 .icon-btn:focus{ outline: none; }
@@ -883,10 +1133,96 @@ import axios from 'axios';
 .image-modal-btn{ background: #FFE364 !important; color: #2A2828 !important; font-weight: 600; border-color: #FFE364 !important; }
 .image-modal-btn:hover{ filter: brightness(0.98); }
 
-.attach-preview{ display: flex; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #eee; background: #FAFAFA; }
-.preview-item{ position: relative; }
-.thumb-wrap{ position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; background: #F1F3F4; display: flex; align-items: center; justify-content: center; }
-.thumb{ width: 100%; height: 100%; object-fit: cover; display: block; }
-.remove-btn{ position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; aspect-ratio: 1 / 1; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; line-height: 24px; padding: 0; }
+.attach-preview{ 
+    display: flex; 
+    flex-direction: column;
+    gap: 8px; 
+    padding: 12px; 
+    border-bottom: 1px solid #eee; 
+    background: #FAFAFA; 
+    max-height: 300px;
+    overflow-y: auto;
+    flex-shrink: 0;
+    margin-bottom: 0;
+}
+.preview-item{ 
+    position: relative;
+    width: 100%;
+}
+.preview-wrap{ 
+    position: relative; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    padding: 8px 12px; 
+    background: #fff; 
+    border-radius: 8px; 
+    border: 1px solid #e0e0e0;
+    transition: box-shadow 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+.preview-wrap:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.preview-icon{ 
+    flex-shrink: 0;
+    width: 48px; 
+    height: 48px; 
+    border-radius: 6px; 
+    overflow: hidden; 
+    background: #F5F5F5; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+}
+.preview-thumb{ 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    display: block; 
+}
+.preview-info{ 
+    flex: 1; 
+    min-width: 0;
+    display: flex; 
+    flex-direction: column; 
+    gap: 4px; 
+}
+.preview-name{ 
+    font-size: 14px; 
+    font-weight: 500; 
+    color: #333; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    white-space: nowrap; 
+}
+.preview-size{ 
+    font-size: 12px; 
+    color: #757575; 
+}
+.remove-btn{ 
+    position: absolute; 
+    top: 4px; 
+    right: 4px; 
+    width: 24px; 
+    height: 24px; 
+    aspect-ratio: 1 / 1; 
+    border-radius: 50%; 
+    background: rgba(0,0,0,0.6); 
+    color: #fff; 
+    border: none; 
+    cursor: pointer; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 16px; 
+    line-height: 1; 
+    padding: 0; 
+    transition: background 0.2s;
+}
+.remove-btn:hover {
+    background: rgba(0,0,0,0.8);
+}
 
 </style>

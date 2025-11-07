@@ -45,7 +45,7 @@
                                             </div>
                                             <div class="row-subtitle-wrap">
                                                 <span class="row-subtitle text-ellipsis-2">
-                                                    {{ (chat.messageType === 'FILE' && !chat.lastMessage) ? '파일이 전송되었습니다.' : (chat.lastMessage || '메시지가 없습니다.') }}
+                                                    {{ getLastMessageText(chat) }}
                                                 </span>
                                             </div>
                                         </td>
@@ -171,6 +171,22 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
             onAvatarError(e) {
                 e.target.src = this.userDefault;
             },
+            getLastMessageText(chat) {
+                if (!chat) return '메시지가 없습니다.';
+                
+                // 파일 메시지인 경우
+                if (chat.messageType === 'FILE') {
+                    return '파일이 전송되었습니다.';
+                }
+                
+                // 텍스트와 파일이 함께 있는 경우
+                if (chat.messageType === 'TEXT_WITH_FILE') {
+                    return chat.lastMessage || '파일이 전송되었습니다.';
+                }
+                
+                // 일반 텍스트 메시지
+                return chat.lastMessage || '메시지가 없습니다.';
+            },
             formatChatTime(timestamp) {
                 if (!timestamp) return '';
                 // Accept both ISO with or without millis; handle LocalDateTime-like strings
@@ -198,13 +214,10 @@ import userDefault from '@/assets/icons/chat/user_defualt.svg';
                 return `${month}월 ${day}일`;
             },
             async createChatRoom() {
-                // const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-                // await axios.post(`${baseURL}/chat/room/group/create?roomName=${this.newRoomTitle}`, null);
-                // this.showCreateRoomModal = false;
-                // this.loadChatRooms();
+                // TODO: 채팅방 생성 기능 구현
             },
             async loadChatRooms() {
-                const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                const baseURL = import.meta.env.VITE_API_BASE_URL;
                 const response = await axios.get(`${baseURL}/chat-service/chat/room/list/ws_1`);
                 this.chatRoomList = response.data.result;
             }

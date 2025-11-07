@@ -92,7 +92,7 @@ export default {
   methods: {
     async fetchUser() {
       try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const id = localStorage.getItem('id');
         if (!id) return;
         const { data } = await axios.get(`${baseURL}/user-service/user/${id}`);
@@ -106,7 +106,7 @@ export default {
     },
     async fetchMyAccess() {
       try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         const workspaceId = localStorage.getItem('selectedWorkspaceId');
         
@@ -129,7 +129,7 @@ export default {
     },
     async fetchMyGroups() {
       try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         const workspaceId = localStorage.getItem('selectedWorkspaceId');
         
@@ -173,7 +173,7 @@ export default {
       
       try {
         this.isLoading = true;
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const formData = new FormData();
         formData.append('name', this.editName || '');
         formData.append('phoneNumber', this.editPhone || '');

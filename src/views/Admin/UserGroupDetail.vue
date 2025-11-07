@@ -106,8 +106,9 @@ export default {
         this.loading = true;
         const groupId = this.$route.params.groupId;
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/groups/${groupId}`,
+          `${baseURL}/workspace-service/groups/${groupId}`,
           {
             headers: {
               'X-User-Id': localStorage.getItem('id'),

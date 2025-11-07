@@ -146,9 +146,10 @@ export default {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('userId') || 'user123';
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || 'ws_1';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/access/${this.groupId}`,
+          `${baseURL}/workspace-service/access/${this.groupId}`,
           {
             headers: {
               'X-User-Id': userId,
@@ -212,9 +213,10 @@ export default {
         };
 
         console.log('요청 데이터:', requestData);
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
 
         const response = await axios.patch(
-          `http://localhost:8080/workspace-service/access`,
+          `${baseURL}/workspace-service/access`,
           requestData,
           {
             headers: {

@@ -165,7 +165,7 @@ export default {
       }
 
       try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         
         const response = await axios.get(
@@ -230,7 +230,7 @@ export default {
       this.isLoading = true;
       
       try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId;
 

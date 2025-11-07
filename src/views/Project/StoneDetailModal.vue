@@ -1221,9 +1221,10 @@ export default {
       
       try {
         const userId = localStorage.getItem('id');
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         // axios를 사용하여 ProjectList와 동일한 방식으로 호출
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/project/detail/${projectId}`,
+          `${baseURL}/workspace-service/project/detail/${projectId}`,
           {
             headers: {
               'X-User-Id': userId

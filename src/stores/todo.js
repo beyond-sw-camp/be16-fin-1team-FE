@@ -94,8 +94,9 @@ export const useTodoStore = defineStore("todo", {
             if (!workspaceId) throw new Error("워크스페이스 ID가 존재하지 않습니다.");
             if (!date || typeof date !== "string") throw new Error("날짜 형식이 잘못되었습니다.");
 
+            const baseURL = import.meta.env.VITE_API_BASE_URL;
             const res = await axios.post(
-            "http://localhost:8080/user-service/todo",
+            `${baseURL}/user-service/todo`,
             {
                 workspaceId,
                 calendarName: name,

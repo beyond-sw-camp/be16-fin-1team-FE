@@ -1759,8 +1759,9 @@ export default {
       
       try {
         // user-service에서 사용자 정보 가져오기
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/user-service/user/${userId}`
+          `${baseURL}/user-service/user/${userId}`
         );
         
         if (response.data.statusCode === 200) {
@@ -1840,8 +1841,9 @@ export default {
     async loadProjectDetail(projectId) {
       try {
         const userId = localStorage.getItem('id');
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/project/detail/${projectId}`,
+          `${baseURL}/workspace-service/project/detail/${projectId}`,
           {
             headers: {
               'X-User-Id': userId
@@ -1883,8 +1885,9 @@ export default {
         const userId = localStorage.getItem('id');
         console.log('사용자 ID:', userId);
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/project/stones/${projectId}`,
+          `${baseURL}/workspace-service/project/stones/${projectId}`,
           {
             headers: {
               'X-User-Id': userId
@@ -2215,8 +2218,9 @@ export default {
             console.log('프로젝트 ID:', projectId);
             console.log('스톤 ID:', stone.id);
             
+            const baseURL = import.meta.env.VITE_API_BASE_URL;
             const response = await axios.get(
-              `http://localhost:8080/workspace-service/project/detail/${projectId}`,
+              `${baseURL}/workspace-service/project/detail/${projectId}`,
               {
                 headers: {
                   'X-User-Id': this.currentUser.id || 'test-user-id' // 실제 사용자 ID로 교체 필요
@@ -3386,8 +3390,9 @@ export default {
     async recalculateStoneMilestone(stoneId) {
       try {
         // 스톤의 마일스톤 정보를 다시 가져와서 업데이트
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/stone/${stoneId}`,
+          `${baseURL}/workspace-service/stone/${stoneId}`,
           {
             headers: {
               'X-User-Id': localStorage.getItem('id'),
@@ -3495,8 +3500,9 @@ export default {
           // 워크스페이스 참여자 목록에서 본인 찾아서 ID 설정
           try {
             const workspaceId = this.currentWorkspaceId;
+            const baseURL = import.meta.env.VITE_API_BASE_URL;
             const response = await axios.get(
-              `http://localhost:8080/workspace-service/workspace/${workspaceId}/participants`,
+              `${baseURL}/workspace-service/workspace/${workspaceId}/participants`,
               {
                 headers: {
                   'X-User-Id': userId
@@ -3539,8 +3545,9 @@ export default {
           stoneDescribe: this.newStone.stoneDescribe?.trim() || null // nullable
         };
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.post(
-          `http://localhost:8080/workspace-service/stone`,
+          `${baseURL}/workspace-service/stone`,
           stoneData,
           {
             headers: {
@@ -3656,8 +3663,9 @@ export default {
             const workspaceId = this.currentWorkspaceId;
             
             // 워크스페이스 참여자 목록에서 본인 찾기
+            const baseURL = import.meta.env.VITE_API_BASE_URL;
             const response = await axios.get(
-              `http://localhost:8080/workspace-service/workspace/${workspaceId}/participants`,
+              `${baseURL}/workspace-service/workspace/${workspaceId}/participants`,
               {
                 headers: {
                   'X-User-Id': currentUserId
@@ -3765,8 +3773,9 @@ export default {
         const userId = localStorage.getItem('id');
         const workspaceId = localStorage.getItem('selectedWorkspaceId');
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.post(
-          `http://localhost:8080/workspace-service/workspace/participants/search`,
+          `${baseURL}/workspace-service/workspace/participants/search`,
           {
             workspaceId: workspaceId,
             searchKeyword: this.userSearchKeyword.trim()
@@ -3908,8 +3917,9 @@ export default {
         const userId = localStorage.getItem('id');
         const workspaceId = localStorage.getItem('selectedWorkspaceId');
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/groups?workspaceId=${workspaceId}`,
+          `${baseURL}/workspace-service/groups?workspaceId=${workspaceId}`,
           {
             headers: {
               'X-User-Id': userId
@@ -3941,8 +3951,9 @@ export default {
           return;
         }
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/groups/${selectedGroup.groupId}`,
+          `${baseURL}/workspace-service/groups/${selectedGroup.groupId}`,
           {
             headers: {
               'X-User-Id': userId
@@ -3993,8 +4004,9 @@ export default {
           return;
         }
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/groups/${selectedGroup.groupId}`,
+          `${baseURL}/workspace-service/groups/${selectedGroup.groupId}`,
           {
             headers: {
               'X-User-Id': userId
@@ -4062,8 +4074,9 @@ export default {
         const userId = localStorage.getItem('id');
         const workspaceId = localStorage.getItem('selectedWorkspaceId');
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.post(
-          `http://localhost:8080/workspace-service/groups`,
+          `${baseURL}/workspace-service/groups`,
           {
             groupName: groupName,
             workspaceId: workspaceId
@@ -4098,8 +4111,9 @@ export default {
       try {
         const userId = localStorage.getItem('id');
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/stone/${stoneId}`,
+          `${baseURL}/workspace-service/stone/${stoneId}`,
           {
             headers: {
               'X-User-Id': userId
@@ -4146,8 +4160,9 @@ export default {
         // 각 사용자에 대해 이메일 정보 조회
         for (const user of usersWithoutEmail) {
           try {
+            const baseURL = import.meta.env.VITE_API_BASE_URL;
             const response = await axios.get(
-              `http://localhost:8080/user-service/user/${user.id}`,
+              `${baseURL}/user-service/user/${user.id}`,
               {
                 headers: {
                   'X-User-Id': userId
@@ -4184,8 +4199,9 @@ export default {
           stoneParticipantList: participantIds
         });
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.patch(
-          `http://localhost:8080/workspace-service/stone/participant/join`,
+          `${baseURL}/workspace-service/stone/participant/join`,
           {
             stoneId: this.selectedStoneForParticipants.stoneId,
             stoneParticipantList: participantIds
@@ -4297,8 +4313,9 @@ export default {
           'Content-Type': 'application/json'
         });
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.patch(
-          'http://localhost:8080/workspace-service/project',
+          `${baseURL}/workspace-service/project`,
           requestBody,
           {
             headers: {
@@ -4538,8 +4555,9 @@ export default {
         }
 
         // 프로젝트 삭제 API 호출
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.delete(
-          `http://localhost:8080/workspace-service/project/${projectId}`,
+          `${baseURL}/workspace-service/project/${projectId}`,
           {
             headers: {
               'X-User-Id': userId,

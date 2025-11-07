@@ -409,7 +409,7 @@ export default {
     // 워크스페이스 목록 조회
     async getWorkspaceList() {
       await this.apiCall(async () => {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         
         const response = await axios.get(`${baseURL}/workspace-service/workspace`, {
@@ -426,7 +426,7 @@ export default {
     // 워크스페이스 생성
     async createWorkspace() {
       await this.apiCall(async () => {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         
         const response = await axios.post(`${baseURL}/workspace-service/workspace`, {
@@ -455,7 +455,7 @@ export default {
       }
       
       await this.apiCall(async () => {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         
         const response = await axios.get(`${baseURL}/workspace-service/workspace/${this.selectedWorkspaceId}`, {
@@ -477,7 +477,7 @@ export default {
       }
       
       await this.apiCall(async () => {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         
         const response = await axios.patch(`${baseURL}/workspace-service/workspace/${this.updateName.workspaceId}/name`, {
@@ -501,7 +501,7 @@ export default {
       }
       
       await this.apiCall(async () => {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         
         const response = await axios.get(`${baseURL}/workspace-service/workspace/${this.participantWorkspaceId}/participants`, {
@@ -523,7 +523,7 @@ export default {
       }
       
       await this.apiCall(async () => {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         
         const userIdList = this.addParticipant.userIdList.split(',').map(id => id.trim());
@@ -549,7 +549,7 @@ export default {
       }
       
       await this.apiCall(async () => {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         
         const userIdList = this.deleteParticipant.userIdList.split(',').map(id => id.trim());
@@ -576,7 +576,7 @@ export default {
       }
       
       await this.apiCall(async () => {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const userId = localStorage.getItem('id');
         
         const emailList = this.invite.emailList.split(',').map(email => email.trim());
@@ -620,7 +620,7 @@ export default {
     async confirmDeleteWorkspace(workspaceData) {
       try {
         await this.apiCall(async () => {
-          const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+          const baseURL = import.meta.env.VITE_API_BASE_URL;
           const userId = localStorage.getItem('id');
           
           const response = await axios.delete(`${baseURL}/workspace-service/workspace/${workspaceData.workspaceId}`, {

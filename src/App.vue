@@ -138,6 +138,7 @@ export default {
               // Update chat unread badge when NEW_CHAT_MESSAGE
               if (String(payload.type).toUpperCase() === 'NEW_CHAT_MESSAGE') {
                 setChatUnreadCount(title);
+                return; // NEW_CHAT_MESSAGE는 스낵바 표시하지 않음
               } else {
                 // Broadcast for header notification list (fallback createdAt: now)
                 // NEW_CHAT_MESSAGE는 종 모양 알림에 표시하지 않음
@@ -184,7 +185,7 @@ export default {
       this.showCreateModal = false;
     },
     async onCalendarModalSave(form){
-      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+      const baseURL = import.meta.env.VITE_API_BASE_URL;
       const workspaceId = localStorage.getItem('selectedWorkspaceId') || 'ws_1';
       try {
         if (form.calendarType === 'ToDo' || form.calendarType === 'TODO') {

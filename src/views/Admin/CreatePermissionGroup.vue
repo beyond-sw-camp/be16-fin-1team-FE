@@ -161,9 +161,10 @@ export default {
         };
 
         console.log('요청 데이터:', requestData);
-
+        
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.post(
-          'http://localhost:8080/workspace-service/access/custom',
+          `${baseURL}/workspace-service/access/custom`,
           requestData,
           {
             headers: {

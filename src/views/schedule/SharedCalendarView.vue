@@ -148,7 +148,56 @@ import axios from "axios";
 import SearchUserModal from "@/components/modal/SearchUserModal.vue"; 
 import ScheduleDetailModal from "@/components/modal/ScheduleDetailModal.vue";
 import ManageSubscriptionModal from "@/components/modal/ManageSubscriptionModal.vue";
-// ✅ fullcalendar-custom.css는 main.js에서 전역으로 import됨
+
+// ✅ 유저별 색상 팔레트 (프로젝트 캘린더와 유사한 색상)
+const userColorPalette = [
+  "#FFD93D", // 노란색
+  "#6ECB63", // 초록색
+  "#FF5A8A", // 핑크색
+  "#9B6BFF", // 보라색
+  "#4C9AFF", // 파란색
+  "#34D399", // 민트색
+  "#FF9F68", // 주황색
+  "#A78BFA", // 연보라색
+  "#FF4B4B", // 코랄색
+  "#F472B6", // 연핑크색
+  "#FBBF24", // 연노란색
+  "#FB923C", // 연주황색
+  "#C084FC", // 라벤더색
+  "#3B82F6", // 진파란색
+  "#EC4899", // 진핑크색
+  "#F59E0B", // 골드색
+  "#10B981", // 에메랄드색
+  "#F97316", // 오렌지색
+];
+
+// ✅ 유저별 색상 맵 (targetUserId -> color)
+const userColorMap = new Map();
+
+// ✅ 유저별 색상 할당 함수
+function getColorForUserId(userId) {
+  if (!userId) return userColorPalette[0];
+  
+  const userIdStr = String(userId);
+  if (!userColorMap.has(userIdStr)) {
+    const color = userColorPalette[userColorMap.size % userColorPalette.length];
+    userColorMap.set(userIdStr, color);
+  }
+  return userColorMap.get(userIdStr);
+}
+
+// ✅ hex를 rgba로 변환 (불투명도 조절용)
+function hexToRgba(hex, alpha = 1) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// ✅ 불투명도 설정
+const EVENT_BACKGROUND_OPACITY = 0.35; // 배경 불투명도 (구독 유저 일정용)
+const EVENT_BORDER_OPACITY = 1.0; // 테두리 불투명도
+const MY_SCHEDULE_BACKGROUND_OPACITY = 0.3; // 내 일정 배경 불투명도 (30%)
 
 const isManageModalOpen = ref(false);
 
@@ -254,6 +303,53 @@ watch(showModal, (visible) => {
   }
 });
 
+// ✅ 멀티데이 이벤트 처리 함수 (연속된 바로 표시되도록 하나의 이벤트로 유지, 시간 정보 유지)
+function processMultiDayEvent(startTime, endTime, baseEvent) {
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  
+  // 시작일과 종료일의 날짜만 추출 (시간 제외)
+  const startDateOnly = new Date(start);
+  startDateOnly.setHours(0, 0, 0, 0);
+  const endDateOnly = new Date(end);
+  endDateOnly.setHours(0, 0, 0, 0);
+  
+  // 같은 날인지 확인
+  const isSameDay = startDateOnly.getTime() === endDateOnly.getTime();
+  
+  // 시간이 정확히 00:00:00부터 23:59:59까지인지 확인
+  const startHour = start.getHours();
+  const startMin = start.getMinutes();
+  const startSec = start.getSeconds();
+  const endHour = end.getHours();
+  const endMin = end.getMinutes();
+  const endSec = end.getSeconds();
+  
+  // 하루 종일 이벤트인지 확인 (00:00:00 ~ 23:59:59 또는 다음날 00:00:00)
+  const isFullDay = (startHour === 0 && startMin === 0 && startSec === 0) && 
+                    ((endHour === 23 && endMin === 59) || (endHour === 0 && endMin === 0 && endSec === 0));
+  
+  // // 멀티데이 이벤트를 하나의 이벤트로 유지 (FullCalendar가 자동으로 연속된 바로 표시)
+  // // 시간 정보는 유지되며, 주/일 뷰에서 시간대로 표시됨
+  // return [{
+  //   ...baseEvent,
+  //   start: startTime,
+  //   end: endTime,
+  //   allDay: isFullDay && isSameDay, // 같은 날이고 하루 종일이면 allDay, 아니면 시간대로 표시
+  // }];
+
+  // 월뷰(dayGridMonth)에서는 같은 날짜면 allDay로 강제해서 '채워진 카드'로 렌더
+  const forceAllDayForMonth =
+  (window?.FullCalendar?.Calendar && (calendar?.view?.type === 'dayGridMonth')) && isSameDay;
+
+  return [{
+    ...baseEvent,
+    start: startTime,
+    end: endTime,
+    allDay: forceAllDayForMonth ? true : (isFullDay && isSameDay),
+  }];
+}
+
 // --- 공유 데이터 로드 ---
 const fetchSharedData = async () => {
   try {
@@ -261,34 +357,63 @@ const fetchSharedData = async () => {
       getMySchedules(workspaceId),
       getSubscriptions(workspaceId),
     ]);
-    console.log(subs)
 
-    // 내 일정
-    myEvents.value = mine.map((e) => ({
-      id: e.id,
-      title: `[내 일정] ${e.calendarName}`,
-      start: e.startedAt,
-      end: e.endedAt,
-      color: "#A5B4FF",
-      type: "me",
-    }));
+    // ✅ 색상 맵 초기화
+    userColorMap.clear();
+    
+    // ✅ 내 일정 색상 (고정 색상)
+    const myColor = "#A5B4FF";
+    
+    // 내 일정 (배경 불투명도 30% + 굵은 테두리)
+    const myEventsList = [];
+    mine.forEach((e) => {
+      const baseEvent = {
+        id: e.id,
+        title: `[내 일정] ${e.calendarName}`,
+        backgroundColor: hexToRgba(myColor, MY_SCHEDULE_BACKGROUND_OPACITY), // 배경 불투명도 30%
+        borderColor: myColor, // 테두리 색상: 내 전용 색
+        borderWidth: 3, // 굵은 테두리
+        textColor: myColor, // 텍스트 색상: 내 전용 색
+        classNames: ["my-schedule-event"], // 커스텀 클래스 추가
+        type: "me",
+      };
+      
+      // 멀티데이 이벤트 처리 (연속된 바로 표시되도록, 시간 정보 유지)
+      const processedEvents = processMultiDayEvent(e.startedAt, e.endedAt, baseEvent);
+      myEventsList.push(...processedEvents);
+    });
+    myEvents.value = myEventsList;
 
     // 구독자별 일정
-    subscribers.value = subs.map((s, i) => ({
-      subscriptionId: s.id,
-      targetUserId: s.targetUserId,
-      targetUserName: s.targetUserName,
-      visible: true,
-      color: ["#FFB6B9", "#FFD580", "#8DE7B8", "#C3A1E0"][i % 4],
-      events: (s.sharedCalendars || []).map((ev) => ({
-        id: ev.calendarId,
-        title: `[${s.targetUserName}] ${ev.calendarName}`,
-        start: ev.startedAt,
-        end: ev.endedAt,
-        color: ["#FFB6B9", "#FFD580", "#8DE7B8", "#C3A1E0"][i % 4],
-        type: s.targetUserId,
-      })),
-    }));
+    subscribers.value = subs.map((s) => {
+      // ✅ 유저별 고정 색상 할당
+      const userColor = getColorForUserId(s.targetUserId);
+      
+      const userEventsList = [];
+      (s.sharedCalendars || []).forEach((ev) => {
+        const baseEvent = {
+          id: ev.calendarId,
+          title: `[${s.targetUserName}] ${ev.calendarName}`,
+          color: "#FFFFFF", // 텍스트 색상: 흰색
+          backgroundColor: hexToRgba(userColor, EVENT_BACKGROUND_OPACITY),
+          // 테두리 없음 (구독 유저 일정)
+          type: s.targetUserId,
+        };
+        
+        // 멀티데이 이벤트 처리 (연속된 바로 표시되도록, 시간 정보 유지)
+        const processedEvents = processMultiDayEvent(ev.startedAt, ev.endedAt, baseEvent);
+        userEventsList.push(...processedEvents);
+      });
+      
+      return {
+        subscriptionId: s.id,
+        targetUserId: s.targetUserId,
+        targetUserName: s.targetUserName,
+        visible: true,
+        color: userColor, // 사이드바 표시용 색상
+        events: userEventsList,
+      };
+    });
 
     renderCalendar();
   } catch (err) {
@@ -343,9 +468,13 @@ const renderCalendar = () => {
 
   calendar = new FC.Calendar(calendarEl.value, {
     initialView: viewType.value,
+    eventDisplay: 'block',
     height: "auto",
     displayEventTime: false,
     headerToolbar: false,
+    // 1일짜리 이벤트도 항상 표시되도록 설정
+    dayMaxEvents: false,
+    moreLinkClick: 'popover',
     events: visibleEvents,
     eventClick(info) {
       selectedEventId.value = info.event.id;

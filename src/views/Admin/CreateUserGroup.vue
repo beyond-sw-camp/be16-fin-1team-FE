@@ -139,7 +139,8 @@ export default {
     // 사용 가능한 사용자 목록 로드 (그룹에 속하지 않은 참여자 조회)
     async loadAvailableUsers() {
       try {
-        const response = await axios.post('http://localhost:8080/workspace-service/workspace/participants/not-in-groups/search', {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const response = await axios.post(`${baseURL}/workspace-service/workspace/participants/not-in-groups/search`, {
           workspaceId: this.workspaceStore.getCurrentWorkspaceId,
           searchKeyword: ""
         }, {
@@ -180,7 +181,8 @@ export default {
       }
       
       try {
-        const response = await axios.post('http://localhost:8080/workspace-service/workspace/participants/not-in-groups/search', {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const response = await axios.post(`${baseURL}/workspace-service/workspace/participants/not-in-groups/search`, {
           workspaceId: this.workspaceStore.getCurrentWorkspaceId,
           searchKeyword: this.userSearchQuery.trim()
         }, {
@@ -253,7 +255,8 @@ export default {
       }
       
       try {
-        const response = await axios.post('http://localhost:8080/workspace-service/groups', {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const response = await axios.post(`${baseURL}/workspace-service/groups`, {
           workspaceId: this.workspaceStore.getCurrentWorkspaceId,
           userGroupName: this.newGroupName,
           userIdList: this.selectedUsers.map(user => user.userId)

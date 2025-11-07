@@ -156,9 +156,10 @@ export default {
         const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         const userId = localStorage.getItem('id') || localStorage.getItem('userId') || 'user123';
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || localStorage.getItem('selectedWorkspaceId') || 'ws_1';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/workspace/${workspaceId}/participants`,
+          `${baseURL}/workspace-service/workspace/${workspaceId}/participants`,
           {
             headers: {
               'X-User-Id': userId,
