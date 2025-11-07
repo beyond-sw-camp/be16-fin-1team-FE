@@ -1,8 +1,10 @@
 // src/utils/http.js
 import axios from "axios";
 
+const normalizedBaseURL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+
 const http = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL, // 환경변수 기반
+  baseURL: normalizedBaseURL, // 환경변수 기반
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

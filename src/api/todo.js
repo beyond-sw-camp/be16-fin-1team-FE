@@ -1,13 +1,10 @@
 import http from "@/utils/http";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL;
-
 const todoApi = {
   /** todo 조회 */
   fetchTodos(workspaceId) {
     const userId = localStorage.getItem("id");
-    return http.get(`/user-service/todo/${workspaceId}`, {
-      baseURL,
+    return http.get(`user-service/todo/${workspaceId}`, {
       headers: { "X-User-Id": userId },
     });
   },
@@ -15,8 +12,7 @@ const todoApi = {
   /** todo 등록 */
   createTodo(data) {
     const userId = localStorage.getItem("id");
-    return http.post(`/user-service/todo`, data, {
-      baseURL,
+    return http.post(`user-service/todo`, data, {
       headers: { "X-User-Id": userId },
     });
   },
@@ -26,10 +22,9 @@ const todoApi = {
     const userId = localStorage.getItem("id");
     const endpoint = done ? "completion" : "incompletion";
     return http.put(
-      `/user-service/todo/${endpoint}/${todoId}`,
+      `user-service/todo/${endpoint}/${todoId}`,
       {},
       {
-        baseURL,
         headers: { "X-User-Id": userId },
       }
     );
