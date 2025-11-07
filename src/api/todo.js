@@ -1,10 +1,13 @@
-import axios from "axios";
+import http from "@/utils/http";
+
+const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const todoApi = {
   /** todo 조회 */
   fetchTodos(workspaceId) {
     const userId = localStorage.getItem("id");
-    return axios.get(`/user-service/todo/${workspaceId}`, {
+    return http.get(`/user-service/todo/${workspaceId}`, {
+      baseURL,
       headers: { "X-User-Id": userId },
     });
   },
@@ -12,7 +15,8 @@ const todoApi = {
   /** todo 등록 */
   createTodo(data) {
     const userId = localStorage.getItem("id");
-    return axios.post(`/user-service/todo`, data, {
+    return http.post(`/user-service/todo`, data, {
+      baseURL,
       headers: { "X-User-Id": userId },
     });
   },
@@ -21,9 +25,14 @@ const todoApi = {
   toggleComplete(todoId, done) {
     const userId = localStorage.getItem("id");
     const endpoint = done ? "completion" : "incompletion";
-    return axios.put(`/user-service/todo/${endpoint}/${todoId}`, {}, {
-      headers: { "X-User-Id": userId },
-    });
+    return http.put(
+      `/user-service/todo/${endpoint}/${todoId}`,
+      {},
+      {
+        baseURL,
+        headers: { "X-User-Id": userId },
+      }
+    );
   },
 };
 

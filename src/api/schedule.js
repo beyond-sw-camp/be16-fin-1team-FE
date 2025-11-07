@@ -1,9 +1,12 @@
 // src/api/schedule.js
 import http from "@/utils/http";
 
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+
 // 내 마일스톤 (진행 중 / 삭제 제외는 서버에서 처리한다고 가정)
 async function fetchMyMilestones(workspaceId) {
   const { data } = await http.get(`/project/milestones/me`, {
+    baseURL,
     params: { workspaceId, excludeDeleted: true, excludeStatus: "Completed" },
   });
 
@@ -21,7 +24,10 @@ async function fetchMyMilestones(workspaceId) {
 
 // 내 태스크
 async function fetchMyTasks(workspaceId) {
-  const { data } = await http.get(`/project/tasks/me`, { params: { workspaceId } });
+  const { data } = await http.get(`/project/tasks/me`, {
+    baseURL,
+    params: { workspaceId },
+  });
   return (data?.result ?? data ?? []).map((t) => ({
     id: t.id,
     title: t.title || t.name,
@@ -34,6 +40,7 @@ async function fetchMyTasks(workspaceId) {
 // 개인 To-Do
 async function fetchPersonalTodos(workspaceId) {
   const { data } = await http.get(`/calendar/todos`, {
+    baseURL,
     params: { workspaceId, type: "PERSONAL" },
   });
   return (data?.result ?? data ?? []).map((t) => ({
@@ -45,10 +52,18 @@ async function fetchPersonalTodos(workspaceId) {
 
 // 토글들
 async function toggleTodo(todoId, done) {
-  await http.patch(`/calendar/todos/${todoId}`, { done });
+  await http.patch(
+    `/calendar/todos/${todoId}`,
+    { done },
+    { baseURL }
+  );
 }
 async function toggleTask(taskId, done) {
-  await http.patch(`/project/tasks/${taskId}`, { done });
+  await http.patch(
+    `/project/tasks/${taskId}`,
+    { done },
+    { baseURL }
+  );
 }
 
 // utils
@@ -63,6 +78,7 @@ function daysFromToday(dateIso) {
 // 개인 일정 (SharedCalendar)
 async function fetchPersonalSchedules(workspaceId, userId) {
   const { data } = await http.get(`/user-service/shared-calendars/${workspaceId}`, {
+    baseURL,
     headers: { "X-User-Id": userId },
   });
 
