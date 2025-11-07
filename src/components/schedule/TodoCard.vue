@@ -178,7 +178,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useTodoStore } from "@/stores/todo";
-import axios from "axios";
+import http from "@/utils/http";
 import { showSnackbar } from '@/services/snackbar.js';
 
 
@@ -257,7 +257,7 @@ const unbookmark = async () => {
     const todo = bookmarkList.value.find((b) => b.id === todoId);
     if (!todo) return;
 
-    await axios.put(`/user-service/todo/${todoId}`, {
+    await http.put(`/user-service/todo/${todoId}`, {
       calendarName: todo.calendarName,
       date: todo.startedAt?.split("T")[0] || today,
       bookmark: false,
@@ -302,7 +302,7 @@ const closeEditModal = () => (showEditModal.value = false);
 
 const updateTodo = async () => {
   try {
-    await axios.put(`/user-service/todo/${editId.value}`, {
+    await http.put(`/user-service/todo/${editId.value}`, {
       calendarName: editName.value,
       date: editDate.value,
       bookmark: editBookmark.value,
@@ -323,7 +323,7 @@ const openDeleteConfirm = () => (showDeleteConfirm.value = true);
 const closeDeleteConfirm = () => (showDeleteConfirm.value = false);
 const deleteTodo = async () => {
   try {
-    await axios.delete(`/user-service/todo/${editId.value}`);
+    await http.delete(`/user-service/todo/${editId.value}`);
     showSnackbar('삭제되었습니다.');
     // alert("삭제되었습니다.");
     closeDeleteConfirm();
