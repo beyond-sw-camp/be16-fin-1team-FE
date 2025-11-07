@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Vite 환경에서는 import.meta.env 사용
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const driveApi = axios.create({
   baseURL: `${API_BASE_URL}/drive-service/drive`,

@@ -144,8 +144,9 @@ export default {
     async loadGroupInfo() {
       try {
         console.log('그룹 정보 로드 시작, groupId:', this.groupId);
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
-        const response = await axios.get(`http://localhost:8080/workspace-service/groups/${this.groupId}`, {
+        const response = await axios.get(`${baseURL}/workspace-service/groups/${this.groupId}`, {
           headers: {
             'X-User-Id': localStorage.getItem('userId'),
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
@@ -187,7 +188,8 @@ export default {
     // 사용 가능한 사용자 목록 로드 (그룹에 속하지 않은 참여자 조회)
     async loadAvailableUsers() {
       try {
-        const response = await axios.post('http://localhost:8080/workspace-service/workspace/participants/not-in-groups/search', {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const response = await axios.post(`${baseURL}/workspace-service/workspace/participants/not-in-groups/search`, {
           workspaceId: this.workspaceStore.getCurrentWorkspaceId,
           searchKeyword: ""
         }, {
@@ -235,7 +237,8 @@ export default {
       }
       
       try {
-        const response = await axios.post('http://localhost:8080/workspace-service/workspace/participants/not-in-groups/search', {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const response = await axios.post(`${baseURL}/workspace-service/workspace/participants/not-in-groups/search`, {
           workspaceId: this.workspaceStore.getCurrentWorkspaceId,
           searchKeyword: this.userSearchQuery.trim()
         }, {
@@ -322,7 +325,8 @@ export default {
       }
       
       try {
-        const response = await axios.patch('http://localhost:8080/workspace-service/groups', {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const response = await axios.patch(`${baseURL}/workspace-service/groups`, {
           userGroupId: this.groupId,
           userGroupName: this.groupName,
           userIdList: this.selectedUsers.map(user => user.userId)

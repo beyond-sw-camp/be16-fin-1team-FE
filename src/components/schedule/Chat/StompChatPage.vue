@@ -539,7 +539,7 @@ import { showSnackbar } from '@/services/snackbar.js';
             },
             async loadHistory() {
                 if (!this.roomId) return;
-                const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                const baseURL = import.meta.env.VITE_API_BASE_URL;
                 try {
                     const { data } = await axios.get(`${baseURL}/chat-service/chat/room/${this.roomId}/history`);
                     const list = data?.result || [];
@@ -741,7 +741,7 @@ import { showSnackbar } from '@/services/snackbar.js';
             },
             async fetchParticipants(){
                 try {
-                    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                    const baseURL = import.meta.env.VITE_API_BASE_URL;
                     const url = `${baseURL}/chat-service/chat/room/${this.roomId}/participants`;
                     const { data } = await axios.get(url);
                     const list = Array.isArray(data?.result) ? data.result : [];
@@ -753,7 +753,7 @@ import { showSnackbar } from '@/services/snackbar.js';
             },
             async fetchFiles(){
                 try {
-                    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                    const baseURL = import.meta.env.VITE_API_BASE_URL;
                     const url = `${baseURL}/chat-service/chat/room/${this.roomId}/files`;
                     const { data } = await axios.get(url);
                     const list = Array.isArray(data?.result) ? data.result : [];
@@ -864,7 +864,7 @@ import { showSnackbar } from '@/services/snackbar.js';
                 });
             },
             async uploadSelectedFiles() {
-                const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                const baseURL = import.meta.env.VITE_API_BASE_URL;
                 const form = new FormData();
                 
                 // 이미지 파일을 SVG로 변환

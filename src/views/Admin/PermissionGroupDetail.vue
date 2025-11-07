@@ -98,8 +98,9 @@ export default {
         const userId = localStorage.getItem('userId') || 'user123';
         const groupId = this.$route.params.groupId;
         
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.get(
-          `http://localhost:8080/workspace-service/access/group-detail/${groupId}`,
+          `${baseURL}/workspace-service/access/group-detail/${groupId}`,
           {
             headers: {
               'X-User-Id': userId,

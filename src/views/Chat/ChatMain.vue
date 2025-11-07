@@ -299,7 +299,7 @@ export default {
             this.summaryDialogLoading = true;
             this.summaryDialogText = '';
             try {
-                const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                const baseURL = import.meta.env.VITE_API_BASE_URL;
                 console.log('[summary] request roomId=', room?.roomId);
                 const { data } = await axios.get(`${baseURL}/workspace-service/chatbot/message/chat-room/${room.roomId}`);
                 console.log('[summary] response data=', data);

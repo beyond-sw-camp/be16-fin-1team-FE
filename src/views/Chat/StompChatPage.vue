@@ -638,7 +638,7 @@ import { showSnackbar } from '@/services/snackbar.js';
             },
             async loadHistory() {
                 if (!this.roomId) return;
-                const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                const baseURL = import.meta.env.VITE_API_BASE_URL;
                 try {
                     const { data } = await axios.get(`${baseURL}/chat-service/chat/room/${this.roomId}/history`);
                     const list = data?.result || [];
@@ -1033,7 +1033,7 @@ import { showSnackbar } from '@/services/snackbar.js';
                         this.senderName = '사용자';
                         return;
                     }
-                    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                    const baseURL = import.meta.env.VITE_API_BASE_URL;
                     const { data } = await axios.get(`${baseURL}/user-service/user/${id}`);
                     const user = data?.result;
                     if (user && user.name) {
@@ -1057,7 +1057,7 @@ import { showSnackbar } from '@/services/snackbar.js';
             },
             async fetchParticipants(){
                 try {
-                    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                    const baseURL = import.meta.env.VITE_API_BASE_URL;
                     const url = `${baseURL}/chat-service/chat/room/${this.roomId}/participants`;
                     const { data } = await axios.get(url);
                     const list = Array.isArray(data?.result) ? data.result : [];
@@ -1069,7 +1069,7 @@ import { showSnackbar } from '@/services/snackbar.js';
             },
             async fetchFiles(){
                 try {
-                    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                    const baseURL = import.meta.env.VITE_API_BASE_URL;
                     const url = `${baseURL}/chat-service/chat/room/${this.roomId}/files`;
                     const { data } = await axios.get(url);
                     const list = Array.isArray(data?.result) ? data.result : [];
@@ -1141,7 +1141,7 @@ import { showSnackbar } from '@/services/snackbar.js';
                 try { if (this.$refs.fileInput) this.$refs.fileInput.value = ''; } catch(_) {}
             },
             async uploadSelectedFiles() {
-                const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+                const baseURL = import.meta.env.VITE_API_BASE_URL;
                 const form = new FormData();
                 this.selectedFiles.forEach((f) => form.append('fileList', f));
                 return await axios.post(`${baseURL}/chat-service/chat/upload`, form, {

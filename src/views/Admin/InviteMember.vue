@@ -138,9 +138,10 @@ export default {
         const lsUserEmailRaw = localStorage.getItem('email') || localStorage.getItem('userEmail') || '';
 
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || localStorage.getItem('selectedWorkspaceId') || 'ws_1';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         
         const response = await axios.post(
-          'http://localhost:8080/workspace-service/workspace/participants/search-outside',
+          `${baseURL}/workspace-service/workspace/participants/search-outside`,
           { 
             workspaceId: workspaceId,
             searchKeyword: keyword 
@@ -243,9 +244,10 @@ export default {
         const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         const requesterId = localStorage.getItem('id') || 'user123';
         const workspaceId = this.workspaceStore.getCurrentWorkspaceId || localStorage.getItem('selectedWorkspaceId') || 'ws_1';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
 
         const response = await axios.post(
-          `http://localhost:8080/workspace-service/workspace/${workspaceId}/participants`,
+          `${baseURL}/workspace-service/workspace/${workspaceId}/participants`,
           { userIdList },
           {
             headers: {

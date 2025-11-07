@@ -44,7 +44,7 @@ export default {
         return;
       }
       try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const endpoint = `${baseURL}/user-service/user/google/login`;
         const payload = { code, rememberMe: remember };
         const { data } = await axios.post(

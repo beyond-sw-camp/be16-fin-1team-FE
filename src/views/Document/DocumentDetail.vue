@@ -47,8 +47,9 @@ const fetchUserInfo = async () => {
   try {
     const localUserId = localStorage.getItem('id');
     const token = localStorage.getItem('accessToken');
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
     
-    const response = await axios.get('http://localhost:8080/drive-service/documentLine/userInfo', {
+    const response = await axios.get(`${baseURL}/drive-service/documentLine/userInfo`, {
       headers: {
         'X-User-Id': localUserId,
         'Authorization': `Bearer ${token}`
@@ -83,7 +84,8 @@ const fetchDocumentInfo = async () => {
 
 const fetchDocumentLines = async () => {
   try {
-    const response = await axios.get(`http://localhost:8080/drive-service/documentLine/document/${documentId.value}/documentLines`);
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
+    const response = await axios.get(`${baseURL}/drive-service/documentLine/document/${documentId.value}/documentLines`);
     const lines = response.data.result;
     editorInitialContent.value = lines.map(line => line.content).join('');
 

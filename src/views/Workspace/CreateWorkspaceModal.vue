@@ -137,7 +137,7 @@ export default {
         console.log('워크스페이스 생성 요청:', requestData);
 
         const response = await axios.post(
-          'http://localhost:8080/workspace-service/workspace',
+          `${import.meta.env.VITE_API_BASE_URL}/workspace-service/workspace`,
           requestData,
           {
             headers: {

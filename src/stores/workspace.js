@@ -118,7 +118,8 @@ export const useWorkspaceStore = defineStore('workspace', {
       try {
         const userId = localStorage.getItem('id') || 'user123';
         const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-        const response = await fetch('http://localhost:8080/workspace-service/workspace', {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const response = await fetch(`${baseURL}/workspace-service/workspace`, {
           headers: {
             'X-User-Id': userId,
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})

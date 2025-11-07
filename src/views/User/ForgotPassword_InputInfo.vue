@@ -135,7 +135,7 @@ export default {
       }
       try {
         this.isLoading = true;
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const payload = { email: this.email, newPassword: this.password };
         const { data } = await axios.put(`${baseURL}/user-service/user/password`, payload, { headers: { 'Content-Type': 'application/json' } });
         console.log('비밀번호 변경 결과:', data);

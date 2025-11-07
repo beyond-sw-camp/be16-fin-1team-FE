@@ -670,7 +670,7 @@ export default {
       try {
         const id = localStorage.getItem('id');
         if (!id) return;
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const { data } = await axios.get(`${baseURL}/user-service/user/${id}`);
         const user = data?.result;
         if (user) {

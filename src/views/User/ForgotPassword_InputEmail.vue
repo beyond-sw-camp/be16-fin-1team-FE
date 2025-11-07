@@ -92,7 +92,7 @@ export default {
       }
       try {
         this.isLoading = true;
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const response = await axios.post(`${baseURL}/user-service/user/password/email`, { email: this.email }, { headers: { 'Content-Type': 'application/json' } });
         console.log('비밀번호 재설정 이메일 전송 결과:', response.data);
         this.$router.push({ path: '/forgot-password/validate-email', query: { email: this.email } });

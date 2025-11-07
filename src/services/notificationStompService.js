@@ -16,7 +16,7 @@ class NotificationStompManager {
     if (this.connected && this.stompClient) return this.stompClient;
     if (this.connectingPromise) return this.connectingPromise;
 
-    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
     const sockJs = new SockJS(`${baseURL}/user-service/connect`);
     this._sock = sockJs;
     sockJs.onclose = (evt) => {

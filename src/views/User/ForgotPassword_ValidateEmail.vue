@@ -169,7 +169,7 @@ export default {
       }
       try {
         this.isLoading = true;
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const payload = { email: this.email, authCode: code };
         const response = await axios.post(`${baseURL}/user-service/user/password/authcode`, payload, { headers: { 'Content-Type': 'application/json' } });
         console.log('비밀번호 코드 검증 결과:', response.data);
@@ -191,7 +191,7 @@ export default {
       }
       try {
         this.isLoading = true;
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
         const payload = { email: this.email };
         const response = await axios.post(`${baseURL}/user-service/user/password/email`, payload, { headers: { 'Content-Type': 'application/json' } });
         console.log('이메일 재전송 결과:', response.data);
