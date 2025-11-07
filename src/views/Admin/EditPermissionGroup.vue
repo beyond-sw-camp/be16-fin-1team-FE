@@ -79,6 +79,8 @@
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { showSnackbar } from '@/services/snackbar.js';
+
 
 export default {
   name: "EditPermissionGroup",
@@ -163,7 +165,9 @@ export default {
           
           // 기본 그룹 수정 방지
           if (groupData.accessGroupName === '일반 유저 그룹' || groupData.accessGroupName === '관리자 그룹') {
-            alert('기본 권한 그룹은 수정할 수 없습니다.');
+            // alert('기본 권한 그룹은 수정할 수 없습니다.');
+            showSnackbar('기본 권한 그룹은 수정할 수 없습니다.', { color: 'error', timeout: 5000 });
+
             this.goBack();
             return;
           }
@@ -180,13 +184,17 @@ export default {
         }
       } catch (error) {
         console.error('권한 그룹 로드 실패:', error);
-        alert('권한 그룹 정보를 불러오는데 실패했습니다.');
+        // alert('권한 그룹 정보를 불러오는데 실패했습니다.');
+        showSnackbar('권한 그룹 정보를 불러오는데 실패했습니다.', { color: 'error', timeout: 5000 });
+
       }
     },
     
     async updatePermissionGroup() {
       if (!this.permissionName.trim()) {
-        alert('권한명을 입력해주세요.');
+        // alert('권한명을 입력해주세요.');
+        showSnackbar('권한명을 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
 
@@ -228,15 +236,21 @@ export default {
         );
 
         if (response.data.statusCode === 200) {
-          alert('권한 그룹이 성공적으로 수정되었습니다.');
+          // alert('권한 그룹이 성공적으로 수정되었습니다.');
+          showSnackbar('권한 그룹이 성공적으로 수정되었습니다.', { color: 'success' });
+
           this.goBack();
         }
       } catch (error) {
         console.error('권한 그룹 수정 실패:', error);
         if (error.response && error.response.data) {
-          alert(`권한 그룹 수정에 실패했습니다: ${error.response.data.statusMessage || '알 수 없는 오류'}`);
+          // alert(`권한 그룹 수정에 실패했습니다: ${error.response.data.statusMessage || '알 수 없는 오류'}`);
+          showSnackbar(`권한 그룹 수정에 실패했습니다: ${error.response.data.statusMessage || '알 수 없는 오류'}`, { color: 'error', timeout: 5000 });
+
         } else {
-          alert('권한 그룹 수정에 실패했습니다. 다시 시도해주세요.');
+          // alert('권한 그룹 수정에 실패했습니다. 다시 시도해주세요.');
+          showSnackbar('권한 그룹 수정에 실패했습니다. 다시 시도해주세요.', { color: 'error', timeout: 5000 });
+
         }
       }
     }

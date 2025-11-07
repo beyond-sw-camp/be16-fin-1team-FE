@@ -179,6 +179,8 @@
 import { ref, onMounted } from "vue";
 import { useTodoStore } from "@/stores/todo";
 import axios from "axios";
+import { showSnackbar } from '@/services/snackbar.js';
+
 
 const todoStore = useTodoStore();
 const workspaceId = localStorage.getItem("selectedWorkspaceId");
@@ -266,18 +268,24 @@ const unbookmark = async () => {
     console.log("북마크 해제 완료:", todoId);
   } catch (err) {
     console.error("❌ 북마크 해제 실패:", err);
-    alert("북마크 해제 중 오류가 발생했습니다.");
+    // alert("북마크 해제 중 오류가 발생했습니다.");
+    showSnackbar('북마크 해제 중 오류가 발생했습니다.', { color: 'error', timeout: 5000 });
   }
 };
 
 const createTodo = async () => {
-  if (!newName.value || !newDate.value) return alert("필수 항목을 입력하세요.");
+  if (!newName.value || !newDate.value) {
+    // alert("필수 항목을 입력하세요.");
+    showSnackbar('필수 항목을 입력하세요.', { color: 'error', timeout: 5000 });
+    return;
+  }
   await todoStore.addTodo({
     workspaceId,
     name: newName.value,
     bookmark: newBookmark.value,
     date: newDate.value,
   });
+  showSnackbar('등록되었습니다.');
   closeCreateModal();
   await todoStore.loadTodosByDate(workspaceId, selectedDate.value);
 };
@@ -299,12 +307,14 @@ const updateTodo = async () => {
       date: editDate.value,
       bookmark: editBookmark.value,
     });
-    alert("수정되었습니다.");
+    // alert("수정되었습니다.");
+    showSnackbar('수정되었습니다.');
     closeEditModal();
     await todoStore.loadTodosByDate(workspaceId, selectedDate.value);
   } catch (e) {
     console.error(e);
-    alert("수정 중 오류 발생");
+    // alert("수정 중 오류 발생");
+    showSnackbar('수정 중 오류 발생', { color: 'error', timeout: 5000 });
   }
 };
 
@@ -314,13 +324,15 @@ const closeDeleteConfirm = () => (showDeleteConfirm.value = false);
 const deleteTodo = async () => {
   try {
     await axios.delete(`/user-service/todo/${editId.value}`);
-    alert("삭제되었습니다.");
+    showSnackbar('삭제되었습니다.');
+    // alert("삭제되었습니다.");
     closeDeleteConfirm();
     closeEditModal();
     await todoStore.loadTodosByDate(workspaceId, selectedDate.value);
   } catch (e) {
     console.error(e);
-    alert("삭제 중 오류 발생");
+    // alert("삭제 중 오류 발생");
+    showSnackbar('삭제 중 오류 발생', { color: 'error', timeout: 5000 });
   }
 };
 </script>

@@ -2990,7 +2990,9 @@ export default {
       
       // 완료된 스톤인지 확인
       if (this.isStoneCompleted(parentStone)) {
-        alert('완료된 스톤에는 하위 스톤을 생성할 수 없습니다.');
+        // alert('완료된 스톤에는 하위 스톤을 생성할 수 없습니다.');
+        showSnackbar('완료된 스톤에는 하위 스톤을 생성할 수 없습니다.', { color: 'error', timeout: 5000 });
+
         return;
       }
       
@@ -3329,7 +3331,9 @@ export default {
     addTaskToStone(stoneData) {
       console.log('태스크 추가:', stoneData);
       // 태스크 추가 로직 (향후 구현)
-      alert('태스크 추가 기능은 곧 구현될 예정입니다.');
+      // alert('태스크 추가 기능은 곧 구현될 예정입니다.');
+      showSnackbar('태스크 추가 기능은 곧 구현될 예정입니다.', { color: 'error', timeout: 5000 });
+
     },
     
     // 태스크 생성 완료 처리
@@ -3602,22 +3606,30 @@ export default {
     
     validateStoneForm() {
       if (!this.newStone.stoneName.trim()) {
-        alert('스톤명을 입력해주세요.');
+        // alert('스톤명을 입력해주세요.');
+        showSnackbar('스톤명을 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return false;
       }
       
       if (!this.newStone.startTime) {
-        alert('시작일을 선택해주세요.');
+        // alert('시작일을 선택해주세요.');
+        showSnackbar('시작일을 선택해주세요.', { color: 'error', timeout: 5000 });
+
         return false;
       }
       
       if (!this.newStone.endTime) {
-        alert('종료일을 선택해주세요.');
+        // alert('종료일을 선택해주세요.');
+        showSnackbar('종료일을 선택해주세요.', { color: 'error', timeout: 5000 });
+
         return false;
       }
       
       if (new Date(this.newStone.startTime) >= new Date(this.newStone.endTime)) {
-        alert('종료일은 시작일보다 늦어야 합니다.');
+        // alert('종료일은 시작일보다 늦어야 합니다.');
+        showSnackbar('종료일은 시작일보다 늦어야 합니다.', { color: 'error', timeout: 5000 });
+
         return false;
       }
       
@@ -3625,18 +3637,24 @@ export default {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      if (new Date(this.newStone.startTime) < today) {
-        alert('시작일은 오늘 날짜 이후여야 합니다.');
-        return false;
-      }
+      // if (new Date(this.newStone.startTime) < today) {
+      //   // alert('시작일은 오늘 날짜 이후여야 합니다.');
+      //   showSnackbar('시작일은 오늘 날짜 이후여야 합니다.', { color: 'error', timeout: 5000 });
+
+      //   return false;
+      // }
       
-      if (new Date(this.newStone.endTime) < today) {
-        alert('종료일은 오늘 날짜 이후여야 합니다.');
-        return false;
-      }
+      // if (new Date(this.newStone.endTime) < today) {
+      //   // alert('종료일은 오늘 날짜 이후여야 합니다.');
+      //   showSnackbar('종료일은 오늘 날짜 이후여야 합니다.', { color: 'error', timeout: 5000 });
+
+      //   return false;
+      // }
       
       if (!this.newStone.assignee.trim()) {
-        alert('담당자를 입력해주세요.');
+        // alert('담당자를 입력해주세요.');
+        showSnackbar('담당자를 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return false;
       }
       
@@ -4098,11 +4116,15 @@ export default {
           await this.loadGroupMembers();
         } else {
           console.error('그룹 생성 실패:', response.data);
-          alert('그룹 생성에 실패했습니다.');
+          // alert('그룹 생성에 실패했습니다.');
+          showSnackbar('그룹 생성에 실패했습니다.', { color: 'error', timeout: 5000 });
+
         }
       } catch (error) {
         console.error('그룹 생성 API 호출 실패:', error);
-        alert('그룹 생성 중 오류가 발생했습니다.');
+        // alert('그룹 생성 중 오류가 발생했습니다.');
+        showSnackbar('그룹 생성 중 오류가 발생했습니다.', { color: 'error', timeout: 5000 });
+
       }
     },
     
@@ -4270,12 +4292,16 @@ export default {
         const workspaceId = this.currentWorkspaceId;
         
         if (!projectId) {
-          alert('프로젝트 ID가 없습니다.');
+          // alert('프로젝트 ID가 없습니다.');
+          showSnackbar('프로젝트 ID가 없습니다.', { color: 'error', timeout: 5000 });
+
           return;
         }
 
         if (!workspaceId) {
-          alert('워크스페이스 ID가 없습니다.');
+          // alert('워크스페이스 ID가 없습니다.');
+          showSnackbar('워크스페이스 ID가 없습니다.', { color: 'error', timeout: 5000 });
+
           return;
         }
 
@@ -4327,7 +4353,9 @@ export default {
 
         if (response.data.statusCode === 200) {
           console.log('프로젝트 수정 성공:', response.data);
-          alert('프로젝트가 성공적으로 수정되었습니다.');
+          // alert('프로젝트가 성공적으로 수정되었습니다.');
+          showSnackbar('프로젝트가 성공적으로 수정되었습니다.', { color: 'success', timeout: 5000 });
+
           
           // 프로젝트 정보 업데이트
           this.projectName = this.editForm.projectName;
@@ -4361,12 +4389,16 @@ export default {
           this.closeEditModal();
         } else {
           console.error('프로젝트 수정 실패:', response.data);
-          alert('프로젝트 수정에 실패했습니다.');
+          // alert('프로젝트 수정에 실패했습니다.');
+          showSnackbar('프로젝트 수정에 실패했습니다.', { color: 'error', timeout: 5000 });
+
         }
       } catch (error) {
         console.error('프로젝트 수정 API 호출 실패:', error);
         const errorMessage = error.response?.data?.statusMessage || error.message || '프로젝트 수정 중 오류가 발생했습니다.';
-        alert(errorMessage);
+        // alert(errorMessage);
+        showSnackbar(errorMessage, { color: 'error', timeout: 5000 });
+
       }
     },
 
@@ -4422,7 +4454,9 @@ export default {
         this.selectedProjectManagerId = null;
       } catch (error) {
         console.error('담당자 목록 로드 실패:', error);
-        alert('담당자 목록을 불러올 수 없습니다.');
+        // alert('담당자 목록을 불러올 수 없습니다.');
+        showSnackbar('담당자 목록을 불러올 수 없습니다.', { color: 'error', timeout: 5000 });
+
       }
     },
 
@@ -4459,7 +4493,9 @@ export default {
         
       } catch (error) {
         console.error('담당자 목록 로드 실패:', error);
-        alert(error.message || '담당자 목록을 불러올 수 없습니다.');
+        // alert(error.message || '담당자 목록을 불러올 수 없습니다.');
+        showSnackbar(error.message || '담당자 목록을 불러올 수 없습니다.', { color: 'error', timeout: 5000 });
+
         this.availableProjectManagers = [];
         this.filteredProjectManagers = [];
       }
@@ -4517,7 +4553,9 @@ export default {
     // 프로젝트 담당자 선택 확인
     confirmProjectManagerChange() {
       if (!this.selectedProjectManagerId) {
-        alert('담당자를 선택해주세요.');
+        // alert('담당자를 선택해주세요.');   
+        showSnackbar('담당자를 선택해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
       
@@ -4545,12 +4583,16 @@ export default {
         const workspaceId = this.currentWorkspaceId;
         
         if (!projectId) {
-          alert('프로젝트 ID가 없습니다.');
+          // alert('프로젝트 ID가 없습니다.');
+          showSnackbar('프로젝트 ID가 없습니다.', { color: 'error', timeout: 5000 });
+
           return;
         }
 
         if (!workspaceId) {
-          alert('워크스페이스 ID가 없습니다.');
+          // alert('워크스페이스 ID가 없습니다.');
+          showSnackbar('워크스페이스 ID가 없습니다.', { color: 'error', timeout: 5000 });
+
           return;
         }
 
@@ -4571,7 +4613,9 @@ export default {
 
         if (response.data.statusCode === 200) {
           console.log('프로젝트 삭제 성공:', response.data);
-          alert('프로젝트가 성공적으로 삭제되었습니다.');
+          // alert('프로젝트가 성공적으로 삭제되었습니다.');
+          showSnackbar('프로젝트가 성공적으로 삭제되었습니다.', { color: 'success', timeout: 5000 });
+
           
           // 사이드바 프로젝트 목록에서 제거를 위한 이벤트 발생
           window.dispatchEvent(new CustomEvent('projectDeleted', {
@@ -4584,14 +4628,20 @@ export default {
           this.$router.push('/');
         } else {
           console.error('프로젝트 삭제 실패:', response.data);
-          alert('프로젝트 삭제에 실패했습니다.');
+          // alert('프로젝트 삭제에 실패했습니다.');
+          showSnackbar('프로젝트 삭제에 실패했습니다.', { color: 'error', timeout: 5000 });
+
         }
       } catch (error) {
         console.error('프로젝트 삭제 오류:', error);
         if (error.response && error.response.data) {
-          alert(`프로젝트 삭제 실패: ${error.response.data.statusMessage || '알 수 없는 오류가 발생했습니다.'}`);
+          // alert(`프로젝트 삭제 실패: ${error.response.data.statusMessage || '알 수 없는 오류가 발생했습니다.'}`);
+          showSnackbar(`프로젝트 삭제 실패: ${error.response.data.statusMessage || '알 수 없는 오류가 발생했습니다.'}`, { color: 'error', timeout: 5000 });
+
         } else {
-          alert('프로젝트 삭제 중 오류가 발생했습니다.');
+          // alert('프로젝트 삭제 중 오류가 발생했습니다.');
+          showSnackbar('프로젝트 삭제 중 오류가 발생했습니다.', { color: 'error', timeout: 5000 });
+
         }
       } finally {
         this.closeDeleteModal();

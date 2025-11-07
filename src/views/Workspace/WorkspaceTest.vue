@@ -450,7 +450,9 @@ export default {
     // 워크스페이스 상세 조회
     async getWorkspaceDetail() {
       if (!this.selectedWorkspaceId) {
-        alert('워크스페이스 ID를 입력해주세요.');
+        // alert('워크스페이스 ID를 입력해주세요.');
+        showSnackbar('워크스페이스 ID를 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
       
@@ -472,7 +474,9 @@ export default {
     // 워크스페이스 이름 변경
     async updateWorkspaceName() {
       if (!this.updateName.workspaceId || !this.updateName.workspaceName) {
-        alert('워크스페이스 ID와 새 이름을 입력해주세요.');
+        // alert('워크스페이스 ID와 새 이름을 입력해주세요.');
+        showSnackbar('워크스페이스 ID와 새 이름을 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
       
@@ -496,7 +500,9 @@ export default {
     // 참여자 목록 조회
     async getParticipants() {
       if (!this.participantWorkspaceId) {
-        alert('워크스페이스 ID를 입력해주세요.');
+        // alert('워크스페이스 ID를 입력해주세요.');
+        showSnackbar('워크스페이스 ID를 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
       
@@ -518,7 +524,9 @@ export default {
     // 참여자 추가
     async addParticipants() {
       if (!this.addParticipant.workspaceId || !this.addParticipant.userIdList) {
-        alert('워크스페이스 ID와 사용자 ID 목록을 입력해주세요.');
+        // alert('워크스페이스 ID와 사용자 ID 목록을 입력해주세요.'); 
+        showSnackbar('워크스페이스 ID와 사용자 ID 목록을 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
       
@@ -544,7 +552,9 @@ export default {
     // 참여자 삭제
     async deleteParticipants() {
       if (!this.deleteParticipant.workspaceId || !this.deleteParticipant.userIdList) {
-        alert('워크스페이스 ID와 삭제할 사용자 ID 목록을 입력해주세요.');
+        // alert('워크스페이스 ID와 삭제할 사용자 ID 목록을 입력해주세요.');
+        showSnackbar('워크스페이스 ID와 삭제할 사용자 ID 목록을 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
       
@@ -571,7 +581,9 @@ export default {
     // 이메일 초대
     async inviteUsers() {
       if (!this.invite.workspaceId || !this.invite.emailList) {
-        alert('워크스페이스 ID와 초대할 이메일 목록을 입력해주세요.');
+        // alert('워크스페이스 ID와 초대할 이메일 목록을 입력해주세요.');
+        showSnackbar('워크스페이스 ID와 초대할 이메일 목록을 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
       
@@ -597,7 +609,9 @@ export default {
     // 삭제 모달 열기
     openDeleteModal() {
       if (!this.deleteWorkspaceId) {
-        alert('워크스페이스 ID를 입력해주세요.');
+        // alert('워크스페이스 ID를 입력해주세요.');
+        showSnackbar('워크스페이스 ID를 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
       

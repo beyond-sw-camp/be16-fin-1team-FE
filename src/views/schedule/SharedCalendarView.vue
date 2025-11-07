@@ -148,6 +148,8 @@ import axios from "axios";
 import SearchUserModal from "@/components/modal/SearchUserModal.vue"; 
 import ScheduleDetailModal from "@/components/modal/ScheduleDetailModal.vue";
 import ManageSubscriptionModal from "@/components/modal/ManageSubscriptionModal.vue";
+import { showSnackbar } from '@/services/snackbar.js';
+
 
 // ✅ 유저별 색상 팔레트 (프로젝트 캘린더와 유사한 색상)
 const userColorPalette = [
@@ -262,7 +264,8 @@ const createSchedule = async () => {
       }
     );
 
-    alert("✅ 일정이 등록되었습니다.");
+    showSnackbar('일정이 등록되었습니다.');
+    // alert("✅ 일정이 등록되었습니다.");
     showModal.value = false;
 
     // 일정 등록 후 form 초기화
@@ -284,7 +287,9 @@ const createSchedule = async () => {
     // window.location.reload();
   } catch (err) {
     console.error("❌ 일정 등록 실패:", err);
-    alert("일정 등록 실패");
+    // alert("일정 등록 실패");
+    showSnackbar('일정 등록 실패', { color: 'error', timeout: 5000 });
+
   }
 };
 
@@ -424,7 +429,9 @@ const fetchSharedData = async () => {
 // 구독 추가
 const addSubscription = async () => {
   if (!newUserId.value.trim()) {
-    alert("유저 ID를 입력하세요.");
+    // alert("유저 ID를 입력하세요.");
+    showSnackbar('유저 ID를 입력하세요.', { color: 'error', timeout: 5000 });
+
     return;
   }
 
@@ -442,12 +449,16 @@ const addSubscription = async () => {
       }
     );
 
-    alert("✅ 구독이 추가되었습니다.");
+    // alert("✅ 구독이 추가되었습니다.");
+    showSnackbar('구독이 추가되었습니다.', { color: 'success', timeout: 5000 });
+
     newUserId.value = "";
     fetchSharedData(); // 새 구독 반영
   } catch (err) {
     console.error("❌ 구독 추가 실패:", err);
-    alert("구독 추가 실패");
+    // alert("구독 추가 실패");
+    showSnackbar('구독 추가 실패', { color: 'error', timeout: 5000 });
+
   }
 };
 
