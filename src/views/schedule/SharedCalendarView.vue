@@ -247,6 +247,11 @@ const form = ref({
 
 // 일정 등록 함수
 const createSchedule = async () => {
+    // 반복 주기 선택했는데 종료일이 비어 있으면 막기
+    if (form.value.repeatCycle !== 'NONE' && !form.value.repeatEndAt) {
+    showSnackbar('반복 종료일을 선택해주세요.', { color: 'error' });
+    return;
+  }
   try {
     await axios.post(
       `/user-service/shared-calendars`,
@@ -263,6 +268,8 @@ const createSchedule = async () => {
         headers: { "X-User-Id": userId },
       }
     );
+
+    console.log('[createSchedule] form =', JSON.parse(JSON.stringify(form.value)));
 
     showSnackbar('일정이 등록되었습니다.');
     // alert("✅ 일정이 등록되었습니다.");

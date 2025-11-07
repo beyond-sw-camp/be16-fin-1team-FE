@@ -68,7 +68,8 @@
 
 <script>
 import axios from 'axios';
-import { useWorkspaceStore } from '@/stores/workspace';
+import { useWorkspaceStore } from '@/stores/workspace'; 
+import { showSnackbar } from '@/services/snackbar.js';
 
 export default {
   name: "CreateWorkspaceModal",
