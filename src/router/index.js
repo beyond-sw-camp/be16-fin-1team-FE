@@ -29,6 +29,20 @@ const routes = [
     ...landingRouter,
 ];
 
+const publicRouteNames = new Set([
+  'Landing',
+  'LandingPage',
+  'UserLogin',
+  'KakaoRedirect',
+  'GoogleRedirect',
+  'UserCreate_InputEmail',
+  'UserCreate_ValidateEmail',
+  'UserCreate_InputInfo',
+  'ForgotPassword_InputEmail',
+  'ForgotPassword_ValidateEmail',
+  'ForgotPassword_InputInfo',
+]);
+
 const router = createRouter({
   history: createWebHistory(),
   routes,
@@ -36,6 +50,14 @@ const router = createRouter({
 
 // 라우터 가드 - 권한 체크
 router.beforeEach((to, from, next) => {
+  const isAuthenticated = Boolean(localStorage.getItem('accessToken') || localStorage.getItem('token'));
+  const isPublicRoute = publicRouteNames.has(to.name) || to.meta?.requiresAuth === false;
+
+  if (!isAuthenticated && !isPublicRoute) {
+    next({ name: 'Landing' });
+    return;
+  }
+
   // 관리자 권한이 필요한 라우트인지 확인
   if (to.meta.isAdmin) {
     const role = localStorage.getItem('selectedWorkspaceRole');
