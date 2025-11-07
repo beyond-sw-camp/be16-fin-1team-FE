@@ -2,7 +2,7 @@
 import { ref, onMounted } from "vue";
 import CalendarBase from "@/components/CalendarBase.vue";
 import StoneDetailModal from "@/views/Project/StoneDetailModal.vue";
-import axios from "axios";
+import http from "@/utils/http";
 
 const events = ref([]);
 const selected = ref(null);
@@ -11,8 +11,8 @@ const workspaceId = "ws_5";
 
 const fetchEvents = async () => {
   const [stoneRes, taskRes] = await Promise.all([
-    axios.get(`/workspace-service/workspace/${workspaceId}/my-stones`),
-    axios.get(`/workspace-service/workspace/${workspaceId}/my-tasks`)
+    http.get(`/workspace-service/workspace/${workspaceId}/my-stones`),
+    http.get(`/workspace-service/workspace/${workspaceId}/my-tasks`)
   ]);
 
   const stoneEvents = stoneRes.data.result.map(s => ({

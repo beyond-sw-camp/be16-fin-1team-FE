@@ -225,7 +225,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, watchEffect, nextTick } from "vue";
-import axios from "axios";
+import http from "@/utils/http";
 
 /* ===== Props ===== */
 const props = defineProps({
@@ -301,11 +301,11 @@ const getWeekEnd = (date) => {
 
 /* ===== API ===== */
 async function fetchStones(projectId) {
-  const { data } = await axios.get(`/workspace-service/project/stones/${projectId}`);
+  const { data } = await http.get(`/workspace-service/project/stones/${projectId}`);
   return data.result || [];
 }
 async function fetchTasks(stoneId) {
-  const { data } = await axios.get(`/workspace-service/task/${stoneId}`);
+  const { data } = await http.get(`/workspace-service/task/${stoneId}`);
   return data.result || [];
 }
 

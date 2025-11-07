@@ -144,7 +144,7 @@
 <script setup>
 import { ref, onMounted, watch, computed  } from "vue";
 import { getMySchedules, getSubscriptions } from "@/api/sharedCalendarApi.js";
-import axios from "axios";
+import http from "@/utils/http";
 import SearchUserModal from "@/components/modal/SearchUserModal.vue"; 
 import ScheduleDetailModal from "@/components/modal/ScheduleDetailModal.vue";
 import ManageSubscriptionModal from "@/components/modal/ManageSubscriptionModal.vue";
@@ -253,7 +253,7 @@ const createSchedule = async () => {
     return;
   }
   try {
-    await axios.post(
+    await http.post(
       `/user-service/shared-calendars`,
       {
         workspaceId,
@@ -443,7 +443,7 @@ const addSubscription = async () => {
   }
 
   try {
-    await axios.post(
+    await http.post(
       "/user-service/subscriptions",
       {
         workspaceId,
