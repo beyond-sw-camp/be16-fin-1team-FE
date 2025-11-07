@@ -849,14 +849,16 @@
                 cols="12" sm="6" md="4"
               >
                 <v-card class="preview-card position-relative" outlined>
-                  <v-card-text class="py-3 d-flex align-center">
-                    <div class="preview-thumb mr-3 flex-shrink-0">
-                      <v-img v-if="f.previewUrl" :src="f.previewUrl" cover width="56" height="56" class="rounded"></v-img>
-                      <v-icon v-else size="56">{{ getPreviewIcon(f) }}</v-icon>
-                    </div>
-                    <div class="preview-text-content">
-                      <div class="text-truncate font-weight-500">{{ f.file.name }}</div>
-                      <div class="text-caption grey--text text--darken-1">{{ formatFileSize(f.file.size) }}</div>
+                  <v-card-text class="py-3 px-3 position-relative">
+                    <div class="d-flex align-center">
+                      <div class="preview-thumb mr-3 flex-shrink-0">
+                        <img v-if="f.previewUrl" :src="f.previewUrl" alt="preview" class="preview-img" />
+                        <v-icon v-else size="56" color="grey">{{ getPreviewIcon(f) }}</v-icon>
+                      </div>
+                      <div class="preview-text-content flex-grow-1">
+                        <div class="text-truncate font-weight-500">{{ f.file.name }}</div>
+                        <div class="text-caption grey--text text--darken-1">{{ formatFileSize(f.file.size) }}</div>
+                      </div>
                     </div>
                     <v-btn icon size="small" color="grey" variant="text" class="remove-btn-abs" @click="removeSelectedFile(idx)">
                       <v-icon small>mdi-close</v-icon>
@@ -4044,7 +4046,13 @@ export default {
 
       // 유효한 파일들만 추가
       validFiles.forEach((file) => {
-        const isImage = /^image\//.test(file.type);
+        // 이미지 파일 확인: MIME 타입 또는 확장자로 체크
+        const isImageByType = /^image\//.test(file.type);
+        const fileName = file.name || '';
+        const ext = fileName.toLowerCase().match(/\.([a-zA-Z0-9]+)$/)?.[1] || '';
+        const isImageByExt = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext);
+        const isImage = isImageByType || isImageByExt;
+        
         const previewUrl = isImage ? URL.createObjectURL(file) : null;
         this.selectedFiles.push({ key: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}` , file, previewUrl });
       });
@@ -6067,28 +6075,52 @@ export default {
 
 .preview-card {
   transition: box-shadow .2s ease;
+  overflow: visible;
 }
 .preview-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.08); }
 
-.preview-thumb .rounded { border-radius: 6px; }
+.preview-thumb {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 6px;
+}
 
 /* Ensure remove button is always visible on preview cards */
-.position-relative { position: relative; }
+.preview-card .position-relative { 
+  position: relative; 
+}
+
 .preview-text-content {
   flex: 1;
   min-width: 0;
-  max-width: calc(100% - 80px); /* 썸네일(56px) + 마진(24px) = 80px, X버튼 공간 확보 */
-  padding-right: 36px; /* X 버튼 공간 확보 */
+  padding-right: 40px; /* X 버튼 공간 확보 */
 }
 
 .remove-btn-abs {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 4px;
+  right: 4px;
   z-index: 2;
   background: rgba(255,255,255,0.95) !important;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
   border-radius: 50% !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
 }
 
 /* Responsive */

@@ -471,7 +471,10 @@ import { showSnackbar } from '@/services/snackbar.js';
             isImage(nameOrUrl) {
                 if (!nameOrUrl) return false;
                 const s = String(nameOrUrl).toLowerCase();
-                return /(\.png|\.jpg|\.jpeg|\.gif|\.webp)$/.test(s);
+                // MIME 타입 체크 (image/로 시작)
+                if (/^image\//.test(s)) return true;
+                // 확장자 체크
+                return /(\.png|\.jpg|\.jpeg|\.gif|\.webp|\.bmp|\.svg)$/.test(s);
             },
             normalizeMessage(msg) {
                 const m = msg ? { ...msg } : {};
@@ -1117,9 +1120,13 @@ import { showSnackbar } from '@/services/snackbar.js';
                 }
                 
                 const nextFiles = (this.selectedFiles || []).concat(validFiles);
-                // 미리보기 URL 생성 (신규만)
+                // 미리보기 URL 생성 (이미지 파일만)
                 const newUrls = validFiles.map(f => {
-                    try { return URL.createObjectURL(f); } catch(_) { return null; }
+                    const isImg = this.isImage(f?.name || f?.type);
+                    if (isImg) {
+                        try { return URL.createObjectURL(f); } catch(_) { return null; }
+                    }
+                    return null;
                 });
                 const nextUrls = (this.selectedPreviewUrls || []).concat(newUrls);
                 this.selectedFiles = nextFiles;

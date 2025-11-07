@@ -457,8 +457,12 @@
         <!-- 간트차트는 자체적으로 fixed positioning 처리 -->
         <OrbitGantt v-if="projectId" :project-id="projectId" />
       </div>
-      <div v-if="activeTab === 'documents'" class="project-drive-container">
-        <DriveMain :project-id="$route.query.id" />
+      <div v-if="activeTab === 'documents'" class="project-drive-section">
+        <div class="project-drive-wrap">
+          <div class="project-drive-scroll">
+            <DriveMain :project-id="$route.query.id" />
+          </div>
+        </div>
       </div>
     </div>
     
@@ -5831,20 +5835,44 @@ export default {
   box-sizing: border-box;
 }
 
-.project-drive-container {
+.project-drive-section {
   width: 100%;
   height: 100%;
   flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.project-drive-wrap {
+  position: fixed;
+  top: 240px;
+  left: 280px;
+  right: 16px;
+  bottom: 15px;
+  width: auto;
+  height: auto;
+  background: #FFFFFF;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.project-drive-scroll {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  display: flex;
   min-height: 0;
 }
 
-.project-drive-container :deep(.drive-container) {
+.project-drive-scroll :deep(.drive-container) {
   height: 100%;
   padding: 0;
 }
 
-.project-drive-container :deep(.drive-layout) {
+.project-drive-scroll :deep(.drive-layout) {
   height: 100%;
 }
 
