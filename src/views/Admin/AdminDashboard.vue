@@ -429,7 +429,8 @@ export default {
   async mounted() {
     // PERSONAL 워크스페이스인 경우 접근 차단
     if (this.workspaceStore.isPersonalWorkspace) {
-      alert('개인 워크스페이스에서는 관리자 페이지에 접근할 수 없습니다.');
+      showSnackbar('개인 워크스페이스에서는 관리자 페이지에 접근할 수 없습니다.', { color: 'error', timeout: 5000 });
+      // alert('개인 워크스페이스에서는 관리자 페이지에 접근할 수 없습니다.');
       this.$router.push('/');
       return;
     }
@@ -711,7 +712,9 @@ export default {
     deleteGroup(group) {
       // 기본 그룹 삭제 방지
       if (group.accessGroupName === '일반 유저 그룹' || group.accessGroupName === '관리자 그룹') {
-        alert('기본 권한 그룹은 삭제할 수 없습니다.');
+        // alert('기본 권한 그룹은 삭제할 수 없습니다.');
+        showSnackbar('기본 권한 그룹은 삭제할 수 없습니다.', { color: 'error', timeout: 5000 });
+
         this.activeActionMenu = null;
         return;
       }
@@ -758,7 +761,9 @@ export default {
           // 성공 메시지는 스낵바로 표시
           showSnackbar('권한 그룹이 성공적으로 삭제되었습니다.');
         } else {
-          alert('권한 그룹 삭제에 실패했습니다.');
+          // alert('권한 그룹 삭제에 실패했습니다.');
+          showSnackbar('권한 그룹 삭제에 실패했습니다.', { color: 'error', timeout: 5000 });
+
         }
       } catch (error) {
         console.error('권한 그룹 삭제 실패:', error);
@@ -767,12 +772,17 @@ export default {
         if (error.response && error.response.data) {
           const errorMessage = error.response.data.statusMessage || error.response.data.message;
           if (errorMessage) {
-            alert(`삭제 실패: ${errorMessage}`);
+            // alert(`삭제 실패: ${errorMessage}`);
+            showSnackbar(`삭제 실패: ${errorMessage}`, { color: 'error', timeout: 5000 });
           } else {
-            alert('권한 그룹 삭제 중 오류가 발생했습니다.');
+            // alert('권한 그룹 삭제 중 오류가 발생했습니다.');
+            showSnackbar('권한 그룹 삭제 중 오류가 발생했습니다.', { color: 'error', timeout: 5000 });
+
           }
         } else {
-          alert('권한 그룹 삭제 중 오류가 발생했습니다.');
+          // alert('권한 그룹 삭제 중 오류가 발생했습니다.');
+          showSnackbar('권한 그룹 삭제 중 오류가 발생했습니다.', { color: 'error', timeout: 5000 });
+
         }
       } finally {
         this.deletePermissionGroupLoading = false;
@@ -903,7 +913,9 @@ export default {
     // 삭제 모달 열기
     openDeleteWorkspaceModal() {
       if (!this.workspaceDetail.workspaceId) {
-        alert('워크스페이스 정보를 불러올 수 없습니다.');
+        // alert('워크스페이스 정보를 불러올 수 없습니다.');
+        showSnackbar('워크스페이스 정보를 불러올 수 없습니다.', { color: 'error', timeout: 5000 });
+
         return;
       }
       this.showDeleteWorkspaceModal = true;
@@ -933,7 +945,9 @@ export default {
             await this.switchToAnotherWorkspace();
           }
           
-          alert('워크스페이스가 성공적으로 삭제되었습니다.');
+          // alert('워크스페이스가 성공적으로 삭제되었습니다.');
+          showSnackbar('워크스페이스가 성공적으로 삭제되었습니다.', { color: 'success' });
+
         }
       } catch (error) {
         console.error('워크스페이스 삭제 실패:', error);

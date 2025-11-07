@@ -85,6 +85,7 @@
 import axios from 'axios';
 import { OpenVidu } from 'openvidu-browser';
 import VideoStream from '../OpenVidu/VideoStream.vue';
+import { showSnackbar } from '@/services/snackbar.js';
 
 // 아이콘 import
 import recordFill from '@/assets/icons/OpenVidu/record-fill.svg';
@@ -202,7 +203,9 @@ export default {
     try {
       const cnt = parseInt(sessionStorage.getItem(this._refreshStorageKey) || '0', 10) || 0;
       if (cnt >= this._refreshLimit) {
-        alert('새로고침이 너무 많이 감지되어 메인 화면으로 이동합니다. 다시 접속해 주세요.');
+        // alert('새로고침이 너무 많이 감지되어 메인 화면으로 이동합니다. 다시 접속해 주세요.');
+        showSnackbar('새로고침이 너무 많이 감지되어 메인 화면으로 이동합니다. 다시 접속해 주세요.', { color: 'error', timeout: 5000 });
+
         if (!this.embedded) {
           this.$router.push('/main');
         }
@@ -214,7 +217,9 @@ export default {
     // props로 받은 roomId 또는 route params의 roomId 사용
     const roomId = this.roomId || this.$route.params.roomId;
     if (!roomId) {
-      alert("유효하지 않은 접근입니다. 채팅방 ID를 확인해 주세요.");
+      // alert("유효하지 않은 접근입니다. 채팅방 ID를 확인해 주세요.");
+      showSnackbar("유효하지 않은 접근입니다. 채팅방 ID를 확인해 주세요.", { color: 'error', timeout: 5000 });
+
       if (!this.embedded) {
         this.$router.push('/');
       }
@@ -582,14 +587,18 @@ export default {
         console.log('✅ Session joined successfully.');
       } catch (error) {
         console.error('❌ Error joining session:', error);
-        alert('세션에 연결 중 오류가 발생했습니다. 서버 상태를 확인해주세요.');
+        // alert('세션에 연결 중 오류가 발생했습니다. 서버 상태를 확인해주세요.');
+        showSnackbar('세션에 연결 중 오류가 발생했습니다. 서버 상태를 확인해주세요.', { color: 'error', timeout: 5000 });
+
       }
     },
 
     // 🔴 [추가] 녹화 토글 함수
     async toggleRecord() {
       if (!this.session) {
-        alert('세션에 연결되어 있지 않아 녹화 기능을 사용할 수 없습니다.');
+        // alert('세션에 연결되어 있지 않아 녹화 기능을 사용할 수 없습니다.');
+        showSnackbar('세션에 연결되어 있지 않아 녹화 기능을 사용할 수 없습니다.', { color: 'error', timeout: 5000 });
+
         return;
       }
 
@@ -624,7 +633,9 @@ export default {
         }
       } catch (error) {
         console.error('❌ Error starting recording:', error);
-        alert('녹화 시작에 실패했습니다. 백엔드 API 및 OpenVidu 서버 상태를 확인해주세요.');
+        // alert('녹화 시작에 실패했습니다. 백엔드 API 및 OpenVidu 서버 상태를 확인해주세요.');
+        showSnackbar('녹화 시작에 실패했습니다. 백엔드 API 및 OpenVidu 서버 상태를 확인해주세요.', { color: 'error', timeout: 5000 });
+
       }
     },
 
@@ -646,13 +657,17 @@ export default {
           this.isRecording = false;
           this.recordingId = null;
           console.log(`✅ Recording stopped successfully. Recording ID: ${this.recordingId}`);
-          alert(`녹화가 성공적으로 중지되었습니다. 파일 처리에는 시간이 걸릴 수 있습니다.`);
+          // alert(`녹화가 성공적으로 중지되었습니다. 파일 처리에는 시간이 걸릴 수 있습니다.`);
+          showSnackbar(`녹화가 성공적으로 중지되었습니다. 파일 처리에는 시간이 걸릴 수 있습니다.`, { color: 'success', timeout: 5000 });
+
         } else {
           throw new Error(`녹화 중지 응답 코드: ${response.status}`);
         }
       } catch (error) {
         console.error('❌ Error stopping recording:', error);
-        alert('녹화 중지에 실패했습니다. 서버 상태를 확인해주세요.');
+        // alert('녹화 중지에 실패했습니다. 서버 상태를 확인해주세요.');
+        showSnackbar('녹화 중지에 실패했습니다. 서버 상태를 확인해주세요.', { color: 'error', timeout: 5000 });
+
       }
     },
 
@@ -1249,7 +1264,9 @@ export default {
         console.log('✅ 카메라 트랙 복귀 완료');
       } catch (e) {
         console.error('카메라 복귀 오류:', e);
-        alert('카메라로 복귀하는 중 오류가 발생했습니다: ' + e.message);
+        // alert('카메라로 복귀하는 중 오류가 발생했습니다: ' + e.message);
+        showSnackbar('카메라로 복귀하는 중 오류가 발생했습니다: ' + e.message, { color: 'error', timeout: 5000 });
+
       } finally {
         // 화면공유 스트림 정리
         try { this._screenStream?.getTracks()?.forEach(t => t.stop()); } catch {}

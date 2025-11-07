@@ -91,6 +91,7 @@
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
+import { showSnackbar } from '@/services/snackbar.js';
 
 const props = defineProps({
   visible: Boolean,
@@ -129,7 +130,9 @@ const searchUsers = async () => {
 
 const addSubscriptions = async () => {
   if (selectedUserIds.value.length === 0) {
-    alert("구독할 유저를 선택하세요.");
+    // alert("구독할 유저를 선택하세요.");
+    showSnackbar('구독할 유저를 선택하세요.', { color: 'error', timeout: 5000 });
+
     return;
   }
   try {
@@ -143,14 +146,18 @@ const addSubscriptions = async () => {
         headers: { "X-User-Id": localStorage.getItem("id") },
       }
     );
-    alert("✅ 구독이 추가되었습니다.");
+    // alert("✅ 구독이 추가되었습니다.");
+    showSnackbar('구독이 추가되었습니다.', { color: 'success', timeout: 5000 });
+
     emit("subscribed");
     keyword.value = "";
     users.value = [];
     selectedUserIds.value = [];
   } catch (err) {
     console.error("❌ 구독 추가 실패:", err);
-    alert("구독 추가 실패");
+    // alert("구독 추가 실패");
+    showSnackbar('구독 추가 실패', { color: 'error', timeout: 5000 });
+
   }
 };
 
@@ -164,11 +171,15 @@ const deleteSubscription = async (user) => {
         subscriptionIdList: [user.subscriptionId],
       },
     });
-    alert("🗑️ 구독이 삭제되었습니다.");
+    // alert("🗑️ 구독이 삭제되었습니다.");
+    showSnackbar('구독이 삭제되었습니다.', { color: 'success', timeout: 5000 });
+
     emit("subscribed");
   } catch (err) {
     console.error("❌ 구독 삭제 실패:", err);
-    alert("구독 삭제 실패");
+    // alert("구독 삭제 실패");
+    showSnackbar('구독 삭제 실패', { color: 'error', timeout: 5000 });
+
   }
 };
 

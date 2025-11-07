@@ -81,6 +81,7 @@ import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { showSnackbar } from '@/services/snackbar.js';
 
+
 export default {
   name: "CreatePermissionGroup",
   data() {
@@ -135,7 +136,9 @@ export default {
     
     async createPermissionGroup() {
       if (!this.permissionName.trim()) {
-        alert('권한명을 입력해주세요.');
+        // alert('권한명을 입력해주세요.');
+        showSnackbar('권한명을 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
 
@@ -182,9 +185,13 @@ export default {
       } catch (error) {
         console.error('권한 그룹 생성 실패:', error);
         if (error.response && error.response.data) {
-          alert(`권한 그룹 생성에 실패했습니다: ${error.response.data.statusMessage || '알 수 없는 오류'}`);
+          // alert(`권한 그룹 생성에 실패했습니다: ${error.response.data.statusMessage || '알 수 없는 오류'}`);
+          showSnackbar(`권한 그룹 생성에 실패했습니다: ${error.response.data.statusMessage || '알 수 없는 오류'}`, { color: 'error', timeout: 5000 });
+
         } else {
-          alert('권한 그룹 생성에 실패했습니다. 다시 시도해주세요.');
+          // alert('권한 그룹 생성에 실패했습니다. 다시 시도해주세요.');
+          showSnackbar('권한 그룹 생성에 실패했습니다. 다시 시도해주세요.', { color: 'error', timeout: 5000 });
+
         }
       }
     }

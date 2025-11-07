@@ -68,7 +68,8 @@
 
 <script>
 import axios from 'axios';
-import { useWorkspaceStore } from '@/stores/workspace';
+import { useWorkspaceStore } from '@/stores/workspace'; 
+import { showSnackbar } from '@/services/snackbar.js';
 
 export default {
   name: "CreateWorkspaceModal",
@@ -150,7 +151,9 @@ export default {
 
         if (response.data.statusCode === 201) {
           console.log('워크스페이스 생성 성공:', response.data);
-          alert('워크스페이스가 성공적으로 생성되었습니다.');
+          // alert('워크스페이스가 성공적으로 생성되었습니다.');
+          showSnackbar('워크스페이스가 성공적으로 생성되었습니다.', { color: 'success', timeout: 5000 });
+
           
           // 워크스페이스 목록 새로고침
           await this.workspaceStore.loadWorkspaces();
@@ -180,11 +183,15 @@ export default {
           
           this.closeModal();
         } else {
-          alert(response.data.statusMessage || '워크스페이스 생성에 실패했습니다.');
+          // alert(response.data.statusMessage || '워크스페이스 생성에 실패했습니다.');
+          showSnackbar(response.data.statusMessage || '워크스페이스 생성에 실패했습니다.', { color: 'error', timeout: 5000 });
+
         }
       } catch (error) {
         console.error('워크스페이스 생성 실패:', error);
-        alert(error.response?.data?.statusMessage || '워크스페이스 생성 중 오류가 발생했습니다.');
+        // alert(error.response?.data?.statusMessage || '워크스페이스 생성 중 오류가 발생했습니다.');
+        showSnackbar(error.response?.data?.statusMessage || '워크스페이스 생성 중 오류가 발생했습니다.', { color: 'error', timeout: 5000 });
+
       } finally {
         this.creating = false;
       }

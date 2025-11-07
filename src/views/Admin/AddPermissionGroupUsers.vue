@@ -128,6 +128,7 @@
 <script>
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { showSnackbar } from '@/services/snackbar.js';
 
 export default {
   name: 'AddPermissionGroupUsers',
@@ -409,14 +410,19 @@ export default {
           throw new Error('사용자 관리에 실패했습니다.');
         }
         
-        alert('사용자 관리가 성공적으로 완료되었습니다.');
+        // alert('사용자 관리가 성공적으로 완료되었습니다.');
+        showSnackbar('사용자 관리가 성공적으로 완료되었습니다.');
+
         this.$router.go(-1);
       } catch (error) {
         console.error('사용자 관리 실패:', error);
         if (error.response && error.response.data && error.response.data.statusMessage) {
-          alert(`사용자 관리 실패: ${error.response.data.statusMessage}`);
+          // alert(`사용자 관리 실패: ${error.response.data.statusMessage}`);
+          showSnackbar('사용자 관리 실패: ${error.response.data.statusMessage}', { color: 'error', timeout: 5000 });
+
         } else {
-          alert('사용자 관리에 실패했습니다.');
+          // alert('사용자 관리에 실패했습니다.');
+          showSnackbar('사용자 관리에 실패했습니다.', { color: 'error', timeout: 5000 });
         }
       }
     },

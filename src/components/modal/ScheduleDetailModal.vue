@@ -55,6 +55,7 @@
 <script setup>
 import { ref, watch } from "vue";
 import axios from "axios";
+import { showSnackbar } from '@/services/snackbar.js';
 
 const props = defineProps({
   visible: Boolean,
@@ -111,11 +112,13 @@ const updateSchedule = async () => {
         headers: { "X-User-Id": userId },
       }
     );
-    alert("✅ 일정이 수정되었습니다.");
+    // alert("✅ 일정이 수정되었습니다.");
+    showSnackbar('일정이 수정되었습니다.');
     emit("updated");
   } catch (err) {
     console.error("❌ 일정 수정 실패:", err);
-    alert("일정 수정 실패");
+    showSnackbar('일정 수정 실패', { color: 'error', timeout: 5000 });
+    // alert("일정 수정 실패");
   }
 };
 
@@ -127,12 +130,14 @@ const deleteSchedule = async () => {
       `/user-service/shared-calendars/${props.scheduleId}?workspaceId=${workspaceId}`,
       { headers: { "X-User-Id": userId } }
     );
-    alert("🗑️ 일정이 삭제되었습니다.");
+    // alert("🗑️ 일정이 삭제되었습니다.");
+    showSnackbar('일정이 삭제되었습니다.');
     emit("deleted");
     close();
   } catch (err) {
     console.error("❌ 일정 삭제 실패:", err);
-    alert("일정 삭제 실패");
+    showSnackbar('일정 삭제 실패', { color: 'error', timeout: 5000 });
+    // alert("일정 삭제 실패");
   }
 };
 

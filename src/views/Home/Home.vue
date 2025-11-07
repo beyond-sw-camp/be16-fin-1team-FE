@@ -1580,7 +1580,7 @@ export default {
 .dashboard-left {
   display: grid;
   grid-template-rows: auto 1fr; /* 상단(프로젝트) 자동, 하단(채팅+Task) 남은 높이 */
-  gap: 16px;
+  gap: 4px;
   height: 100%;
   min-height: 0;
   grid-row: 1 / span 2; /* 대시보드 2행 전체 점유 (강제) */
@@ -1588,7 +1588,7 @@ export default {
 
 @media (min-width: 1280px) {
   .dashboard-left {
-    gap: 20px;
+    gap: 8px;
   }
 }
 
@@ -1599,7 +1599,7 @@ export default {
   align-items: stretch;
   align-content: stretch;
   flex: 1;
-  min-height: 650px;
+  min-height: 450px;
 }
 
 @media (min-width: 1280px) {
@@ -1741,7 +1741,7 @@ export default {
 
 /* 프로젝트 카드 */
 .project-card {
-  min-height: 360px; /* 강제 상승 */
+  min-height: 240px; /* 강제 상승 */
   border: 1px solid #E0E0E0;
 }
 
@@ -1834,8 +1834,8 @@ export default {
 .gantt-bars {
   position: relative;
   flex: 1;
-  min-height: 320px; /* 강제 상승 */
-  max-height: 500px;
+  min-height: 200px; /* 강제 상승 */
+  max-height: 350px;
   overflow-y: auto;
   overflow-x: hidden; /* 가로 스크롤바 제거 */
   z-index: 1;

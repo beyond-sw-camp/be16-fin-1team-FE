@@ -199,31 +199,44 @@ export default {
         }
       } catch (error) {
         console.error('참여자 목록 로드 실패:', error);
-        alert('참여자 목록을 불러오는데 실패했습니다.');
+        // alert('참여자 목록을 불러오는데 실패했습니다.');
+        showSnackbar('참여자 목록을 불러오는데 실패했습니다.', { color: 'error', timeout: 5000 });
+
       }
     },
     async handleCreate() {
       // 유효성 검사
       if (!this.formData.name.trim()) {
-        alert('프로젝트명을 입력해주세요.');
+        // alert('프로젝트명을 입력해주세요.');
+        showSnackbar('프로젝트명을 입력해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
       if (!this.formData.startDate) {
-        alert('시작일을 선택해주세요.');
+        // alert('시작일을 선택해주세요.');
+        showSnackbar('시작일을 선택해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
       if (!this.formData.endDate) {
-        alert('종료일을 선택해주세요.');
+        // alert('종료일을 선택해주세요.');
+        showSnackbar('종료일을 선택해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
       if (!this.formData.managerId) {
-        alert('담당자를 선택해주세요.');
+        // alert('담당자를 선택해주세요.');
+        showSnackbar('담당자를 선택해주세요.', { color: 'error', timeout: 5000 });
+
         return;
       }
 
       // 날짜 유효성 검사
       if (new Date(this.formData.endDate) < new Date(this.formData.startDate)) {
-        alert('종료일이 시작일보다 이전일 수 없습니다.');
+        // alert('종료일이 시작일보다 이전일 수 없습니다.');
+        // alert('종료일이 시작일보다 이전일 수 없습니다.');
+        showSnackbar('종료일이 시작일보다 이전일 수 없습니다.', { color: 'error', timeout: 5000 });
+
         return;
       }
 

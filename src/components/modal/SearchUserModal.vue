@@ -46,6 +46,8 @@
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
+import { showSnackbar } from '@/services/snackbar.js';
+
 
 const props = defineProps({
   visible: Boolean,
@@ -59,7 +61,8 @@ const selectedUserIds = ref([]);
 
 const searchUsers = async () => {
   if (!keyword.value.trim()) {
-    alert("이름을 입력하세요.");
+    // alert("이름을 입력하세요.");
+    showSnackbar('이름을 입력하세요.', { color: 'error', timeout: 5000 });
     return;
   }
 
@@ -85,13 +88,15 @@ const searchUsers = async () => {
     }));
   } catch (err) {
     console.error("❌ 워크스페이스 내 사용자 검색 실패:", err);
-    alert("워크스페이스 내에서 사용자를 찾을 수 없습니다.");
+    showSnackbar('워크스페이스 내에서 사용자를 찾을 수 없습니다.', { color: 'error', timeout: 5000 });
+    // alert("워크스페이스 내에서 사용자를 찾을 수 없습니다.");
   }
 };
 
 const addSubscriptions = async () => {
   if (selectedUserIds.value.length === 0) {
-    alert("구독할 유저를 선택하세요.");
+    // alert("구독할 유저를 선택하세요.");
+    showSnackbar('구독할 유저를 선택하세요.', { color: 'error', timeout: 5000 });
     return;
   }
   try {
@@ -105,7 +110,8 @@ const addSubscriptions = async () => {
         headers: { "X-User-Id": localStorage.getItem("id") },
       }
     );
-    alert("✅ 구독이 추가되었습니다.");
+    // alert("✅ 구독이 추가되었습니다.");
+    showSnackbar('구독이 추가되었습니다.');
     emit("subscribed"); // 부모에서 다시 fetchSharedData 실행
 
     // 모달 닫기 전에 상태 초기화
@@ -121,11 +127,14 @@ const addSubscriptions = async () => {
     const msg = err.response?.data?.statusMessage || err.message;
 
     if (msg.includes("이미 구독")) {
-      alert("⚠️ 이미 구독 중인 유저입니다.");
+      // alert("⚠️ 이미 구독 중인 유저입니다.");
+      showSnackbar('이미 구독 중인 유저입니다.', { color: 'error', timeout: 5000 });
     } else if (msg.includes("중복") || msg.includes("exists")) {
-      alert("⚠️ 이미 등록된 구독입니다.");
+      // alert("⚠️ 이미 등록된 구독입니다.");
+      showSnackbar('이미 등록된 구독입니다.', { color: 'error', timeout: 5000 });
     } else {
-      alert("❌ 구독 추가 실패");
+      // alert("❌ 구독 추가 실패");
+      showSnackbar('구독 추가 실패', { color: 'error', timeout: 5000 });
     }
   }
 };

@@ -8,7 +8,7 @@
               <div class="content">
                 <div>
                   <div class="title-row">
-                    <img class="orbit-logo" src="/src/assets/icons/orbit_logo.svg" alt="Orbit" />
+                    <img class="orbit-logo" src="/src/assets/icons/logo/1_2.svg" alt="Orbit" />
                     <span class="orbit-title">ORBIT</span>
                   </div>
 
