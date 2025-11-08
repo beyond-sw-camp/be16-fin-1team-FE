@@ -459,7 +459,7 @@
       </div>
       <div v-if="activeTab === 'documents'" class="project-drive-section">
         <div class="project-drive-wrap">
-          <div class="project-drive-scroll">
+          <div ref="driveScroll" class="project-drive-scroll">
             <DriveMain :project-id="$route.query.id" />
           </div>
         </div>
@@ -1199,11 +1199,13 @@ export default {
     this.$nextTick(() => {
       this.updateCanvasSize();
       this.updateTabRailPosition();
+      this.updateDriveScrollHeight();
     });
     
     // 윈도우 리사이즈 이벤트 리스너 추가
     window.addEventListener('resize', this.updateCanvasSize);
     window.addEventListener('resize', this.updateTabRailPosition);
+    window.addEventListener('resize', this.updateDriveScrollHeight);
     
     // 스톤 수정 이벤트 리스너 추가
     window.addEventListener('stoneUpdated', this.onStoneUpdated);
@@ -1217,6 +1219,7 @@ export default {
   beforeUnmount() {
     window.removeEventListener('resize', this.updateCanvasSize);
     window.removeEventListener('resize', this.updateTabRailPosition);
+    window.removeEventListener('resize', this.updateDriveScrollHeight);
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('stoneUpdated', this.onStoneUpdated);
@@ -2954,6 +2957,23 @@ export default {
           this.calculateGraphCenter();
         });
       }
+    },
+    updateDriveScrollHeight() {
+      if (!this.$refs.driveScroll) return;
+      // orbit-gantt-wrap의 전체 높이와 동일하게 설정
+      // orbit-gantt-wrap은 position: fixed; top: 240px; bottom: 15px; 로 설정됨
+      // 따라서 높이는 window.innerHeight - 240 - 15
+      const wrapHeight = window.innerHeight - 240 - 15;
+      // project-drive-wrap 내부에 툴바가 없으므로 전체 높이 사용
+      this.$refs.driveScroll.style.height = wrapHeight + 'px';
+      
+      // drive-layout도 동일한 높이로 설정
+      this.$nextTick(() => {
+        const driveLayout = this.$el?.querySelector('.project-drive-scroll .drive-layout');
+        if (driveLayout) {
+          driveLayout.style.height = wrapHeight + 'px';
+        }
+      });
     },
     
     adjustCanvasSizeForStones() {
@@ -5860,20 +5880,38 @@ export default {
 }
 
 .project-drive-scroll {
-  flex: 1;
   overflow: auto;
   position: relative;
   display: flex;
-  min-height: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .project-drive-scroll :deep(.drive-container) {
-  height: 100%;
-  padding: 0;
+  height: 100% !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+}
+
+.project-drive-scroll :deep(.drive-container.project-drive-container) {
+  padding: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.project-drive-scroll :deep(.drive-container.project-drive-container.v-container--fluid) {
+  padding: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 .project-drive-scroll :deep(.drive-layout) {
-  height: 100%;
+  height: 100% !important;
+  min-height: 0 !important;
 }
 
 .dashboard-box {
