@@ -2356,9 +2356,7 @@ export default {
             this.currentRootType !== rootType || this.currentRootId !== rootId
           );
 
-          this.currentRootType = rootType;
-          this.currentRootId = rootId;
-
+          // 루트가 변경되면 먼저 이름을 업데이트한 후 currentRootType/currentRootId 업데이트
           if (isRootChanged || !this.rootName) {
             try {
               const nameResponse = await driveService.getRootName(rootType, rootId);
@@ -2368,6 +2366,9 @@ export default {
               this.rootName = null;
             }
           }
+
+          this.currentRootType = rootType;
+          this.currentRootId = rootId;
         }
         
         // folderId가 있으면 해당 폴더의 내용 로드
@@ -2476,7 +2477,9 @@ export default {
           }
           
           // 브레드크럼 업데이트
-          if (folderId || items.length > 0) {
+          // folderId가 null이면 루트로 이동한 것이므로 항상 업데이트
+          // folderId가 있거나 items가 있으면 업데이트
+          if (!folderId || folderId === 'root' || items.length > 0) {
             this.updateBreadcrumbs(folderId, items, rootType || this.currentRootType);
           }
           
