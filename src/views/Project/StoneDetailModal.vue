@@ -1369,6 +1369,17 @@ export default {
           return;
         }
         
+        // 하위 스톤 존재 여부 확인
+        const hasChildStones = this.currentStoneData?.hasChildStones || false;
+        const childStoneCount = this.currentStoneData?.childStoneCount || 0;
+        
+        if (hasChildStones && childStoneCount > 0) {
+          showSnackbar(`하위 스톤이 ${childStoneCount}개 존재합니다. 모든 하위 스톤을 삭제한 후 부모 스톤을 삭제할 수 있습니다.`, { color: 'error' });
+          this.isDeleting = false;
+          this.showDeleteConfirm = false;
+          return;
+        }
+        
         // API 호출
         await deleteStone(stoneId);
         
