@@ -2347,6 +2347,10 @@ export default {
           const participantNames = participants.map(p => p.participantName);
           const participantsText = participantNames.length > 0 ? participantNames.join(', ') : '비어 있음';
           
+          // 하위 스톤 존재 여부 확인
+          const foundStone = this.findStoneById(this.stones, stone.id);
+          const hasChildStones = foundStone && foundStone.childStone && foundStone.childStone.length > 0;
+          
           // API 응답 데이터를 모달에 맞는 형태로 변환
           this.selectedStoneData = {
             stoneId: stone.id,
@@ -2367,7 +2371,9 @@ export default {
               startTime: task.startTime || stoneDetail.startTime,
               endTime: task.endTime || stoneDetail.endTime
             })),
-            isProject: false // 일반 스톤 모달임을 표시
+            isProject: false, // 일반 스톤 모달임을 표시
+            hasChildStones: hasChildStones, // 하위 스톤 존재 여부
+            childStoneCount: hasChildStones ? foundStone.childStone.length : 0 // 하위 스톤 개수
           };
           
           console.log('일반 스톤 모달 표시 설정:', this.selectedStoneData);
@@ -2423,6 +2429,10 @@ export default {
           const participantNames = participants.map(p => p.participantName);
           const participantsText = participantNames.length > 0 ? participantNames.join(', ') : '비어 있음';
           
+          // 하위 스톤 존재 여부 확인
+          const foundStone = this.findStoneById(this.stones, stoneId);
+          const hasChildStones = foundStone && foundStone.childStone && foundStone.childStone.length > 0;
+          
           // API 응답 데이터를 모달에 맞는 형태로 변환
           this.selectedStoneData = {
             stoneId: stoneId,
@@ -2443,7 +2453,9 @@ export default {
               startTime: task.startTime || stoneDetail.startTime,
               endTime: task.endTime || stoneDetail.endTime
             })),
-            isProject: false
+            isProject: false,
+            hasChildStones: hasChildStones, // 하위 스톤 존재 여부
+            childStoneCount: hasChildStones ? foundStone.childStone.length : 0 // 하위 스톤 개수
           };
           
           console.log('쿼리로 열린 스톤 모달 설정:', this.selectedStoneData);
