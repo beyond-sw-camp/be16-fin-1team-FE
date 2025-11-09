@@ -44,7 +44,7 @@
               <div class="left">
                 <div class="group-icon">
                   <img 
-                    :src="group.accessGroupName === '관리자 그룹' ? '/src/assets/icons/sidebar/admin.svg' : '/src/assets/icons/user/user_default_icon.svg'" 
+                    :src="group.accessGroupName === '관리자 그룹' ? adminGroupIcon : userDefaultIcon" 
                     :alt="group.accessGroupName"
                     class="group-icon-img"
                   />
@@ -137,7 +137,7 @@
             class="team-card user-group-item"
           >
             <div class="left">
-              <img src="/src/assets/icons/user/user_group_icon.svg" alt="user group icon" class="team-icon user-group-icon" />
+              <img :src="userGroupIcon" alt="user group icon" class="team-icon user-group-icon" />
               <div class="team-info group-details">
                 <h3 class="team-name group-name" @click="viewUserGroupDetail(group)">{{ group.name }}</h3>
                 <p class="created-date group-date">생성일: {{ group.createdAt }}</p>
@@ -334,6 +334,9 @@ import AddPermissionGroupUsersModal from '@/components/modal/AddPermissionGroupU
 import InviteMemberModal from './InviteMember.vue';
 import DeleteMemberModal from './DeleteMembers.vue';
 import { showSnackbar } from '@/services/snackbar.js';
+import adminGroupIcon from '@/assets/icons/sidebar/admin.svg';
+import userDefaultIcon from '@/assets/icons/user/user_default_icon.svg';
+import userGroupIcon from '@/assets/icons/user/user_group_icon.svg';
 
 export default {
   name: "AdminDashboard",
@@ -350,6 +353,9 @@ export default {
   },
   data() {
     return {
+      adminGroupIcon,
+      userDefaultIcon,
+      userGroupIcon,
       activeTab: 'permission',
       permissionGroups: [],
       activeActionMenu: null,

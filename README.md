@@ -1,32 +1,83 @@
-<!-- Project Hero -->
-<p align="center">
-  <img src="./assets/orbit-hero.svg" alt="Orbit – Agile Project & Calendar Platform" width="100%">
-</p>
-
-<p align="center">
-  <a href="https://www.orbitflow.store"><b>📆 ORBIT 바로가기</b> — https://www.orbitflow.store</a>
-</p>
-
----
-
 # Orbit(오르빗)
 
 > 모든 일정/협업을 하나로! 캘린더·간트·마일스톤·칸반·채팅·문서를 **실시간으로 연동**하는 애자일 기반 통합 프로젝트 플랫폼
-
-![캘릿 배경](https://github.com/user-attachments/assets/fc9a224e-d6c7-4836-b4b4-f7f6f0a67b18)
+> <p align="center">
+</p>
+<img width="2400" height="800" alt="image" src="https://github.com/user-attachments/assets/045e5ea7-5171-485d-880d-3e9c2110e06a" />
 
 ## 👀 팀원 구성
-- 조은성 — https://github.com/EunDuk2  
-- 조민형 — https://github.com/jominhyeong97  
-- 김현지 — https://github.com/ifunhy  
-- 김영관 — https://github.com/YoungKwanK  
+<table>
+  <tr>
+    <!-- 1행: 사진(클릭 가능) + 이름 -->
+    <td align="center">
+      <a href="https://github.com/EunDuk2" target="_blank">
+        <img src="https://avatars.githubusercontent.com/u/124436476?v=4" width="100px;" alt="조은성"/>
+      </a><br />
+      <b>조은성</b>
+    </td>
+        <td align="center">
+      <a href="https://github.com/YoungKwanK" target="_blank">
+        <img src="https://avatars.githubusercontent.com/u/154659797?v=4" width="100px;" alt="김영관"/>
+      </a><br />
+      <b>김영관</b>
+    </td>
+    <td align="center">
+      <a href="https://github.com/jominhyeong97" target="_blank">
+        <img src="https://avatars.githubusercontent.com/u/206010512?v=4" width="100px;" alt="조민형"/>
+      </a><br />
+      <b>조민형</b>
+    </td>
+    <td align="center">
+      <a href="https://github.com/ifunhy" target="_blank">
+        <img src="https://avatars.githubusercontent.com/chaserChoi" width="100px;" alt="김현지"/>
+      </a><br />
+      <b>김현지</b>
+    </td>
+    <td align="center">
+      <a href="https://github.com/rm2001kr" target="_blank">
+        <img src="https://avatars.githubusercontent.com/u/207882668?v=4" width="100px;" alt="김강산"/>
+      </a><br />
+      <b>김강산</b>
+    </td>
+  </tr>
+  <tr>
+    <!-- 2행: GitHub 배지 -->
+    <td align="center">
+      <a href="https://github.com/EunDuk2" target="_blank">
+        <img src="https://img.shields.io/badge/GitHub_Profile-181717?style=flat-square&logo=github&logoColor=white"/>
+      </a>
+    </td>
+        <td align="center">
+      <a href="https://github.com/YoungKwanK" target="_blank">
+        <img src="https://img.shields.io/badge/GitHub_Profile-181717?style=flat-square&logo=github&logoColor=white"/>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/jominhyeong97" target="_blank">
+        <img src="https://img.shields.io/badge/GitHub_Profile-181717?style=flat-square&logo=github&logoColor=white"/>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/ifunhy" target="_blank">
+        <img src="https://img.shields.io/badge/GitHub_Profile-181717?style=flat-square&logo=github&logoColor=white"/>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/rm2001kr" target="_blank">
+        <img src="https://img.shields.io/badge/GitHub_Profile-181717?style=flat-square&logo=github&logoColor=white"/>
+      </a>
+    </td>
+  </tr>
+</table>
 
 <br/>
 
 ## 📖 배경 및 필요성
-현대 협업 환경은 Jira, Slack, Notion 등 기능별 SaaS로 분절되어 잦은 컨텍스트 전환과 정보 파편화가 발생합니다.  
-**Orbit**은 캘린더/간트/마일스톤/칸반/채팅/문서 협업을 하나의 UX로 통합하고, 변경을 **실시간으로 전 모듈에 연동**하여
-누구나 **통일된 데이터**로 프로젝트 전반을 한눈에 파악하고 효율적으로 협업할 수 있도록 설계했습니다.
+현대 협업 환경은 Jira, Slack, Notion 등 기능별 SaaS 사용이 보편화되면서 **정보가 파편화**되고 잦은 **컨텍스트 전환**이 발생하는 문제를 겪고 있습니다. 또한, 기존 툴의 복잡한 UI는 사용자의 피로도를 가중시킵니다.
+
+본 프로젝트는 이러한 파편화된 협업 기능을 **단일 플랫폼에 통합**하고, 사용자 친화적인 UI/UX를 제공하여 생산성 저하 문제를 해결하고자 합니다.
+
+핵심 목표는 **마일스톤**(목표 추적), **간트 차트**(작업 흐름), **캘린더**(일정 관리) 기능을 유기적으로 연동하는 것입니다. 하나의 변경 사항이 모든 관련 기능에 **실시간 동기화**되도록 하여, 팀원 누구나 통일된 데이터를 기반으로 프로젝트 전체 흐름을 한눈에 파악하는 효율적인 협업 환경을 구축하는 것을 목표로 합니다.
 
 <br/>
 
@@ -60,65 +111,134 @@
 
 <br/>
 
-## 🔗 문서 & 링크
-- 🎨 화면설계서(Figma): https://www.figma.com/design/V59MNrd8govUfzrRPHeKZa/Wireframe?node-id=24-58463&node-type=canvas&t=wSgc72pyUcR52dun-0
-- 💌 API 명세서(Notion): https://tropical-ferry-82d.notion.site/API-33445269d61e4c0183bcecd43e44ee61?pvs=74
-- 🌐 ORBIT: https://www.orbitflow.store
+## 📋 프로젝트 산출물
+
+| 구분 | 링크 |
+| :--- | :--- |
+| **Figma** | [🔗 Figma 디자인 보기](https://www.figma.com/design/f8NVDb2aljFlzoDFRRo8bl/Orbit?node-id=0-1&p=f&t=sfF5y7Eb2MaNDDP3-0) |
+| **API 명세서** | [🔗 API 명세서 보기](https://docs.google.com/spreadsheets/d/1GIcKtK_Tk5H-6UdCrks_X5xXr9MtWWH2bNvIPpIW59k/edit?gid=1634200920#gid=1634200920) |
+| **WBS** | [🔗 WBS 보기](https://docs.google.com/spreadsheets/d/1GIcKtK_Tk5H-6UdCrks_X5xXr9MtWWH2bNvIPpIW59k/edit?gid=2008137453#gid=2008137453) |
+| **요구사항 명세서** | [🔗 요구사항 명세서 보기](https://docs.google.com/spreadsheets/d/1GIcKtK_Tk5H-6UdCrks_X5xXr9MtWWH2bNvIPpIW59k/edit?gid=0#gid=0) |
 
 <br/>
 
 ## 🧱 ERD
-<details>
-  <summary><b>ERD 보기</b></summary>
 
-  ![CalIT_v2 ERD](https://github.com/user-attachments/assets/db0e189b-f9f6-486a-87f6-96b50d10d6ca)
+  <img width="5240" height="2943" alt="Final-Dolmeng-E-msa (1)" src="https://github.com/user-attachments/assets/c36920e1-2bee-41e5-bc56-be1aeb23153d" />
 
-  <div style="border:1px solid #ccc; padding:10px; width: 250px; font-size: 12px; margin-top: 10px;">
-    <b>🔍 ERD 색상</b><br>
-    🧡 유저 / 🩷 스크럼 / 💛 알람 / 💙 채팅 / 💜 챗봇 / 💚 게시판
-  </div>
-</details>
 
 <br/>
+
+
+## 기능 화면
+
+<details id="home">
+  <summary><b>🏠 홈</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/home.png" alt="Orbit Home" width="100%"/>
+  </p>
+</details>
+
+<details id="my-schedule">
+  <summary><b>📅 내일정</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/schedule.png" alt="Orbit Calendar" width="100%"/>
+  </p>
+</details>
+
+<details id="messenger">
+  <summary><b>💬 메신저</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/messenger.png" alt="Orbit Messenger" width="100%"/>
+  </p>
+</details>
+
+<details id="drive">
+  <summary><b>📁 문서함</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/drive.png" alt="Orbit Drive" width="100%"/>
+  </p>
+</details>
+
+<details id="project">
+  <summary><b>🗂 프로젝트</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/project.png" alt="Orbit Project" width="100%"/>
+  </p>
+</details>
+
+<details id="admin">
+  <summary><b>🛠 관리자페이지</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/admin.png" alt="Orbit Admin" width="100%"/>
+  </p>
+</details>
+
+<details id="mypage">
+  <summary><b>👤 마이페이지</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/mypage.png" alt="Orbit My Page" width="100%"/>
+  </p>
+</details>
+
+<details id="chatbot">
+  <summary><b>🤖 챗봇</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/chatbot.png" alt="Orbit Chatbot" width="100%"/>
+  </p>
+</details>
+
+<details id="search">
+  <summary><b>🔎 검색</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/search.png" alt="Orbit Search" width="100%"/>
+  </p>
+</details>
+
+<!-- ===== /Feature Toggle Gallery ===== -->
+
+
 
 ## 🏗️ 시스템 아키텍처
 <details>
   <summary><b>시스템 아키텍처 보기</b></summary>
-
-  ![CalIT_시스템 아키텍처_V2](https://github.com/user-attachments/assets/5edb89af-c3fa-4db7-bfd8-4690a3d0c065)
 </details>
+  
 
 <br/>
 
 ## ⚒️ 기술 스택
 
 **Frontend**  
-<img src="https://img.shields.io/badge/Vue.js-181717?style=flat&logo=Vue.js&logoColor=4FC08D&color=white"> <img src="https://img.shields.io/badge/HTML5-181717?style=flat&logo=html5&logoColor=E34F26&color=white"> <img src="https://img.shields.io/badge/CSS3-181717?style=flat&logo=css3&logoColor=1572B6&color=white"> <img src="https://img.shields.io/badge/JavaScript-181717?style=flat&logo=javascript&logoColor=F7DF1E&color=white"> <img src="https://img.shields.io/badge/Nginx-181717?style=flat&logo=nginx&logoColor=009639&color=white"> <img src="https://img.shields.io/badge/Axios-181717?style=flat&logo=axios&logoColor=5A29E4&color=white"> <img src="https://img.shields.io/badge/Pinia-181717?style=flat&logo=pinia&logoColor=FEDD00&color=white">
 
 **Backend**  
-<img src="https://img.shields.io/badge/SpringBoot-181717?style=flat&logo=SpringBoot&logoColor=6DB33F&color=white"> <img src="https://img.shields.io/badge/Spring_Security-181717?style=flat&logo=SpringSecurity&logoColor=6DB33F&color=white"> <img src="https://img.shields.io/badge/JSON_Web_Tokens-181717?style=flat&logo=JSONWebTokens&logoColor=000000&color=white"> <img src="https://img.shields.io/badge/Spring-181717?style=flat&logo=Spring&logoColor=6DB33F&color=white"> <img src="https://img.shields.io/badge/Spring_Batch-181717?style=flat&logo=Spring&logoColor=6DB33F&color=white"> <img src="https://img.shields.io/badge/Apache_Kafka-181717?style=flat&logo=ApacheKafka&logoColor=231F20&color=white"> <img src="https://img.shields.io/badge/n8n-181717?style=flat&logo=n8n&logoColor=0F74E2&color=white"> <img src="https://img.shields.io/badge/Redis-181717?style=flat&logo=Redis&logoColor=DC382D&color=white">
+
 
 **Database**  
-<img src="https://img.shields.io/badge/MariaDB-181717?style=flat&logo=MariaDB&logoColor=003545&color=white"> <img src="https://img.shields.io/badge/PostgreSQL-181717?style=flat&logo=PostgreSQL&logoColor=336791&color=white">
+
 
 **CI/CD**  
-<img src="https://img.shields.io/badge/Git-000?style=flat&logo=Git&logoColor=F05032&color=white"> <img src="https://img.shields.io/badge/GitHub-181717?style=flat&logo=GitHub&logoColor=black&color=white"> <img src="https://img.shields.io/badge/Jenkins-D24939?style=flat&logo=jenkins&logoColor=D24939&color=white"> <img src="https://img.shields.io/badge/Docker-2496ED?style=flat&logo=Docker&logoColor=2496ED&color=white"> <img src="https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=Kubernetes&logoColor=326CE5&color=white">
-
-**Observability**  
-<img src="https://img.shields.io/badge/Istio-181717?style=flat&logo=Istio&logoColor=466BB0&color=white"> <img src="https://img.shields.io/badge/Prometheus-181717?style=flat&logo=Prometheus&logoColor=E6522C&color=white"> <img src="https://img.shields.io/badge/Grafana-181717?style=flat&logo=Grafana&logoColor=F46800&color=white">
 
 **추가 표기(인프라 & API)**  
-- 인프라: Jenkins, EKS, Kubernetes, Docker, S3, CloudFront, Route53, RDS, EC2, IAM  
-- API: clovaNote
 
 <br/>
 
-## 📦 프로젝트 구조 예시
-```text
-.
-├─ backend/
-├─ frontend/
-├─ cicd/
-├─ assets/
-│  └─ orbit-hero.svg   # ← 대표 이미지(배너)
-└─ README.md
+## 📝 프로젝트 회고
+
+| 팀원 | 회고 내용 |
+|------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 조은성 |  |
+| 김영관 |  |
+| 조민형 |  |
+| 김현지 |  |
+| 김강산 |  |
+
