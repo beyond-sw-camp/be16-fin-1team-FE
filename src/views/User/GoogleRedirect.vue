@@ -20,6 +20,7 @@
 <script>
 import axios from "axios";
 import { jwtDecode } from 'jwt-decode';
+import { useWorkspaceStore } from '@/stores/workspace';
 
 export default {
   name: "GoogleRedirect",
@@ -60,6 +61,9 @@ export default {
         if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
         if (id) localStorage.setItem("id", id);
 
+        this.statusText = "워크스페이스를 확인하는 중…";
+        await this.ensureWorkspaceSelected();
+
         this.statusText = "로그인 성공! 이동 중…";
         this.$router.replace("/");
       } catch (e) {
@@ -67,6 +71,23 @@ export default {
         this.loading = false;
       }
     },
+    async ensureWorkspaceSelected() {
+      try {
+        const workspaceStore = useWorkspaceStore();
+        const workspaces = await workspaceStore.loadWorkspaces();
+
+        if (Array.isArray(workspaces) && workspaces.length > 0) {
+          const savedWorkspaceId = localStorage.getItem('selectedWorkspaceId');
+          const savedWorkspace = savedWorkspaceId
+            ? workspaces.find((w) => w.workspaceId === savedWorkspaceId)
+            : null;
+          const targetWorkspace = savedWorkspace || workspaces[0];
+          workspaceStore.setCurrentWorkspace(targetWorkspace);
+        }
+      } catch (error) {
+        console.error('워크스페이스 선택 초기화 실패:', error);
+      }
+    }
   },
 };
 </script>
