@@ -219,16 +219,80 @@
 ## ⚒️ 기술 스택
 
 **Frontend**  
+![Vue.js](https://img.shields.io/badge/Vue.js-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Pinia](https://img.shields.io/badge/Pinia-FFB300?style=for-the-badge&logo=pinia&logoColor=black)
+![Vue Router](https://img.shields.io/badge/Vue_Router-4FC08D?style=for-the-badge&logo=vuerouter&logoColor=white)
+![Vuetify](https://img.shields.io/badge/Vuetify-1867C0?style=for-the-badge&logo=vuetify&logoColor=white)
+![MDI](https://img.shields.io/badge/MDI-000000?style=for-the-badge&logo=materialdesignicons&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+![FullCalendar](https://img.shields.io/badge/FullCalendar-3178C6?style=for-the-badge&logo=fullcalendar&logoColor=white)
+![Chart.js](https://img.shields.io/badge/Chart.js-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white)
+![ApexCharts](https://img.shields.io/badge/ApexCharts-008FFB?style=for-the-badge&logo=apexcharts&logoColor=white)
+![Vue Flow](https://img.shields.io/badge/Vue_Flow-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white)
+![Tiptap](https://img.shields.io/badge/Tiptap-000000?style=for-the-badge&logo=tiptap&logoColor=white)
+![ProseMirror](https://img.shields.io/badge/ProseMirror-000000?style=for-the-badge&logo=prosemirror&logoColor=white)
+![STOMP.js](https://img.shields.io/badge/STOMP.js-grey?style=for-the-badge&logo=websocket&logoColor=white)
+![SockJS](https://img.shields.io/badge/SockJS-grey?style=for-the-badge&logo=javascript&logoColor=white)
+![OpenVidu](https://img.shields.io/badge/OpenVidu-273A8B?style=for-the-badge&logo=openvidu&logoColor=white)
+![Axios](https://img.shields.io/badge/Axios-5A29E4?style=for-the-badge&logo=axios&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
+![Docx](https://img.shields.io/badge/docx-2B579A?style=for-the-badge&logo=microsoftword&logoColor=white)
+![Lodash](https://img.shields.io/badge/Lodash-3492FF?style=for-the-badge&logo=lodash&logoColor=white)
+![UUID](https://img.shields.io/badge/UUID-grey?style=for-the-badge)
+![Core-JS](https://img.shields.io/badge/Core_JS-F7E018?style=for-the-badge&logo=javascript&logoColor=black)
+![File Saver](https://img.shields.io/badge/File_Saver-blue?style=for-the-badge)
+
 
 **Backend**  
-
+![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![Spring Cloud](https://img.shields.io/badge/Spring_Cloud-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+![Spring WebFlux](https://img.shields.io/badge/Spring_WebFlux-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+![Spring Cloud Gateway](https://img.shields.io/badge/Spring_Cloud_Gateway-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+![Netflix Eureka](https://img.shields.io/badge/Netflix_Eureka-6DB33F?style=for-the-badge&logo=netflix&logoColor=white)
+![OpenFeign](https://img.shields.io/badge/OpenFeign-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+![Resilience4j](https://img.shields.io/badge/Resilience4j-8A2BE2?style=for-the-badge)
+<br>
+![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)
+![WebSocket](https://img.shields.io/badge/WebSocket-010101?style=for-the-badge&logo=websocket&logoColor=white)
+![STOMP](https://img.shields.io/badge/STOMP-grey?style=for-the-badge)
+![OpenVidu](https://img.shields.io/badge/OpenVidu-273A8B?style=for-the-badge&logo=openvidu&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
+<br>
+![Lombok](https://img.shields.io/badge/Lombok-000000?style=for-the-badge&logo=lombok&logoColor=white)
+![Jackson](https://img.shields.io/badge/Jackson-grey?style=for-the-badge)
+![Apache Tika](https://img.shields.io/badge/Apache_Tika-D22128?style=for-the-badge&logo=apache&logoColor=white)
+![JSoup](https://img.shields.io/badge/JSoup-FF9900?style=for-the-badge)
+![Apache HttpClient](https://img.shields.io/badge/Apache_HttpClient-D22128?style=for-the-badge&logo=apache&logoColor=white)
 
 **Database**  
+![MariaDB](https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Redis Stack](https://img.shields.io/badge/Redis_Stack-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?style=for-the-badge&logo=elasticsearch&logoColor=white)
 
+**Deployment & DevOps**  
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
+![AWS S3](https://img.shields.io/badge/AWS_S3-569A31?style=for-the-badge&logo=amazons3&logoColor=white)
+![n8n](https://img.shields.io/badge/n8n-1A1A1A?style=for-the-badge&logo=n8n&logoColor=white)
+<br>
+![Gradle](https://img.shields.io/badge/Gradle-02303A?style=for-the-badge&logo=gradle&logoColor=white)
+![Maven Central](https://img.shields.io/badge/Maven_Central-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)
+![GitHub Packages](https://img.shields.io/badge/GitHub_Packages-000000?style=for-the-badge&logo=github&logoColor=white)
 
-**CI/CD**  
+**Collaboration & Tools**
 
-**추가 표기(인프라 & API)**  
+![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
+![Notion](https://img.shields.io/badge/Notion-000000?style=for-the-badge&logo=notion&logoColor=white)
+![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)
+![Figma](https://img.shields.io/badge/Figma-F24E1E?style=for-the-badge&logo=figma&logoColor=white)
+![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
+![Asana](https://img.shields.io/badge/Asana-8D8D8D?style=for-the-badge&logo=asana&logoColor=white)
+![ERDCloud](https://img.shields.io/badge/ERDCloud-0099FF?style=for-the-badge&logo=erdcloud&logoColor=white)
+
 
 <br/>
 

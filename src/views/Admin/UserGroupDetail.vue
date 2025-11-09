@@ -269,14 +269,14 @@ export default {
   align-items: center;
   padding: 12px 15px;
   background: #FFFFFF;
-  gap: 12px;
+  gap: 16px;
   border-radius: 4px;
   border: 1px solid #E9ECEF;
 }
 
 .user-avatar {
-  width: 16px;
-  height: 16px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
 }
 
@@ -289,20 +289,22 @@ export default {
 .user-info {
   flex: 1;
   text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
 .user-name {
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 700;
   color: #1C0F0F;
-  line-height: 12px;
-  margin-bottom: 2px;
+  line-height: 18px;
 }
 
 .user-email {
-  font-size: 9px;
-  color: #999999;
-  line-height: 11px;
+  font-size: 13px;
+  color: #555555;
+  line-height: 18px;
 }
 
 /* 로딩 상태 */
