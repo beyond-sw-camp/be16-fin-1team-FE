@@ -181,39 +181,52 @@
 
   <!-- 프로젝트 -->
   <details>
-    <summary><b>🧩 프로젝트</b></summary>
+    <summary><b>프로젝트</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/project/create.gif" alt="Project Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/project/update.gif" alt="Project Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/project/delete.gif" alt="Project Delete" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/project/dashboard.gif" alt="Project Dashboard" width="100%"/></p>
+    <p><b>프로젝트 생성</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/15d6ebed-e1b2-409c-89fb-c9102feeeb6c" />
+    <p><b>프로젝트 수정</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/46fd102d-e5c9-4d60-8eba-f32c4f07373b" />
+    <p><b>프로젝트 삭제</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/a7b3d0b6-40f6-4db7-80e6-1f1b5cf043c5" />
+    <p><b>프로젝트 대시보드 조회</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/5c6a5aac-988d-4a28-953e-900e6b92a98f" />
   </details>
 
   <!-- 스톤 -->
   <details>
-    <summary><b>🪨 스톤</b></summary>
+    <summary><b>스톤</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/stone/create.gif" alt="Stone Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/update.gif" alt="Stone Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/delete.gif" alt="Stone Delete" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/tree.gif" alt="Stone Tree" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/detail.gif" alt="Stone Detail" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/done.gif" alt="Stone Done" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/participants.gif" alt="Stone Participants Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/manager.gif" alt="Stone Manager Update" width="100%"/></p>
+    <p><b>스톤 생성</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/11c3c345-8bce-4e60-a745-6adf57fb8594" />  
+    <p><b>스톤 수정</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/7888fdb5-5a3d-4e00-a3bd-35fd5f049406" />  
+    <p><b>스톤 삭제</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/c16a0501-9b03-4dcf-8713-d2eb7d12dde5" />  
+    <p><b>스톤 조회(트리)</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/989db430-a8a1-4820-8d93-d33e8707ce6e" />  
+    <p><b>스톤 상세조회</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/6b272b29-b8b4-4fad-a830-c4b862b58e87" />  
+    <p><b>스톤 완료</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/8e04103e-ad70-4ac5-b0e4-2223f85c1e87" />  
+    <p><b>스톤 참여자 변경</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/c6b421d6-fcdf-4be7-b098-d0512e73cd9e" />  
+    <p><b>스톤 담당자 변경</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/2d35e13e-f548-4eb4-963a-5f231376883b" />  
   </details>
 
   <!-- 태스크 -->
   <details>
-    <summary><b>✅ 태스크</b></summary>
+    <summary><b>태스크</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/task/create.gif" alt="Task Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/task/delete.gif" alt="Task Delete" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/task/done.gif" alt="Task Done" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/task/cancel-done.gif" alt="Task Cancel Done" width="100%"/></p>
+    <p><b>태스크 생성</b></p>
+    <img width="75%" alt="Task Create" src="https://github.com/user-attachments/assets/f69a112f-7e5a-40c2-80b1-2b40bf1e6449" />
+    <p><b>태스크 삭제</b></p>
+    <img width="75%" alt="Task Delete" src="https://github.com/user-attachments/assets/749d8131-c6ec-456c-bda4-a5283d7b0065" />
+    <p><b>태스크 완료</b></p>
+    <img width="75%" alt="Task Done" src="https://github.com/user-attachments/assets/08725f12-ad87-43af-b4d2-023150b4d04d" />
+    <p><b>태스크 완료 취소</b></p>
+    <img width="75%" alt="Task Cancel Done" src="https://github.com/user-attachments/assets/06e95071-8780-4da1-93b2-4257d6194999" />
   </details>
 </details>
 
