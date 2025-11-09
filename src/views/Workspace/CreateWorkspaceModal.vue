@@ -70,6 +70,8 @@
 import axios from 'axios';
 import { useWorkspaceStore } from '@/stores/workspace'; 
 import { showSnackbar } from '@/services/snackbar.js';
+import proTemplateIcon from '@/assets/icons/chat/account-supervisor.svg';
+import enterpriseTemplateIcon from '@/assets/icons/sidebar/company-svgrepo-com.svg';
 
 export default {
   name: "CreateWorkspaceModal",
@@ -89,13 +91,13 @@ export default {
           value: 'PRO',
           name: 'PRO',
           description: '개인 및 소규모 팀을 위한 기본 플랜',
-          icon: '/src/assets/icons/chat/account-supervisor.svg'
+          icon: proTemplateIcon
         },
         {
           value: 'ENTERPRISE',
           name: 'ENTERPRISE',
           description: '대규모 조직을 위한 고급 플랜',
-          icon: '/src/assets/icons/sidebar/company-svgrepo-com.svg'
+          icon: enterpriseTemplateIcon
         }
       ]
     };
