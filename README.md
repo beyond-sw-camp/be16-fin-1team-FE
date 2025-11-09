@@ -73,6 +73,85 @@
 
 <br/>
 
+
+## 기능 화면
+
+<details id="home" open>
+  <summary><b>🏠 홈</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/home.png" alt="Orbit Home" width="100%"/>
+  </p>
+</details>
+
+<details id="my-schedule">
+  <summary><b>📅 내일정</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/schedule.png" alt="Orbit Calendar" width="100%"/>
+  </p>
+</details>
+
+<details id="messenger">
+  <summary><b>💬 메신저</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/messenger.png" alt="Orbit Messenger" width="100%"/>
+  </p>
+</details>
+
+<details id="drive">
+  <summary><b>📁 문서함</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/drive.png" alt="Orbit Drive" width="100%"/>
+  </p>
+</details>
+
+<details id="project">
+  <summary><b>🗂 프로젝트</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/project.png" alt="Orbit Project" width="100%"/>
+  </p>
+</details>
+
+<details id="admin">
+  <summary><b>🛠 관리자페이지</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/admin.png" alt="Orbit Admin" width="100%"/>
+  </p>
+</details>
+
+<details id="mypage">
+  <summary><b>👤 마이페이지</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/mypage.png" alt="Orbit My Page" width="100%"/>
+  </p>
+</details>
+
+<details id="chatbot">
+  <summary><b>🤖 챗봇</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/chatbot.png" alt="Orbit Chatbot" width="100%"/>
+  </p>
+</details>
+
+<details id="search">
+  <summary><b>🔎 검색</b></summary>
+  <br/>
+  <p align="center">
+    <img src="./assets/features/search.png" alt="Orbit Search" width="100%"/>
+  </p>
+</details>
+
+<!-- ===== /Feature Toggle Gallery ===== -->
+
+
+
 ## 🏗️ 시스템 아키텍처
 <details>
   <summary><b>시스템 아키텍처 보기</b></summary>
