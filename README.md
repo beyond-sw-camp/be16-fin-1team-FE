@@ -29,7 +29,7 @@
     </td>
     <td align="center">
       <a href="https://github.com/ifunhy" target="_blank">
-        <img src="https://avatars.githubusercontent.com/chaserChoi" width="100px;" alt="김현지"/>
+        <img src="https://avatars.githubusercontent.com/u/194198612?v=4" width="100px;" alt="김현지"/>
       </a><br />
       <b>김현지</b>
     </td>
@@ -164,20 +164,87 @@
   </p>
 </details>
 
+<!-- 프로젝트: 하위 토글 + GIF 공간 -->
 <details id="project">
   <summary><b>🗂 프로젝트</b></summary>
   <br/>
-  <p align="center">
-    <img src="./assets/features/project.png" alt="Orbit Project" width="100%"/>
-  </p>
+
+  <!-- 프로젝트 -->
+  <details>
+    <summary><b>🧩 프로젝트</b></summary>
+    <br/>
+    <!-- GIF drop zone -->
+    <p align="center"><img src="./assets/gif/project/create.gif" alt="Project Create" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/project/update.gif" alt="Project Update" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/project/delete.gif" alt="Project Delete" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/project/dashboard.gif" alt="Project Dashboard" width="100%"/></p>
+  </details>
+
+  <!-- 스톤 -->
+  <details>
+    <summary><b>🪨 스톤</b></summary>
+    <br/>
+    <!-- GIF drop zone -->
+    <p align="center"><img src="./assets/gif/stone/create.gif" alt="Stone Create" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/stone/update.gif" alt="Stone Update" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/stone/delete.gif" alt="Stone Delete" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/stone/tree.gif" alt="Stone Tree" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/stone/detail.gif" alt="Stone Detail" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/stone/done.gif" alt="Stone Done" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/stone/participants.gif" alt="Stone Participants Update" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/stone/manager.gif" alt="Stone Manager Update" width="100%"/></p>
+  </details>
+
+  <!-- 태스크 -->
+  <details>
+    <summary><b>✅ 태스크</b></summary>
+    <br/>
+    <!-- GIF drop zone -->
+    <p align="center"><img src="./assets/gif/task/create.gif" alt="Task Create" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/task/delete.gif" alt="Task Delete" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/task/done.gif" alt="Task Done" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/task/cancel-done.gif" alt="Task Cancel Done" width="100%"/></p>
+  </details>
 </details>
 
+<!-- 관리자페이지: 하위 토글 + GIF 공간 -->
 <details id="admin">
   <summary><b>🛠 관리자페이지</b></summary>
   <br/>
-  <p align="center">
-    <img src="./assets/features/admin.png" alt="Orbit Admin" width="100%"/>
-  </p>
+
+  <!-- 권한 그룹 -->
+  <details>
+    <summary><b>🛡️ 권한 그룹</b></summary>
+    <br/>
+    <!-- GIF drop zone -->
+    <p align="center"><img src="./assets/gif/access/create.gif" alt="Access Group Create" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/access/update.gif" alt="Access Group Update" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/access/users.gif" alt="Access Group Users Update" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/access/detail.gif" alt="Access Group Detail" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/access/delete.gif" alt="Access Group Delete" width="100%"/></p>
+  </details>
+
+  <!-- 워크스페이스 -->
+  <details>
+    <summary><b>🏢 워크스페이스</b></summary>
+    <br/>
+    <!-- GIF drop zone -->
+    <p align="center"><img src="./assets/gif/workspace/create.gif" alt="Workspace Create" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/workspace/update.gif" alt="Workspace Update" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/workspace/delete.gif" alt="Workspace Delete" width="100%"/></p>
+  </details>
+
+  <!-- 사용자 그룹 -->
+  <details>
+    <summary><b>👥 사용자 그룹</b></summary>
+    <br/>
+    <!-- GIF drop zone -->
+    <p align="center"><img src="./assets/gif/user-group/create.gif" alt="User Group Create" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/user-group/update.gif" alt="User Group Update" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/user-group/detail.gif" alt="User Group Detail" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/user-group/delete.gif" alt="User Group Delete" width="100%"/></p>
+    <p align="center"><img src="./assets/gif/user-group/search.gif" alt="User Group Search" width="100%"/></p>
+  </details>
 </details>
 
 <details id="mypage">
@@ -198,13 +265,18 @@
 
 <details id="search">
   <summary><b>🔎 검색</b></summary>
-  <br/>
-  <p align="center">
-    <img src="./assets/features/search.png" alt="Orbit Search" width="100%"/>
-  </p>
+  <details>
+    <summary><strong>파일/문서/스톤 검색</strong></summary>
+    <br>
+    <img width="100%" alt="Image" src="https://github.com/user-attachments/assets/a4d2d473-3ea3-46c4-9c84-fee8adb70a50" />
+    <img width="100%" alt="Image" src="https://github.com/user-attachments/assets/afb7ef80-1d80-4f05-ae95-aff33c9b7ce9" />
+    <img width="100%" alt="Image" src="https://github.com/user-attachments/assets/fa8f5334-5aee-4676-a2fe-5094dc9f62d9" />
+
+  </details>
 </details>
 
 <!-- ===== /Feature Toggle Gallery ===== -->
+
 
 
 
