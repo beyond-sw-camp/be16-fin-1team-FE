@@ -105,7 +105,11 @@
 - 문서/회의록 **동시 편집**, 변경사항 실시간 반영
 - 회의 **녹화 및 AI 자동 회의록 요약**
 
-### 6) 🤖 AI 어시스턴트
+### 6) 🔍 자동완성 & 검색
+- Elasticsearch 기반의 **통합 검색** 및 검색어 **자동완성**
+- 문서, 파일 **내용**으로 검색 가능
+
+### 7) 🤖 AI 어시스턴트
 - 사전 회의 주제 기반 자료 추천
 - 회의록/채팅 요약, 태스크 추출
 
@@ -265,13 +269,21 @@
 
 <details id="search">
   <summary><b>🔎 검색</b></summary>
+  
   <details>
-    <summary><strong>파일/문서/스톤 검색</strong></summary>
+    <summary><strong>파일/문서/스톤/테스크 검색</strong></summary>
     <br>
-    <img width="100%" alt="Image" src="https://github.com/user-attachments/assets/a4d2d473-3ea3-46c4-9c84-fee8adb70a50" />
-    <img width="100%" alt="Image" src="https://github.com/user-attachments/assets/afb7ef80-1d80-4f05-ae95-aff33c9b7ce9" />
-    <img width="100%" alt="Image" src="https://github.com/user-attachments/assets/fa8f5334-5aee-4676-a2fe-5094dc9f62d9" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/a4d2d473-3ea3-46c4-9c84-fee8adb70a50" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/afb7ef80-1d80-4f05-ae95-aff33c9b7ce9" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/fa8f5334-5aee-4676-a2fe-5094dc9f62d9" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/6a7ae9b9-a5d6-4ee1-9b70-eaa1872fb636" />
 
+  </details>
+
+  <details>
+    <summary><strong>자동완성</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/380e7868-b2ed-4b80-bb00-9f88fa0ab29c" />
   </details>
 </details>
 
