@@ -20,6 +20,7 @@
 <script>
 import axios from "axios";
 import { jwtDecode } from 'jwt-decode';
+import { useWorkspaceStore } from '@/stores/workspace';
 
 export default {
   name: "KakaoRedirect",
@@ -29,39 +30,64 @@ export default {
       statusText: "카카오 로그인 중…",
     };
   },
-  async created() {
-    const code = new URL(window.location.href).searchParams.get("code");
-    const remember = new URL(window.location.href).searchParams.get("remember") === "true";
-    
-    if (!code) {
-      this.loading = false;
-      this.statusText = "인가 코드를 찾을 수 없습니다.";
-      return;
-    }
-    try {
-      const baseURL = import.meta.env.VITE_API_BASE_URL;
-      const { data } = await axios.post(
-        `${baseURL}/user-service/user/kakao/login`,
-        { code, rememberMe: remember },
-        { headers: { "Content-Type": "application/json" } }
-      );
-      const accessToken = data?.result?.accessToken;
-      const refreshToken = data?.result?.refreshToken;
-      const id = jwtDecode(accessToken).sub;
-      if (!accessToken) throw new Error("토큰 없음");
-      localStorage.setItem("accessToken", accessToken);
-      if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-      if (id) localStorage.setItem("id", id);
+  created() {
+    this.kakaoLoginRequest();
+  },
+  methods: {
+    async kakaoLoginRequest() {
+      const code = new URL(window.location.href).searchParams.get("code");
+      const remember = new URL(window.location.href).searchParams.get("remember") === "true";
       
-      this.statusText = "로그인 성공! 이동 중…";
-      this.$router.replace("/");
-    } catch (e) {
-      console.log(e);
-      this.statusText = "로그인에 실패했어요. 다시 시도해주세요.";
-    } finally {
-      // 성공 시엔 곧바로 redirect하므로 overlay 계속 유지해도 OK
-      // 에러 시엔 오버레이를 내려서 메시지 보이게
-      if (this.statusText.includes("실패")) this.loading = false;
+      if (!code) {
+        this.loading = false;
+        this.statusText = "인가 코드를 찾을 수 없습니다.";
+        return;
+      }
+      try {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const { data } = await axios.post(
+          `${baseURL}/user-service/user/kakao/login`,
+          { code, rememberMe: remember },
+          { headers: { "Content-Type": "application/json" } }
+        );
+        const accessToken = data?.result?.accessToken;
+        const refreshToken = data?.result?.refreshToken;
+        const id = jwtDecode(accessToken).sub;
+        if (!accessToken) throw new Error("토큰 없음");
+        localStorage.setItem("accessToken", accessToken);
+        if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+        if (id) localStorage.setItem("id", id);
+        
+        this.statusText = "워크스페이스를 확인하는 중…";
+        await this.ensureWorkspaceSelected();
+
+        this.statusText = "로그인 성공! 이동 중…";
+        this.$router.replace("/");
+      } catch (e) {
+        console.log(e);
+        this.statusText = "로그인에 실패했어요. 다시 시도해주세요.";
+      } finally {
+        // 성공 시엔 곧바로 redirect하므로 overlay 계속 유지해도 OK
+        // 에러 시엔 오버레이를 내려서 메시지 보이게
+        if (this.statusText.includes("실패")) this.loading = false;
+      }
+    },
+    async ensureWorkspaceSelected() {
+      try {
+        const workspaceStore = useWorkspaceStore();
+        const workspaces = await workspaceStore.loadWorkspaces();
+
+        if (Array.isArray(workspaces) && workspaces.length > 0) {
+          const savedWorkspaceId = localStorage.getItem('selectedWorkspaceId');
+          const savedWorkspace = savedWorkspaceId
+            ? workspaces.find((w) => w.workspaceId === savedWorkspaceId)
+            : null;
+          const targetWorkspace = savedWorkspace || workspaces[0];
+          workspaceStore.setCurrentWorkspace(targetWorkspace);
+        }
+      } catch (error) {
+        console.error('워크스페이스 선택 초기화 실패:', error);
+      }
     }
   },
 };
