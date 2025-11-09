@@ -1608,6 +1608,10 @@ const handleIncomingMessage = (message) => {
 .ProseMirror {
   outline: none;
   height: 100%;
+  font-family: 'Noto Sans KR', 'Pretendard', system-ui, -apple-system, sans-serif;
+  font-synthesis: weight style;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .ProseMirror p {
@@ -1626,16 +1630,32 @@ const handleIncomingMessage = (message) => {
   margin-right: 0 !important;
 }
 
-/* Bold 스타일 명시적으로 적용 */
+/* Bold 스타일 명시적으로 적용 - 한글 포함 */
 .ProseMirror strong,
 .ProseMirror b {
   font-weight: 700 !important;
+  font-family: 'Noto Sans KR', 'Pretendard', system-ui, -apple-system, sans-serif !important;
 }
 
-/* Italic 스타일 명시적으로 적용 */
+/* Italic 스타일 명시적으로 적용 - 한글 포함 */
 .ProseMirror em,
 .ProseMirror i {
   font-style: italic !important;
+  font-family: 'Noto Sans KR', 'Pretendard', system-ui, -apple-system, sans-serif !important;
+  font-synthesis: style !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Bold + Italic 조합 */
+.ProseMirror strong em,
+.ProseMirror em strong,
+.ProseMirror b i,
+.ProseMirror i b {
+  font-weight: 700 !important;
+  font-style: italic !important;
+  font-family: 'Noto Sans KR', 'Pretendard', system-ui, -apple-system, sans-serif !important;
+  font-synthesis: weight style !important;
+  -webkit-font-smoothing: antialiased;
 }
 
 .ProseMirror-focused {
