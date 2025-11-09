@@ -1,7 +1,7 @@
 <template>
   <v-container class="kakao-redirect pa-0" fluid>
-    <!-- 안내 텍스트만 배경에 (스피너 없음) -->
-    <div class="center-wrap">
+    <!-- 안내 텍스트 (로딩 종료 시 표시) -->
+    <div class="center-wrap" v-if="!loading">
       <div class="status-text">{{ statusText }}</div>
     </div>
 
@@ -12,7 +12,10 @@
       scrim="rgba(0,0,0,0.08)"
       persistent
     >
-      <v-progress-circular indeterminate :size="56" :width="5" color="#FFE364" />
+      <div class="overlay-content">
+        <v-progress-circular indeterminate :size="56" :width="5" color="#FFE364" />
+        <div class="status-text overlay-text">{{ statusText }}</div>
+      </div>
     </v-overlay>
   </v-container>
 </template>
@@ -58,7 +61,7 @@ export default {
         if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
         if (id) localStorage.setItem("id", id);
         
-        this.statusText = "워크스페이스를 확인하는 중…";
+        this.statusText = "페이지를 로드하는 중입니다.";
         await this.ensureWorkspaceSelected();
 
         this.statusText = "로그인 성공! 이동 중…";
@@ -109,5 +112,15 @@ export default {
 .status-text {
   color: #333;
   font-size: 0.98rem;
+}
+.overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+}
+.overlay-text {
+  color: #333;
 }
 </style>
