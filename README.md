@@ -237,36 +237,46 @@
 
   <!-- 권한 그룹 -->
   <details>
-    <summary><b>🛡️ 권한 그룹</b></summary>
+    <summary><b>권한 그룹</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/access/create.gif" alt="Access Group Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/access/update.gif" alt="Access Group Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/access/users.gif" alt="Access Group Users Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/access/detail.gif" alt="Access Group Detail" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/access/delete.gif" alt="Access Group Delete" width="100%"/></p>
+    <p><b>권한 그룹 생성</b></p>
+    <img width="75%" alt="Access Group Create" src="https://github.com/user-attachments/assets/0a431fdd-2b23-4b08-a8ec-b54e70a2fadc" />    
+    <p><b>권한 그룹 수정</b></p>
+    <img width="75%" alt="Access Group Update" src="https://github.com/user-attachments/assets/9e720b0a-ed46-4741-93ee-59f3f4775866" />    
+    <p><b>권한 그룹 사용자 수정</b></p>
+    <img width="75%" alt="Access Group Users Update" src="https://github.com/user-attachments/assets/fe525430-d331-463c-9af5-a619912f34b4" />  
+    <p><b>권한 그룹 상세목록 조회</b></p>
+    <img width="75%" alt="Access Group Detail" src="https://github.com/user-attachments/assets/a968e582-b647-40b9-bbec-950a319d5809" />
+    <p><b>권한 그룹 삭제</b></p>
+    <img width="75%" alt="Access Group Delete" src="https://github.com/user-attachments/assets/c39c985c-4ebc-4361-b730-13d775ef72a6" />
   </details>
 
   <!-- 워크스페이스 -->
   <details>
-    <summary><b>🏢 워크스페이스</b></summary>
+    <summary><b>워크스페이스</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/workspace/create.gif" alt="Workspace Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/workspace/update.gif" alt="Workspace Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/workspace/delete.gif" alt="Workspace Delete" width="100%"/></p>
+    <p><b>워크스페이스 생성</b></p>
+    <img width="75%" alt="Workspace Create" src="https://github.com/user-attachments/assets/b240fa57-5fce-4b20-9074-65d363fb793b" />
+    <p><b>워크스페이스 수정</b></p>
+    <img width="75%" alt="Workspace Update" src="https://github.com/user-attachments/assets/e520871d-796e-4296-9ae1-02e6d81d9340" /> 
+    <p><b>워크스페이스 삭제</b></p>
+    <img width="75%" alt="Workspace Delete" src="https://github.com/user-attachments/assets/bdbfce05-27da-4724-8992-b0b2c0fa7e55" />
   </details>
 
   <!-- 사용자 그룹 -->
   <details>
-    <summary><b>👥 사용자 그룹</b></summary>
+    <summary><b>사용자 그룹</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/user-group/create.gif" alt="User Group Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/user-group/update.gif" alt="User Group Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/user-group/detail.gif" alt="User Group Detail" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/user-group/delete.gif" alt="User Group Delete" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/user-group/search.gif" alt="User Group Search" width="100%"/></p>
+    <p><b>사용자 그룹 생성</b></p>
+    <img width="75%" alt="User Group Create" src="https://github.com/user-attachments/assets/d569201b-ebd6-4616-9db3-654987a876bb" />  
+    <p><b>사용자 그룹 수정</b></p>
+    <img width="75%" alt="User Group Update" src="https://github.com/user-attachments/assets/6379e2e5-3577-4c75-870b-2decf113bcb8" /> 
+    <p><b>사용자 그룹 상세목록 조회</b></p>
+    <img width="75%" alt="User Group Detail" src="https://github.com/user-attachments/assets/5a9af53b-e3c2-4c4f-a066-fe9cc7213dc7" />  
+    <p><b>사용자 그룹 삭제</b></p>
+    <img width="75%" alt="User Group Delete" src="https://github.com/user-attachments/assets/47f7710e-3fbb-4429-824b-22144c8b53de" />    
+    <p><b>사용자 그룹 검색</b></p>
+    <img width="75%" alt="User Group Search" src="https://github.com/user-attachments/assets/50bc45f0-f8f6-4022-959a-e505ed727779" />
   </details>
 </details>
 
