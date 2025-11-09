@@ -29,7 +29,7 @@
     </td>
     <td align="center">
       <a href="https://github.com/ifunhy" target="_blank">
-        <img src="https://avatars.githubusercontent.com/chaserChoi" width="100px;" alt="김현지"/>
+        <img src="https://avatars.githubusercontent.com/u/194198612?v=4" width="100px;" alt="김현지"/>
       </a><br />
       <b>김현지</b>
     </td>
