@@ -103,11 +103,11 @@
 
 ### 5) 📝 실시간 공동 작성
 - 문서/회의록 **동시 편집**, 변경사항 실시간 반영
-- 회의 **녹화 및 AI 자동 회의록 요약**
+- 작성 내용 파일(pdf, docx)로 **내보내기** 가능
 
 ### 6) 🔍 자동완성 & 검색
 - Elasticsearch 기반의 **통합 검색** 및 검색어 **자동완성**
-- 문서, 파일 **내용**으로 검색 가능
+- 문서, 다양한 파일(pdf, docx 등) **내용** 검색 및 **하이라이팅**
 
 ### 7) 🤖 AI 어시스턴트
 - 사전 회의 주제 기반 자료 추천
@@ -139,9 +139,7 @@
 <details id="home">
   <summary><b>🏠 홈</b></summary>
   <br/>
-  <p align="center">
-    <img src="./assets/features/home.png" alt="Orbit Home" width="100%"/>
-  </p>
+  <img width="1919" height="945" alt="홈화면" src="https://github.com/user-attachments/assets/febd3178-8c65-489c-984d-1731f5248051" />
 </details>
 
 <details id="my-schedule">
@@ -163,9 +161,15 @@
 <details id="drive">
   <summary><b>📁 문서함</b></summary>
   <br/>
-  <p align="center">
-    <img src="./assets/features/drive.png" alt="Orbit Drive" width="100%"/>
-  </p>
+  <details>
+    <summary><strong>폴더/파일/문서 생성</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/c11b292d-1990-469d-848f-bbe3b072e024" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/4afb999c-6b39-4a24-845d-c365e3fbc97e" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/87aa75a7-4a72-4afd-96b0-7fb2f0ac7503" />
+  </details>
+
+  
 </details>
 
 <!-- 프로젝트: 하위 토글 + GIF 공간 -->
@@ -175,39 +179,52 @@
 
   <!-- 프로젝트 -->
   <details>
-    <summary><b>🧩 프로젝트</b></summary>
+    <summary><b>프로젝트</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/project/create.gif" alt="Project Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/project/update.gif" alt="Project Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/project/delete.gif" alt="Project Delete" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/project/dashboard.gif" alt="Project Dashboard" width="100%"/></p>
+    <p><b>프로젝트 생성</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/15d6ebed-e1b2-409c-89fb-c9102feeeb6c" />
+    <p><b>프로젝트 수정</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/46fd102d-e5c9-4d60-8eba-f32c4f07373b" />
+    <p><b>프로젝트 삭제</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/a7b3d0b6-40f6-4db7-80e6-1f1b5cf043c5" />
+    <p><b>프로젝트 대시보드 조회</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/5c6a5aac-988d-4a28-953e-900e6b92a98f" />
   </details>
 
   <!-- 스톤 -->
   <details>
-    <summary><b>🪨 스톤</b></summary>
+    <summary><b>스톤</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/stone/create.gif" alt="Stone Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/update.gif" alt="Stone Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/delete.gif" alt="Stone Delete" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/tree.gif" alt="Stone Tree" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/detail.gif" alt="Stone Detail" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/done.gif" alt="Stone Done" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/participants.gif" alt="Stone Participants Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/stone/manager.gif" alt="Stone Manager Update" width="100%"/></p>
+    <p><b>스톤 생성</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/11c3c345-8bce-4e60-a745-6adf57fb8594" />  
+    <p><b>스톤 수정</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/7888fdb5-5a3d-4e00-a3bd-35fd5f049406" />  
+    <p><b>스톤 삭제</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/c16a0501-9b03-4dcf-8713-d2eb7d12dde5" />  
+    <p><b>스톤 조회(트리)</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/989db430-a8a1-4820-8d93-d33e8707ce6e" />  
+    <p><b>스톤 상세조회</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/6b272b29-b8b4-4fad-a830-c4b862b58e87" />  
+    <p><b>스톤 완료</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/8e04103e-ad70-4ac5-b0e4-2223f85c1e87" />  
+    <p><b>스톤 참여자 변경</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/c6b421d6-fcdf-4be7-b098-d0512e73cd9e" />  
+    <p><b>스톤 담당자 변경</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/2d35e13e-f548-4eb4-963a-5f231376883b" />  
   </details>
 
   <!-- 태스크 -->
   <details>
-    <summary><b>✅ 태스크</b></summary>
+    <summary><b>태스크</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/task/create.gif" alt="Task Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/task/delete.gif" alt="Task Delete" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/task/done.gif" alt="Task Done" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/task/cancel-done.gif" alt="Task Cancel Done" width="100%"/></p>
+    <p><b>태스크 생성</b></p>
+    <img width="75%" alt="Task Create" src="https://github.com/user-attachments/assets/f69a112f-7e5a-40c2-80b1-2b40bf1e6449" />
+    <p><b>태스크 삭제</b></p>
+    <img width="75%" alt="Task Delete" src="https://github.com/user-attachments/assets/749d8131-c6ec-456c-bda4-a5283d7b0065" />
+    <p><b>태스크 완료</b></p>
+    <img width="75%" alt="Task Done" src="https://github.com/user-attachments/assets/08725f12-ad87-43af-b4d2-023150b4d04d" />
+    <p><b>태스크 완료 취소</b></p>
+    <img width="75%" alt="Task Cancel Done" src="https://github.com/user-attachments/assets/06e95071-8780-4da1-93b2-4257d6194999" />
   </details>
 </details>
 
@@ -218,53 +235,59 @@
 
   <!-- 권한 그룹 -->
   <details>
-    <summary><b>🛡️ 권한 그룹</b></summary>
+    <summary><b>권한 그룹</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/access/create.gif" alt="Access Group Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/access/update.gif" alt="Access Group Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/access/users.gif" alt="Access Group Users Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/access/detail.gif" alt="Access Group Detail" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/access/delete.gif" alt="Access Group Delete" width="100%"/></p>
+    <p><b>권한 그룹 생성</b></p>
+    <img width="75%" alt="Access Group Create" src="https://github.com/user-attachments/assets/0a431fdd-2b23-4b08-a8ec-b54e70a2fadc" />    
+    <p><b>권한 그룹 수정</b></p>
+    <img width="75%" alt="Access Group Update" src="https://github.com/user-attachments/assets/9e720b0a-ed46-4741-93ee-59f3f4775866" />    
+    <p><b>권한 그룹 사용자 수정</b></p>
+    <img width="75%" alt="Access Group Users Update" src="https://github.com/user-attachments/assets/fe525430-d331-463c-9af5-a619912f34b4" />  
+    <p><b>권한 그룹 상세목록 조회</b></p>
+    <img width="75%" alt="Access Group Detail" src="https://github.com/user-attachments/assets/a968e582-b647-40b9-bbec-950a319d5809" />
+    <p><b>권한 그룹 삭제</b></p>
+    <img width="75%" alt="Access Group Delete" src="https://github.com/user-attachments/assets/c39c985c-4ebc-4361-b730-13d775ef72a6" />
   </details>
 
   <!-- 워크스페이스 -->
   <details>
-    <summary><b>🏢 워크스페이스</b></summary>
+    <summary><b>워크스페이스</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/workspace/create.gif" alt="Workspace Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/workspace/update.gif" alt="Workspace Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/workspace/delete.gif" alt="Workspace Delete" width="100%"/></p>
+    <p><b>워크스페이스 생성</b></p>
+    <img width="75%" alt="Workspace Create" src="https://github.com/user-attachments/assets/b240fa57-5fce-4b20-9074-65d363fb793b" />
+    <p><b>워크스페이스 수정</b></p>
+    <img width="75%" alt="Workspace Update" src="https://github.com/user-attachments/assets/e520871d-796e-4296-9ae1-02e6d81d9340" /> 
+    <p><b>워크스페이스 삭제</b></p>
+    <img width="75%" alt="Workspace Delete" src="https://github.com/user-attachments/assets/bdbfce05-27da-4724-8992-b0b2c0fa7e55" />
   </details>
 
   <!-- 사용자 그룹 -->
   <details>
-    <summary><b>👥 사용자 그룹</b></summary>
+    <summary><b>사용자 그룹</b></summary>
     <br/>
-    <!-- GIF drop zone -->
-    <p align="center"><img src="./assets/gif/user-group/create.gif" alt="User Group Create" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/user-group/update.gif" alt="User Group Update" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/user-group/detail.gif" alt="User Group Detail" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/user-group/delete.gif" alt="User Group Delete" width="100%"/></p>
-    <p align="center"><img src="./assets/gif/user-group/search.gif" alt="User Group Search" width="100%"/></p>
+    <p><b>사용자 그룹 생성</b></p>
+    <img width="75%" alt="User Group Create" src="https://github.com/user-attachments/assets/d569201b-ebd6-4616-9db3-654987a876bb" />  
+    <p><b>사용자 그룹 수정</b></p>
+    <img width="75%" alt="User Group Update" src="https://github.com/user-attachments/assets/6379e2e5-3577-4c75-870b-2decf113bcb8" /> 
+    <p><b>사용자 그룹 상세목록 조회</b></p>
+    <img width="75%" alt="User Group Detail" src="https://github.com/user-attachments/assets/5a9af53b-e3c2-4c4f-a066-fe9cc7213dc7" />  
+    <p><b>사용자 그룹 삭제</b></p>
+    <img width="75%" alt="User Group Delete" src="https://github.com/user-attachments/assets/47f7710e-3fbb-4429-824b-22144c8b53de" />    
+    <p><b>사용자 그룹 검색</b></p>
+    <img width="75%" alt="User Group Search" src="https://github.com/user-attachments/assets/50bc45f0-f8f6-4022-959a-e505ed727779" />
   </details>
 </details>
 
 <details id="mypage">
   <summary><b>👤 마이페이지</b></summary>
   <br/>
-  <p align="center">
-    <img src="./assets/features/mypage.png" alt="Orbit My Page" width="100%"/>
-  </p>
+
 </details>
 
 <details id="chatbot">
   <summary><b>🤖 챗봇</b></summary>
   <br/>
-  <p align="center">
-    <img src="./assets/features/chatbot.png" alt="Orbit Chatbot" width="100%"/>
-  </p>
+    <img width="50%" alt="Image" src="https://github.com/user-attachments/assets/4cdcd003-1f82-492e-8b8d-a6b52bf439ea" />
 </details>
 
 <details id="search">
