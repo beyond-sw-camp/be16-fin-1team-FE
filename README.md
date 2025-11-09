@@ -265,10 +265,14 @@
 
 <details id="search">
   <summary><b>🔎 검색</b></summary>
-  <br/>
-  <p align="center">
-    <img src="./assets/features/search.png" alt="Orbit Search" width="100%"/>
-  </p>
+  <details>
+    <summary><strong>파일/문서/스톤 검색</strong></summary>
+    <br>
+    <img width="100%" alt="Image" src="https://github.com/user-attachments/assets/a4d2d473-3ea3-46c4-9c84-fee8adb70a50" />
+    <img width="100%" alt="Image" src="https://github.com/user-attachments/assets/afb7ef80-1d80-4f05-ae95-aff33c9b7ce9" />
+    <img width="100%" alt="Image" src="https://github.com/user-attachments/assets/fa8f5334-5aee-4676-a2fe-5094dc9f62d9" />
+
+  </details>
 </details>
 
 <!-- ===== /Feature Toggle Gallery ===== -->
