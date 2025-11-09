@@ -132,7 +132,7 @@
 
 ## 기능 화면
 
-<details id="home" open>
+<details id="home">
   <summary><b>🏠 홈</b></summary>
   <br/>
   <p align="center">
@@ -211,7 +211,7 @@
 ## 🏗️ 시스템 아키텍처
 <details>
   <summary><b>시스템 아키텍처 보기</b></summary>
-
+</details>
   
 
 <br/>
