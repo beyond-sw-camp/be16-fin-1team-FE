@@ -74,6 +74,7 @@ export default {
     async ensureWorkspaceSelected() {
       try {
         const workspaceStore = useWorkspaceStore();
+        await new Promise(resolve => setTimeout(resolve, 2000));
         const workspaces = await workspaceStore.loadWorkspaces();
 
         if (Array.isArray(workspaces) && workspaces.length > 0) {
