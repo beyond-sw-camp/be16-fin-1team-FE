@@ -12,8 +12,7 @@
 # Orbit(오르빗)
 
 > 모든 일정/협업을 하나로! 캘린더·간트·마일스톤·칸반·채팅·문서를 **실시간으로 연동**하는 애자일 기반 통합 프로젝트 플랫폼
-
-![캘릿 배경](https://github.com/user-attachments/assets/fc9a224e-d6c7-4836-b4b4-f7f6f0a67b18)
+<img width="3200" height="1594" alt="로고배너 2" src="https://github.com/user-attachments/assets/714004b6-8bd6-42ac-bda4-ec3d5d7057b2" />
 
 ## 👀 팀원 구성
 - 조은성 — https://github.com/EunDuk2  
@@ -61,23 +60,16 @@
 <br/>
 
 ## 🔗 문서 & 링크
-- 🎨 화면설계서(Figma): https://www.figma.com/design/V59MNrd8govUfzrRPHeKZa/Wireframe?node-id=24-58463&node-type=canvas&t=wSgc72pyUcR52dun-0
-- 💌 API 명세서(Notion): https://tropical-ferry-82d.notion.site/API-33445269d61e4c0183bcecd43e44ee61?pvs=74
+- 🎨 화면설계서(Figma): https://www.figma.com/design/f8NVDb2aljFlzoDFRRo8bl/Orbit?node-id=0-1&p=f&t=gYwcRr4prqQKmKq2-0
+- 💌 API 명세서: https://docs.google.com/spreadsheets/d/1GIcKtK_Tk5H-6UdCrks_X5xXr9MtWWH2bNvIPpIW59k/edit?gid=1634200920#gid=1634200920
 - 🌐 ORBIT: https://www.orbitflow.store
 
 <br/>
 
 ## 🧱 ERD
-<details>
-  <summary><b>ERD 보기</b></summary>
 
-  ![CalIT_v2 ERD](https://github.com/user-attachments/assets/db0e189b-f9f6-486a-87f6-96b50d10d6ca)
-
-  <div style="border:1px solid #ccc; padding:10px; width: 250px; font-size: 12px; margin-top: 10px;">
-    <b>🔍 ERD 색상</b><br>
-    🧡 유저 / 🩷 스크럼 / 💛 알람 / 💙 채팅 / 💜 챗봇 / 💚 게시판
-  </div>
-</details>
+- 💚 ERDCLOUD : https://www.erdcloud.com/d/kProaHcv3Mfy7tPtQ
+  
 
 <br/>
 
@@ -113,12 +105,3 @@
 
 <br/>
 
-## 📦 프로젝트 구조 예시
-```text
-.
-├─ backend/
-├─ frontend/
-├─ cicd/
-├─ assets/
-│  └─ orbit-hero.svg   # ← 대표 이미지(배너)
-└─ README.md
