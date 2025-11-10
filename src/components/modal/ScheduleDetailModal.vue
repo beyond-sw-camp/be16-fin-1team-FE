@@ -75,8 +75,9 @@ watch(
   async (newId) => {
     if (!newId) return;
     try {
+      const baseURL = import.meta.env.VITE_API_BASE_URL;
       const { data } = await axios.get(
-        `/user-service/shared-calendars/detail/${newId}?workspaceId=${workspaceId}`,
+        `${baseURL}/user-service/shared-calendars/detail/${newId}?workspaceId=${workspaceId}`,
         {
           headers: { "X-User-Id": userId },
         }
@@ -100,8 +101,9 @@ watch(
 // 수정
 const updateSchedule = async () => {
   try {
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
     await axios.put(
-      `/user-service/shared-calendars/${props.scheduleId}?workspaceId=${workspaceId}`,
+      `${baseURL}/user-service/shared-calendars/${props.scheduleId}?workspaceId=${workspaceId}`,
       {
         calendarName: editForm.value.calendarName,
         startedAt: editForm.value.startedAt,
@@ -126,8 +128,9 @@ const updateSchedule = async () => {
 const deleteSchedule = async () => {
   if (!confirm("이 일정을 삭제하시겠습니까?")) return;
   try {
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
     await axios.delete(
-      `/user-service/shared-calendars/${props.scheduleId}?workspaceId=${workspaceId}`,
+      `${baseURL}/user-service/shared-calendars/${props.scheduleId}?workspaceId=${workspaceId}`,
       { headers: { "X-User-Id": userId } }
     );
     // alert("🗑️ 일정이 삭제되었습니다.");

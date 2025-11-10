@@ -978,7 +978,8 @@ export default {
         //     'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         //   }
         // });
-        const response = await fetch(`/workspace-service/stone/${stoneId}`, {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const response = await fetch(`${baseURL}/workspace-service/stone/${stoneId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
