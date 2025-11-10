@@ -1859,14 +1859,18 @@ export default {
           return;
         }
         
-        // 실제 태스크 수정 API 호출 (담당자만 변경)
-        const response = await modifyTask({
+        const requestPayload = {
           taskId: this.editingTaskId,
           taskName: currentTask.name,
           startTime: currentTask.startTime,
           endTime: currentTask.endTime,
-          NewManagerUserId: selectedAssignee.userId
-        });
+          newManagerUserId: selectedAssignee.userId
+        };
+
+        console.log('태스크 담당자 변경 요청 데이터(서비스 호출 직전):', requestPayload);
+
+        // 실제 태스크 수정 API 호출 (담당자만 변경)
+        const response = await modifyTask(requestPayload);
         
         console.log('=== 태스크 담당자 변경 API 응답 ===');
         console.log('API 응답:', response);
