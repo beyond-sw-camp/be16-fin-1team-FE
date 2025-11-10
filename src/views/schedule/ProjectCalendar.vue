@@ -1469,8 +1469,10 @@ const filteredEvents = computed(() => {
 }
 
 .user-select-modal-container {
-  width: 1100px;
-  height: 600px;
+  width: 960px;
+  max-width: calc(100vw - 80px);
+  height: 560px;
+  max-height: calc(100vh - 80px);
   background: var(--surface, #FFFFFF);
   border-radius: var(--radius-xl, 16px);
   box-shadow: var(--shadow-hover, 0 10px 28px rgba(16, 24, 40, 0.09));

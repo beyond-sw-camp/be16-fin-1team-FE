@@ -521,7 +521,7 @@ export const getStoneParticipantList = async (stoneId) => {
  * @param {string} taskData.taskName - 태스크명
  * @param {string} taskData.startTime - 시작일 (YYYY-MM-DDTHH:mm:ss 형식)
  * @param {string} taskData.endTime - 종료일 (YYYY-MM-DDTHH:mm:ss 형식)
- * @param {string} taskData.NewManagerUserId - 새로운 담당자 UUID (선택사항)
+ * @param {string} taskData.newManagerUserId - 새로운 담당자 UUID (선택사항)
  * @returns {Promise<Object>} API 응답 데이터
  */
 export const modifyTask = async (taskData) => {
@@ -552,8 +552,8 @@ export const modifyTask = async (taskData) => {
     };
     
     // 새로운 담당자가 있는 경우에만 추가
-    if (taskData.NewManagerUserId) {
-      requestData.NewManagerUserId = taskData.NewManagerUserId;
+    if (taskData.newManagerUserId) {
+      requestData.newManagerUserId = taskData.newManagerUserId;
     }
     
     console.log('태스크 수정 API 요청 데이터:', requestData);

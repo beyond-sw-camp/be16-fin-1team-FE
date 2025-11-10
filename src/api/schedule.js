@@ -1,6 +1,8 @@
 // src/api/schedule.js
 import http from "@/utils/http";
 
+const baseURL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+
 // 내 마일스톤 (진행 중 / 삭제 제외는 서버에서 처리한다고 가정)
 async function fetchMyMilestones(workspaceId) {
   const { data } = await http.get(`project/milestones/me`, {
@@ -64,9 +66,31 @@ function daysFromToday(dateIso) {
 
 // 개인 일정 (SharedCalendar)
 async function fetchPersonalSchedules(workspaceId, userId) {
-  const { data } = await http.get(`user-service/shared-calendars/${workspaceId}`, {
-    headers: { "X-User-Id": userId },
-  });
+  const token = localStorage.getItem("accessToken");
+  const headers = {
+    "Content-Type": "application/json",
+    "X-User-Id": userId,
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(
+    `${baseURL}/user-service/shared-calendars/${workspaceId}`,
+    {
+      method: "GET",
+      headers,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch personal schedules: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data = await response.json();
 
   const list = data?.result ?? data ?? [];
   return list

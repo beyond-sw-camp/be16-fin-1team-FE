@@ -6312,8 +6312,10 @@ export default {
 
 /* 사용자 선택 모달 스타일 - 구독 관리 모달과 동일한 디자인 */
 .user-select-modal-container {
-  width: 1100px;
-  height: 600px;
+  width: 960px;
+  max-width: calc(100vw - 80px);
+  height: 560px;
+  max-height: calc(100vh - 80px);
   background: #ffffff;
   border-radius: 16px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);

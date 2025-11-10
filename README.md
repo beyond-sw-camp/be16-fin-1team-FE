@@ -101,15 +101,29 @@
 - 워크스페이스/프로젝트 **전용 채팅방 자동 개설(옵션)**
 - 멘션·명령어·파일 공유, 메시지 내 날짜 → **캘린더 일정 등록**
 
-### 5) 📝 실시간 공동 작성
-- 문서/회의록 **동시 편집**, 변경사항 실시간 반영
-- 작성 내용 파일(pdf, docx)로 **내보내기** 가능
+### 5) 📁 통합 문서 관리
+- 워크스페이스/프로젝트/스톤별 문서 및 파일 관리 시스템
+- **계층적 폴더 구조**로 문서와 파일을 체계적으로 관리
+- AWS S3 기반 파일 저장 
+- Kafka 이벤트 기반 **검색 인덱스 자동 동기화**
+- 워크스페이스별 스토리지 사용량 추적 및 관리
+- 문서/폴더/파일 이동 및 구조 변경 기능
 
-### 6) 🔍 자동완성 & 검색
+### 6) 📝 실시간 공동 작성
+- WebSocket(STOMP) 기반 **실시간 동시 편집** 지원
+- Redis Pub/Sub을 통한 편집 변경사항 **실시간 브로드캐스팅**
+- 라인 단위 잠금(Lock) 메커니즘으로 **동시 편집 충돌 방지**
+- 커서 위치 실시간 동기화 및 온라인 사용자 목록 표시
+- **배치 업데이트** 처리 (라인 생성/수정/삭제 일괄 처리)
+
+### 7) 🔍 자동완성 & 검색
 - Elasticsearch 기반의 **통합 검색** 및 검색어 **자동완성**
-- 문서, 다양한 파일(pdf, docx 등) **내용** 검색 및 **하이라이팅**
+- Nori 한글 형태소 분석기 및 Edge N-gram을 활용한 **정확한 한글 검색**
+- 검색어 **하이라이팅** (제목/내용/문서 라인별 하이라이트 표시)
+- matchBoolPrefix 기반 **자동완성 제안** (최대 10개 결과)
+- 권한 기반 검색 필터링 (사용자별 접근 권한에 따른 결과 제한)
 
-### 7) 🤖 AI 어시스턴트
+### 8) 🤖 AI 어시스턴트
 - 사전 회의 주제 기반 자료 추천
 - 회의록/채팅 요약, 태스크 추출
 
@@ -168,6 +182,84 @@
     <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/4afb999c-6b39-4a24-845d-c365e3fbc97e" />
     <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/87aa75a7-4a72-4afd-96b0-7fb2f0ac7503" />
   </details>
+  <details>
+    <summary><strong>폴더/파일/문서 조회</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/a048a2af-6429-462d-99d5-cfb2d3b91ccd" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/39f4fcf7-d640-42c8-b909-47dfaad681c9" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/65f98a67-6a7a-4f3e-97e2-9087e0b2e4e8" />
+  </details>
+  <details>
+    <summary><strong>폴더/파일/문서 상세 조회</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/304dc758-4d2d-44e8-8fb4-38aff452ba1b" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/de5dec62-fe2e-43eb-b979-1ebbe2bc2e24" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/22190ad5-26fe-4c48-bddf-3a11b0e5fee9" />
+  </details>
+   <details>
+    <summary><strong>폴더/문서 제목 변경</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/8960f969-b92f-4f6f-bdc4-9c4bd0eea429" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/31fc8ec7-6ca4-4015-8232-4b4d8aa6d7ea" />
+  </details>
+   <details>
+    <summary><strong>프로젝트 문서함으로 옮기기</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/1fa69e55-7255-483c-af6f-037e0bc55f38" />
+  </details>
+  <details>
+    <summary><strong>스톤 문서함으로 옮기기</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/4f075dc5-6360-4701-95da-9f73582b79f1" />
+  </details>
+  <details>
+    <summary><strong>폴더/문서/파일 삭제</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/8d4381ad-7471-49eb-86b6-d23f22cf8820" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/8b4781f5-0c98-4733-8863-77307ca29ecd" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/6863f2f8-c749-46c4-b107-bfa91f74dab6" />
+  </details>
+  <details>
+    <summary><strong>트리뷰, 브레드크럼 동작</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/7677faef-5ee2-4ba0-a912-5933e1d80cf2" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/181529df-2a14-4998-b05d-d34209afd303" />
+  </details>
+  <details>
+    <summary><strong>정렬, 필터</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/e66bd977-ca61-48ad-a77e-685a943f94a9" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/e114b20b-9bfc-492c-98a0-63576bad169d" />
+
+  </details>
+
+  
+</details>
+<details id="document">
+  <summary><b>📄 실시간 문서 편집</b></summary>
+  <br/>
+  <details>
+    <summary><strong>동시 문서 편집</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/ba839f4a-8351-4d44-82bd-6523bb7684af" />
+  </details>
+  <details>
+    <summary><strong>툴바 기능</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/875830b6-057f-470a-92e9-bd6beb33735a" />
+  </details>
+  <details>
+    <summary><strong>문서 다운로드</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/0153aaea-ec64-43cd-abf0-b4246932f9a6" />
+
+  </details>
+  <details>
+    <summary><strong>제목 변경</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/2f04c506-5e1d-48bb-a68e-f136cde6c5dd" />
+  </details>
+
 
   
 </details>
@@ -408,7 +500,7 @@
 | 팀원 | 회고 내용 |
 |------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 조은성 |  |
-| 김영관 |  |
+| 김영관 | 이번 프로젝트에서 문서함, 통합 검색, 실시간 문서 편집이라는 세 가지 핵심 도메인을 개발했습니다.<br>문서함: 처음엔 단순 `parentId` 구조로 계층형 폴더를 설계했지만, 조상 경로 조회 시 발생하는 재귀 쿼리와 N+1 능 이슈에 직면했습니다. <br>이는 MariaDB의 `WITH RECURSIVE`를 도입해 단일 네이티브 쿼리로 해결하며 견고한 데이터 뼈대를 완성할 수 있었습니다.<br>통합 검색: Elasticsearch의 기본 `analyzer`는 한글 검색에 한계가 명확했습니다. <br>`Nori` 플러그인을 도입해 형태소 분석을 적용하고 나서야 비로소 제대로 된 검색이 가능했습니다. <br>이 과정에서 '정확도' 중심의 검색과 '성능' 중심의 자동완성은 쿼리 접근 방식과 데이터 모델링 자체가 달라야 함을 깨달았습니다.<br>실시간 편집은 가장 어려웠던 부분이었습니다.문서 전체 내용을 STOMP로 전송하니, 메시지 크기 한계로 인한 메모리 이슈와 편집 내용이 덮어써지는 동시성 문제가 발생했고 한 글자가 수정될 때마다 전송할 시 "안녕하세요" 5글자에 DB 트랜잭션 5개가 몰리는 등, DB 과부하라는 새로운 문제에 직면했습니다. <br> '라인(Line) 단위'로 변경 사항을 식별하고, 여러 수정을 '배치(Batch) 업데이트'로 묶어 처리하도록 구현했습니다.<br> 이로써 STOMP 메시지 크기와 DB 트랜잭션 횟수를 동시에 최적화하여 성능과 동시성을 확보했습니다. |
 | 조민형 |  |
 | 김현지 |  |
 | 김강산 |  |
