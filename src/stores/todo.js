@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import axios from "axios";
+import http from "@/utils/http";
 
 export const useTodoStore = defineStore("todo", {
   state: () => ({
@@ -17,7 +17,7 @@ export const useTodoStore = defineStore("todo", {
             this.error = null;
             const userId = localStorage.getItem("id");
 
-            const res = await axios.get(`/user-service/todo/${workspaceId}`, {
+            const res = await http.get(`/user-service/todo/${workspaceId}`, {
             headers: { "X-User-Id": userId },
             params: { date },
             });
@@ -54,7 +54,7 @@ export const useTodoStore = defineStore("todo", {
         // }
         try {
             const userId = localStorage.getItem("id");
-            const res = await axios.get(`/user-service/todo/${workspaceId}/all`, {
+            const res = await http.get(`/user-service/todo/${workspaceId}/all`, {
             headers: { "X-User-Id": userId },
             });
 
@@ -69,7 +69,7 @@ export const useTodoStore = defineStore("todo", {
     /** 완료 처리 */
     async completeTodo(todoId) {
       try {
-        await axios.put(`/user-service/todo/completion/${todoId}`);
+        await http.put(`/user-service/todo/completion/${todoId}`);
         console.log("✅ 완료 처리됨:", todoId);
       } catch (err) {
         console.error("❌ 완료 처리 실패:", err);
@@ -79,7 +79,7 @@ export const useTodoStore = defineStore("todo", {
     /** 미완료 처리 */
     async uncompleteTodo(todoId) {
       try {
-        await axios.put(`/user-service/todo/incompletion/${todoId}`);
+        await http.put(`/user-service/todo/incompletion/${todoId}`);
         console.log("↩️ 미완료 처리됨:", todoId);
       } catch (err) {
         console.error("❌ 미완료 처리 실패:", err);
@@ -94,9 +94,8 @@ export const useTodoStore = defineStore("todo", {
             if (!workspaceId) throw new Error("워크스페이스 ID가 존재하지 않습니다.");
             if (!date || typeof date !== "string") throw new Error("날짜 형식이 잘못되었습니다.");
 
-            const baseURL = import.meta.env.VITE_API_BASE_URL;
-            const res = await axios.post(
-            `${baseURL}/user-service/todo`,
+            const res = await http.post(
+            `/user-service/todo`,
             {
                 workspaceId,
                 calendarName: name,
@@ -121,7 +120,7 @@ export const useTodoStore = defineStore("todo", {
       try {
         const userId = localStorage.getItem("id");
 
-        const res = await axios.patch(
+            const res = await http.patch(
           `/user-service/todo/${todoId}`,
           { done },
           { headers: { "X-User-Id": userId } }
@@ -142,7 +141,7 @@ export const useTodoStore = defineStore("todo", {
     async deleteTodo(todoId, workspaceId) {
       try {
         const userId = localStorage.getItem("id");
-        await axios.delete(`/user-service/todo/${todoId}`, {
+        await http.delete(`/user-service/todo/${todoId}`, {
           headers: { "X-User-Id": userId },
         });
         console.log("🗑️ Todo 삭제 완료:", todoId);

@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import axios from "axios";
+import http from "@/utils/http";
 import scheduleApi from "@/api/schedule";
 import { completeTask, deleteTask } from "../services/stoneService";
 import { getMyTasks } from "@/api/task";
@@ -84,7 +84,7 @@ export const useScheduleStore = defineStore("schedule", {
           return;
         }
 
-        const res = await axios.get(`/workspace-service/stone/milestone/${workspaceId}`, {
+        const res = await http.get(`/workspace-service/stone/milestone/${workspaceId}`, {
           headers: { "X-User-Id": userId },
         });
 
