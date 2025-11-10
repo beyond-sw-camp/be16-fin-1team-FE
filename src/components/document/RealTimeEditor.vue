@@ -1378,11 +1378,12 @@ const handleIncomingMessage = (message) => {
 
   isUpdatingFromRemote.value = true;
   
-  // 1. 커서의 "상대 위치" 저장
+  // 1. 커서의 "상대 위치" 저장 (내가 편집 중인 라인인지 확인하기 위해)
   const { selection } = editor.value.state;
   const resolvedPos = editor.value.state.doc.resolve(selection.from);
   let anchorNodeId = null;
   let startOffset = 0;
+  let isEditingMyLine = false; // 내가 현재 편집 중인 라인인지 확인
   
   for (let i = resolvedPos.depth; i > 0; i--) {
     const node = resolvedPos.node(i);
@@ -1390,6 +1391,8 @@ const handleIncomingMessage = (message) => {
       anchorNodeId = node.attrs.id;
       const nodePos = resolvedPos.start(i);
       startOffset = selection.from - (nodePos + 1);
+      // 내가 잠근 라인인지 확인 (내가 편집 중인 라인)
+      isEditingMyLine = lockedLines.value.get(anchorNodeId) === user.name;
       break;
     }
   }
@@ -1514,19 +1517,45 @@ const handleIncomingMessage = (message) => {
   }
 
   // 3. "상대 위치"를 기반으로 커서 위치 복원
-  if (anchorNodeId && (message.messageType === 'CREATE' || message.messageType === 'UPDATE' || message.messageType === 'EDITOR_BATCH_MESSAGE')) {
-    let newAnchorPos = -1;
-    editor.value.state.doc.descendants((node, pos) => {
-        if (newAnchorPos === -1 && node.isBlock && node.attrs.id === anchorNodeId) {
-            newAnchorPos = pos;
+  // 단, 내가 현재 편집 중인 라인(내가 잠근 라인)이 변경된 경우에만 복원
+  // 다른 사용자가 다른 라인을 수정하는 것은 내 커서에 영향을 주지 않아야 함
+  if (anchorNodeId && isEditingMyLine && (message.messageType === 'CREATE' || message.messageType === 'UPDATE' || message.messageType === 'EDITOR_BATCH_MESSAGE')) {
+    // 원격 변경사항이 내가 편집 중인 라인에 영향을 주는지 확인
+    let myLineWasAffected = false;
+    
+    if (message.messageType === 'EDITOR_BATCH_MESSAGE') {
+      // 내가 편집 중인 라인이 변경 목록에 포함되어 있는지 확인
+      myLineWasAffected = message.changesList.some(change => {
+        if (change.type === 'UPDATE' || change.type === 'DELETE') {
+          return change.lineId === anchorNodeId;
         }
-    });
+        // CREATE의 경우 prevLineId가 내 라인인지 확인
+        if (change.type === 'CREATE') {
+          return change.prevLineId === anchorNodeId;
+        }
+        return false;
+      });
+    } else if (message.messageType === 'UPDATE' || message.messageType === 'DELETE') {
+      myLineWasAffected = message.lineId === anchorNodeId;
+    } else if (message.messageType === 'CREATE') {
+      myLineWasAffected = message.prevLineId === anchorNodeId;
+    }
+    
+    // 내가 편집 중인 라인이 실제로 영향을 받은 경우에만 커서 복원
+    if (myLineWasAffected) {
+      let newAnchorPos = -1;
+      editor.value.state.doc.descendants((node, pos) => {
+          if (newAnchorPos === -1 && node.isBlock && node.attrs.id === anchorNodeId) {
+              newAnchorPos = pos;
+          }
+      });
 
-    if (newAnchorPos !== -1) {
-        const node = editor.value.state.doc.nodeAt(newAnchorPos);
-        const newAbsolutePos = newAnchorPos + startOffset;
-        const finalPos = Math.max(newAnchorPos + 1, Math.min(newAbsolutePos, newAnchorPos + node.nodeSize -1));
-        editor.value.commands.setTextSelection(finalPos);
+      if (newAnchorPos !== -1) {
+          const node = editor.value.state.doc.nodeAt(newAnchorPos);
+          const newAbsolutePos = newAnchorPos + startOffset;
+          const finalPos = Math.max(newAnchorPos + 1, Math.min(newAbsolutePos, newAnchorPos + node.nodeSize -1));
+          editor.value.commands.setTextSelection(finalPos);
+      }
     }
   }
 
