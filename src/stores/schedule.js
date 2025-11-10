@@ -84,7 +84,8 @@ export const useScheduleStore = defineStore("schedule", {
           return;
         }
 
-        const res = await http.get(`/workspace-service/stone/milestone/${workspaceId}`, {
+        const baseURL = import.meta.env.VITE_API_BASE_URL;
+        const res = await axios.get(`${baseURL}/workspace-service/stone/milestone/${workspaceId}`, {
           headers: { "X-User-Id": userId },
         });
 
