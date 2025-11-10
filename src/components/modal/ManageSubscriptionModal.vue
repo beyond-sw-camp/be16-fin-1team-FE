@@ -93,6 +93,8 @@ import { ref } from "vue";
 import axios from "axios";
 import { showSnackbar } from '@/services/snackbar.js';
 
+const baseURL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+
 const props = defineProps({
   visible: Boolean,
   workspaceId: String,
@@ -107,16 +109,37 @@ const selectedUserIds = ref([]);
 const searchUsers = async () => {
   if (!keyword.value.trim()) return alert("검색어를 입력하세요.");
   try {
-    const { data } = await axios.post(
-      `/workspace-service/workspace/participants/search`,
+    const userId = localStorage.getItem("id");
+    const token = localStorage.getItem("accessToken");
+
+    const headers = {
+      "Content-Type": "application/json",
+      "X-User-Id": userId,
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(
+      `${baseURL}/workspace-service/workspace/participants/search`,
       {
-        workspaceId: props.workspaceId,
-        searchKeyword: keyword.value,
-      },
-      {
-        headers: { "X-User-Id": localStorage.getItem("id") },
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          workspaceId: props.workspaceId,
+          searchKeyword: keyword.value,
+        }),
       }
     );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to search users: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
     users.value = (data.result?.userInfoList || []).map((u) => ({
       id: u.userId,
       name: u.userName,
