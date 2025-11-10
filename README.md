@@ -540,6 +540,8 @@
 ## 🏗️ 시스템 아키텍처
 <details>
   <summary><b>시스템 아키텍처 보기</b></summary>
+  <img width="1137" height="1197" alt="시스템 아키텍처 최종본 drawio" src="https://github.com/user-attachments/assets/6803e342-9925-43ad-b4e7-22b0a48516db" />
+
 </details>
   
 
