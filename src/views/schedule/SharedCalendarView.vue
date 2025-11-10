@@ -443,8 +443,9 @@ const addSubscription = async () => {
   }
 
   try {
+    const baseURL = import.meta.env.VITE_API_BASE_URL;
     await http.post(
-      "/user-service/subscriptions",
+      `${baseURL}/user-service/subscriptions`,
       {
         workspaceId,
         targetUserIdList: [newUserId.value],

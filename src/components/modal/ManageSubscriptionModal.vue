@@ -160,7 +160,7 @@ const addSubscriptions = async () => {
   }
   try {
     await axios.post(
-      `/user-service/subscriptions`,
+      `${baseURL}/user-service/subscriptions`,
       {
         workspaceId: props.workspaceId,
         targetUserIdList: selectedUserIds.value,
@@ -187,7 +187,7 @@ const addSubscriptions = async () => {
 const deleteSubscription = async (user) => {
   if (!confirm(`'${user.targetUserName}' 구독을 삭제하시겠습니까?`)) return;
   try {
-    await axios.delete(`/user-service/subscriptions`, {
+    await axios.delete(`${baseURL}/user-service/subscriptions`, {
       headers: { "X-User-Id": localStorage.getItem("id") },
       data: {
         workspaceId: props.workspaceId,

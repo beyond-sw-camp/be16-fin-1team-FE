@@ -48,6 +48,7 @@ import { ref } from "vue";
 import axios from "axios";
 import { showSnackbar } from '@/services/snackbar.js';
 
+const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const props = defineProps({
   visible: Boolean,
@@ -68,7 +69,7 @@ const searchUsers = async () => {
 
   try {
     const { data } = await axios.post(
-      `/workspace-service/workspace/participants/search`,
+      `${baseURL}/workspace-service/workspace/participants/search`,
       {
         workspaceId: props.workspaceId,
         searchKeyword: keyword.value,
@@ -101,7 +102,7 @@ const addSubscriptions = async () => {
   }
   try {
     await axios.post(
-      `/user-service/subscriptions`,
+      `${baseURL}/user-service/subscriptions`,
       {
         workspaceId: props.workspaceId,
         targetUserIdList: selectedUserIds.value,
