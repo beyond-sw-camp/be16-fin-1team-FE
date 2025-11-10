@@ -159,17 +159,52 @@
 <details id="my-schedule">
   <summary><b>📅 내일정</b></summary>
   <br/>
-  <p align="center">
-    <img src="./assets/features/schedule.png" alt="Orbit Calendar" width="100%"/>
-  </p>
-</details>
-
-<details id="messenger">
-  <summary><b>💬 메신저</b></summary>
+  <details>
+    <summary><b>내 일정 홈</b></summary>
+    <br/>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/2ea0aa72-9c3d-416c-bf47-cdff6f727641" />   
+  </details>
   <br/>
-  <p align="center">
-    <img src="./assets/features/messenger.png" alt="Orbit Messenger" width="100%"/>
-  </p>
+  <details>
+    <summary><b>프로젝트 캘린더</b></summary>
+    <br/>
+    <p><b>프로젝트 캘린더 조회</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/e0ebff3a-0108-4bef-afbe-78b646ad40e1" />  
+    <p><b>프로젝트 캘린더 조회 - 숨김</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/2497021e-04d1-4119-94b3-50e17cdd2f60" />   
+  </details>
+  
+  <details>
+    <summary><b>공유 캘린더</b></summary>
+    <br/>
+    <p><b>공유 캘린더 조회</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/91feca78-3584-44f3-bc35-084eed3e9d81" /> 
+    <p><b>일정 등록</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/fe4ff621-899b-4991-83fc-259e277f16ae" />   
+    <p><b>일정 수정</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/c4a3b3ca-9470-43fe-ad8a-cade5e355a55" />   
+    <p><b>일정 삭제</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/4fce0e34-d756-4b7f-b8b7-f93d1c161c22" />   
+    <p><b>공유 캘린더 구독</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/fcf37dbc-ce4e-40eb-aeb1-2985440df39e" />   
+    <p><b>공유 캘린더 구독 삭제</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/af506ba1-6725-46f7-a05d-e0c898ce28b0" />   
+    <p><b>공유 캘린더 숨김</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/a35e651a-b1f3-4bf1-baee-10a14cf10f75" />   
+  </details>
+
+ <details>
+    <summary><b>todo</b></summary>
+    <br/>
+    <p><b>todo 등록</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/efdfaa2f-c6e8-4491-8034-a001d0b81457" /> 
+    <p><b>todo 수정</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/6b9bfacf-7b68-4ff0-a0df-fbba53445b7b" />   
+    <p><b>todo 삭제</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/54166e94-024d-4bef-b8e5-f74f6020a155" />   
+    <p><b>todo 완료, 미완료</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/1459b27a-4b7a-4118-897f-19ab1110e542" />   
+  </details>
 </details>
 
 <details id="drive">
@@ -281,6 +316,10 @@
     <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/a7b3d0b6-40f6-4db7-80e6-1f1b5cf043c5" />
     <p><b>프로젝트 대시보드 조회</b></p>
     <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/5c6a5aac-988d-4a28-953e-900e6b92a98f" />
+    <p><b>프로젝트 간트차트 조회</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/0dd15885-7db9-40e1-967c-38039292f124" />
+    <p><b>프로젝트 간트차트 조회</b></p>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/80a84b7a-a7cb-4b78-8945-e0c3889b84d8" />
   </details>
 
   <!-- 스톤 -->
@@ -373,13 +412,104 @@
 <details id="mypage">
   <summary><b>👤 마이페이지</b></summary>
   <br/>
+  <details>
+    <summary><strong>마이페이지 조회</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/340676cb-c1af-4a60-8f77-1e7f5054994f" />
+  </details>
 
+  <details>
+    <summary><strong>마이페이지 조회</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/9264da67-59a2-4487-bf03-5e0b45e5208f" />
+  </details>
+</details>
+
+<details id="chatbot">
+  <summary><b>⌨️ 채팅</b></summary>
+  <br/>
+    <details>
+    <summary><strong>채팅방 생성 및 입장</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/aff29cd9-22a6-4345-835c-3d062d6af17d" />
+  </details>
+
+  <details>
+    <summary><strong>채팅 기능</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/13bd5d2a-c6e1-4e65-928b-737447c1c714" />
+  </details>
+
+  <details>
+    <summary><strong>채팅 이미지 업로드 및 이모티콘 사용</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/6db070a7-d649-4978-87be-53a265b4e5a7" />
+  </details>
+
+  <details>
+    <summary><strong>채팅 요약 미리보기</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/4ba348eb-3d93-4f45-9a1a-3b0c09472dc4" />
+  </details>
+</details>
+
+<details id="chatbot">
+  <summary><b>🗣️ 화상회의</b></summary>
+  <br/>
+    <details>
+    <summary><strong>화상 회의 참여</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/a048a832-6430-414d-909c-37d1a1abe5e5" />
+  </details>
+  
+  <details>
+    <summary><strong>음소거/화면 송출 중지</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/d02c0075-0cb7-4ded-bca7-a04be03f841d" />
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/1e88cc03-dde9-424f-b718-655be4073852" />
+  </details>
+
+  <details>
+    <summary><strong>화면 공유</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/e9eeb29c-9d20-4ddd-b7f3-c80cf9a951a1" />
+  </details>
+
+  <details>
+    <summary><strong>화상 회의 나가기</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/3cc6d6db-c424-4984-aef3-c076c865a176" />
+  </details>
+
+  <details>
+    <summary><strong>화면 이동 및 전체화면</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="" />
+  </details>
+
+  <details>
+    <summary><strong>화상 회의, 채팅 동시 작업</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/3fe3b5c5-ba09-464b-8782-9c89812088d9" />
+  </details>
+
+  <details>
+    <summary><strong>화상 회의 전체 화면</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/b86fbee3-d5c4-42cb-a8e2-52f64b2bf563" />
+  </details>
+
+  <details>
+    <summary><strong>화상 회의 참여자 화면 이동</strong></summary>
+    <br>
+    <img width="75%" alt="Image" src="https://github.com/user-attachments/assets/b238d1cc-58ca-41cd-b47d-dd9a46efb8ff" />
+  </details>
 </details>
 
 <details id="chatbot">
   <summary><b>🤖 챗봇</b></summary>
   <br/>
-    <img width="50%" alt="Image" src="https://github.com/user-attachments/assets/4cdcd003-1f82-492e-8b8d-a6b52bf439ea" />
+  
 </details>
 
 <details id="search">
