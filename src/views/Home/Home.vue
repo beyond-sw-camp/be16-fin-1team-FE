@@ -97,11 +97,22 @@
                   @mouseleave="hoveredRoomId = null"
                 >
                   <div class="chat-avatar">
-                    <img v-if="room.userProfileImageUrlList && room.userProfileImageUrlList[0]"
-                         :src="room.userProfileImageUrlList[0]"
-                         @error="onAvatarError"
-                         alt="user"
-                         class="avatar-img" />
+                    <div
+                      v-if="Array.isArray(room.userProfileImageUrlList) && visibleAvatars(room.userProfileImageUrlList, room.participantCount).length"
+                      :class="['avatar-stack', avatarStackClass(room)]"
+                    >
+                      <div
+                        v-for="(url, idx) in visibleAvatars(room.userProfileImageUrlList, room.participantCount)"
+                        :key="idx"
+                        :class="['avatar-item', 'av-' + (idx + 1)]"
+                        :style="{ zIndex: 10 - idx }"
+                      >
+                        <img :src="url || userDefault" alt="user" @error="onAvatarError" />
+                      </div>
+                      <div v-if="hiddenOthersCount(room) > 0" class="avatar-item more" :style="{ zIndex: 6 }">
+                        +{{ hiddenOthersCount(room) }}
+                      </div>
+                    </div>
                     <img v-else :src="userDefault" alt="user" class="avatar-img" />
                   </div>
                   <div class="chat-info">
@@ -1417,6 +1428,29 @@ export default {
       await this.loadChatRooms();
     },
     
+    // 채팅방 참가자 아바타 스택
+    visibleAvatars(list, participantCount) {
+      const filtered = Array.isArray(list) ? list.filter((u) => !!u) : [];
+      const totalParticipants = Number(participantCount) || 0;
+      const othersMax = Math.max(0, totalParticipants - 1);
+      const slots = Math.max(0, Math.min(4, othersMax));
+      const out = [];
+      for (let i = 0; i < slots; i++) {
+        out.push(filtered[i] || null);
+      }
+      return out;
+    },
+    hiddenOthersCount(room) {
+      const totalParticipants = Number(room?.participantCount) || 0;
+      const othersMax = Math.max(0, totalParticipants - 1);
+      const slots = Math.max(0, Math.min(4, othersMax));
+      return Math.max(0, othersMax - slots);
+    },
+    avatarStackClass(room) {
+      const count = this.visibleAvatars(room?.userProfileImageUrlList || [], room?.participantCount).length;
+      return `count-${count}`;
+    },
+    
     // 마지막 메시지 텍스트 가져오기
     getLastMessageText(room) {
         if (!room) return '메시지가 없습니다.';
@@ -2044,6 +2078,151 @@ export default {
 
 .chat-avatar {
   flex-shrink: 0;
+  position: relative;
+  width: 56px;
+  min-height: 36px;
+  --stack-gap-color: #ffffff;
+}
+
+.chat-item:hover .chat-avatar {
+  --stack-gap-color: #F0F7FF;
+}
+
+.chat-avatar .avatar-stack {
+  position: relative;
+  height: 34px;
+  width: 48px;
+}
+
+.chat-avatar .avatar-item {
+  position: absolute;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--stack-gap-color);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.12);
+  background: #f4f6f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-avatar .avatar-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.chat-avatar .avatar-item.more {
+  background: #ECEFF1;
+  color: #546E7A;
+  font-size: 10px;
+  font-weight: 700;
+  border: none;
+}
+
+.chat-avatar .avatar-stack.count-1 {
+  width: 40px;
+  height: 40px;
+}
+
+.chat-avatar .avatar-stack.count-1 .avatar-item {
+  width: 40px;
+  height: 40px;
+  left: 0;
+  top: -2px;
+}
+
+.chat-avatar .avatar-stack.count-2 {
+  width: 48px;
+  height: 34px;
+}
+
+.chat-avatar .avatar-stack.count-2 .av-1 {
+  width: 30px;
+  height: 30px;
+  left: 0;
+  top: -2px;
+  box-shadow: 2px 0 0 0 var(--stack-gap-color), 0 2px 0 0 var(--stack-gap-color);
+}
+
+.chat-avatar .avatar-stack.count-2 .av-2 {
+  width: 30px;
+  height: 30px;
+  left: 20px;
+  top: 8px;
+  box-shadow: -2px 0 0 0 var(--stack-gap-color), 0 -2px 0 0 var(--stack-gap-color);
+}
+
+.chat-avatar .avatar-stack.count-3 {
+  width: 48px;
+  height: 36px;
+}
+
+.chat-avatar .avatar-stack.count-3 .av-1 {
+  width: 28px;
+  height: 28px;
+  left: 0;
+  top: -2px;
+  box-shadow: 2px 0 0 0 var(--stack-gap-color), 0 2px 0 0 var(--stack-gap-color);
+}
+
+.chat-avatar .avatar-stack.count-3 .av-2 {
+  width: 28px;
+  height: 28px;
+  left: 22px;
+  top: -2px;
+  box-shadow: -2px 0 0 0 var(--stack-gap-color), 0 2px 0 0 var(--stack-gap-color);
+}
+
+.chat-avatar .avatar-stack.count-3 .av-3 {
+  width: 28px;
+  height: 28px;
+  left: 11px;
+  top: 16px;
+  box-shadow: 0 -2px 0 0 var(--stack-gap-color);
+}
+
+.chat-avatar .avatar-stack.count-4 {
+  width: 48px;
+  height: 36px;
+}
+
+.chat-avatar .avatar-stack.count-4 .av-1 {
+  width: 22px;
+  height: 22px;
+  left: 0;
+  top: -2px;
+  box-shadow: 2px 0 0 0 var(--stack-gap-color), 0 2px 0 0 var(--stack-gap-color);
+}
+
+.chat-avatar .avatar-stack.count-4 .av-2 {
+  width: 22px;
+  height: 22px;
+  left: 22px;
+  top: -2px;
+  box-shadow: -2px 0 0 0 var(--stack-gap-color), 0 2px 0 0 var(--stack-gap-color);
+}
+
+.chat-avatar .avatar-stack.count-4 .av-3 {
+  width: 22px;
+  height: 22px;
+  left: 0;
+  top: 18px;
+  box-shadow: 2px 0 0 0 var(--stack-gap-color), 0 -2px 0 0 var(--stack-gap-color);
+}
+
+.chat-avatar .avatar-stack.count-4 .av-4 {
+  width: 22px;
+  height: 22px;
+  left: 22px;
+  top: 18px;
+  box-shadow: -2px 0 0 0 var(--stack-gap-color), 0 -2px 0 0 var(--stack-gap-color);
+}
+
+.chat-avatar .avatar-stack.count-4 .more {
+  right: -12px;
+  bottom: -6px;
 }
 
 .avatar-img {
