@@ -3,6 +3,7 @@ import http from "@/utils/http";
 import scheduleApi from "@/api/schedule";
 import { completeTask, deleteTask } from "../services/stoneService";
 import { getMyTasks } from "@/api/task";
+import axios from "axios";
 
 export const useScheduleStore = defineStore("schedule", {
   state: () => ({
