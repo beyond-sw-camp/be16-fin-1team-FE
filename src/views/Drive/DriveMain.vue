@@ -1972,21 +1972,18 @@ export default {
         } catch (error) {
           console.error('드라이브 초기화 실패:', error);
           
-          // 접근 권한 에러 등의 경우 이전 페이지로 이동
+          // 접근 권한 에러 등의 경우
           const errorMessage = error.response?.data?.statusMessage || '접근 권한이 없거나 문서함을 불러올 수 없습니다.';
           showSnackbar(errorMessage, { color: 'error' });
           
-          // 모달 내부에서 사용되는 경우 라우팅하지 않음
-          if (!this.disableRouting) {
-            // 워크스페이스 드라이브 루트로 리디렉션
-            const workspaceId = localStorage.getItem('selectedWorkspaceId');
-            this.$router.replace({ 
-              name: 'driveRoot',
-              params: { 
-                rootType: 'WORKSPACE',
-                rootId: workspaceId
-              }
-            });
+          // 권한 에러인 경우 (400, 401, 403) - 라우터 가드에서 이미 처리했으므로 여기서는 에러만 표시
+          if (error.response?.status === 400 || error.response?.status === 401 || error.response?.status === 403) {
+            // 라우터 가드에서 이미 처리했으므로 추가 라우팅 불필요
+            this.items = [];
+            this.folderTree = [];
+          } else {
+            // 다른 에러는 빈 상태로 표시
+            this.items = [];
           }
         } finally {
           this.loading = false;
@@ -2274,42 +2271,72 @@ export default {
         }
         
         if (folderId === 'root') {
-          // 워크스페이스 루트로 이동
-          this.$router.push({ 
-            name: 'driveRoot',
-            params: { 
-              rootType: 'WORKSPACE',
-              rootId: workspaceId
-            }
-          });
+          // 권한 체크 후 워크스페이스 루트로 이동
+          const hasPermission = await this.checkPermission('WORKSPACE', workspaceId);
+          if (hasPermission) {
+            this.$router.push({ 
+              name: 'driveRoot',
+              params: { 
+                rootType: 'WORKSPACE',
+                rootId: workspaceId
+              }
+            });
+          }
         } else {
           // 트리에서 폴더 노드 찾아서 rootType과 rootId 확인
           const folderNode = this.findNodeById(this.folderTree, folderId);
           if (folderNode && folderNode.rootType && folderNode.rootId) {
-            // 트리 노드에 rootType과 rootId가 있으면 바로 사용
-            this.$router.push({
-              name: 'driveFolder',
-              params: { 
-                rootType: folderNode.rootType,
-                rootId: folderNode.rootId,
-                folderId: folderId 
-              }
-            });
+            // 트리 노드에 rootType과 rootId가 있으면 권한 체크 후 사용
+            const hasPermission = await this.checkPermission(folderNode.rootType, folderNode.rootId, folderId);
+            if (hasPermission) {
+              this.$router.push({
+                name: 'driveFolder',
+                params: { 
+                  rootType: folderNode.rootType,
+                  rootId: folderNode.rootId,
+                  folderId: folderId 
+                }
+              });
+            }
           } else {
             // 없으면 폴더 정보 조회 (fallback)
             try {
               const folderInfo = await driveService.getFolderInfo(folderId);
               if (folderInfo.result && folderInfo.result.rootType && folderInfo.result.rootId) {
-                this.$router.push({
-                  name: 'driveFolder',
-                  params: { 
-                    rootType: folderInfo.result.rootType,
-                    rootId: folderInfo.result.rootId,
-                    folderId: folderId 
-                  }
-                });
+                const hasPermission = await this.checkPermission(
+                  folderInfo.result.rootType, 
+                  folderInfo.result.rootId, 
+                  folderId
+                );
+                if (hasPermission) {
+                  this.$router.push({
+                    name: 'driveFolder',
+                    params: { 
+                      rootType: folderInfo.result.rootType,
+                      rootId: folderInfo.result.rootId,
+                      folderId: folderId 
+                    }
+                  });
+                }
               } else {
-                // 없으면 워크스페이스로 기본 설정
+                // 없으면 권한 체크 후 워크스페이스로 기본 설정
+                const hasPermission = await this.checkPermission('WORKSPACE', workspaceId, folderId);
+                if (hasPermission) {
+                  this.$router.push({
+                    name: 'driveFolder',
+                    params: { 
+                      rootType: 'WORKSPACE',
+                      rootId: workspaceId,
+                      folderId: folderId 
+                    }
+                  });
+                }
+              }
+            } catch (error) {
+              console.error('폴더 정보 조회 실패:', error);
+              // 에러 발생 시 권한 체크 후 워크스페이스로 기본 설정
+              const hasPermission = await this.checkPermission('WORKSPACE', workspaceId, folderId);
+              if (hasPermission) {
                 this.$router.push({
                   name: 'driveFolder',
                   params: { 
@@ -2319,17 +2346,6 @@ export default {
                   }
                 });
               }
-            } catch (error) {
-              console.error('폴더 정보 조회 실패:', error);
-              // 에러 발생 시 워크스페이스로 기본 설정
-              this.$router.push({
-                name: 'driveFolder',
-                params: { 
-                  rootType: 'WORKSPACE',
-                  rootId: workspaceId,
-                  folderId: folderId 
-                }
-              });
             }
           }
         }
@@ -2524,17 +2540,12 @@ export default {
         const errorMessage = error.response?.data?.statusMessage || '폴더 내용을 불러오는데 실패했습니다.';
         showSnackbar(errorMessage, 'error');
         
-        // 권한 에러인 경우 워크스페이스 드라이브 루트로 리디렉션
-        if (error.response?.status === 403 || error.response?.status === 401) {
-          const workspaceId = localStorage.getItem('selectedWorkspaceId');
-          this.$router.replace({ 
-            name: 'driveRoot',
-            params: { 
-              rootType: 'WORKSPACE',
-              rootId: workspaceId
-            }
-          });
+        // 권한 에러인 경우 (400, 401, 403) - 라우터 가드에서 이미 처리했으므로 여기서는 에러만 표시
+        if (error.response?.status === 400 || error.response?.status === 401 || error.response?.status === 403) {
+          // 라우터 가드에서 이미 처리했으므로 추가 라우팅 불필요
+          this.items = [];
         } else {
+          // 다른 에러는 빈 상태로 표시
           this.items = [];
         }
       } finally {
@@ -2759,22 +2770,28 @@ export default {
               this.loadFolderContents(null, 'STONE', String(this.stoneId));
               return;
             }
-            // 다른 루트 항목이면 라우팅
-            this.$router.push({ 
-              name: 'driveRoot',
-              params: { 
-                rootType: item.rootType,
-                rootId: item.rootId
-              }
-            });
+            // 다른 루트 항목이면 권한 체크 후 라우팅
+            const hasPermission = await this.checkPermission(item.rootType, item.rootId);
+            if (hasPermission) {
+              this.$router.push({ 
+                name: 'driveRoot',
+                params: { 
+                  rootType: item.rootType,
+                  rootId: item.rootId
+                }
+              });
+            }
             return;
           }
           
           // projectId가 있으면 라우팅 대신 내부 상태만 업데이트
           if (this.projectId) {
-            // 프로젝트 문서함 안에서 STONE/PROJECT 루트 항목 클릭 시 내부 상태만 업데이트
+            // 프로젝트 문서함 안에서 STONE/PROJECT 루트 항목 클릭 시 권한 체크 후 내부 상태만 업데이트
             if (item.rootType === 'STONE' || item.rootType === 'PROJECT') {
-              this.loadFolderContents(null, item.rootType, item.rootId);
+              const hasPermission = await this.checkPermission(item.rootType, item.rootId);
+              if (hasPermission) {
+                this.loadFolderContents(null, item.rootType, item.rootId);
+              }
               return;
             }
             // 현재 프로젝트 문서함이면 내부 상태만 업데이트
@@ -2782,7 +2799,23 @@ export default {
               this.loadFolderContents(null, 'PROJECT', this.projectId);
               return;
             }
-            // 다른 루트 항목이면 라우팅
+            // 다른 루트 항목이면 권한 체크 후 라우팅
+            const hasPermission = await this.checkPermission(item.rootType, item.rootId);
+            if (hasPermission) {
+              this.$router.push({ 
+                name: 'driveRoot',
+                params: { 
+                  rootType: item.rootType,
+                  rootId: item.rootId
+                }
+              });
+            }
+            return;
+          }
+          
+          // projectId/stoneId가 없으면 권한 체크 후 라우팅
+          const hasPermission = await this.checkPermission(item.rootType, item.rootId);
+          if (hasPermission) {
             this.$router.push({ 
               name: 'driveRoot',
               params: { 
@@ -2790,17 +2823,7 @@ export default {
                 rootId: item.rootId
               }
             });
-            return;
           }
-          
-          // projectId/stoneId가 없으면 라우팅
-          this.$router.push({ 
-            name: 'driveRoot',
-            params: { 
-              rootType: item.rootType,
-              rootId: item.rootId
-            }
-          });
           return;
         }
         
@@ -2816,14 +2839,17 @@ export default {
           return;
         }
         
-        // 워크스페이스 루트로 이동
-        this.$router.push({ 
-          name: 'driveRoot',
-          params: { 
-            rootType: 'WORKSPACE',
-            rootId: workspaceId
-          }
-        });
+        // 권한 체크 후 워크스페이스 루트로 이동
+        const hasPermission = await this.checkPermission('WORKSPACE', workspaceId);
+        if (hasPermission) {
+          this.$router.push({ 
+            name: 'driveRoot',
+            params: { 
+              rootType: 'WORKSPACE',
+              rootId: workspaceId
+            }
+          });
+        }
         return;
       }
       
@@ -2831,15 +2857,18 @@ export default {
       // stoneId가 있으면 라우팅 대신 내부 상태만 업데이트
       if (this.stoneId) {
         // 트리는 스톤이지만 현재 문서함이 STONE이므로 STONE으로 이동하지 않음
-        // 대신 워크스페이스 폴더로 이동
-        this.$router.push({
-          name: 'driveFolder',
-          params: {
-            rootType: 'WORKSPACE',
-            rootId: workspaceId,
-            folderId: item.id
-          }
-        });
+        // 대신 권한 체크 후 워크스페이스 폴더로 이동
+        const hasPermission = await this.checkPermission('WORKSPACE', workspaceId, item.id);
+        if (hasPermission) {
+          this.$router.push({
+            name: 'driveFolder',
+            params: {
+              rootType: 'WORKSPACE',
+              rootId: workspaceId,
+              folderId: item.id
+            }
+          });
+        }
         return;
       }
       
@@ -2864,20 +2893,26 @@ export default {
           if (folderRootType === 'PROJECT' && folderRootId === this.projectId) {
             this.loadFolderContents(item.id, 'PROJECT', this.projectId);
           } 
-          // STONE 루트의 하위 폴더면 프로젝트 문서함 안에서 스톤 폴더로 이동 (내부 상태만 업데이트)
+          // STONE 루트의 하위 폴더면 프로젝트 문서함 안에서 권한 체크 후 스톤 폴더로 이동
           else if (folderRootType === 'STONE') {
-            this.loadFolderContents(item.id, 'STONE', folderRootId);
+            const hasPermission = await this.checkPermission('STONE', folderRootId, item.id);
+            if (hasPermission) {
+              this.loadFolderContents(item.id, 'STONE', folderRootId);
+            }
           } 
-          // 다른 프로젝트나 워크스페이스 폴더면 해당 문서함으로 이동 (라우팅)
+          // 다른 프로젝트나 워크스페이스 폴더면 권한 체크 후 해당 문서함으로 이동
           else {
-            this.$router.push({
-              name: 'driveFolder',
-              params: {
-                rootType: folderRootType,
-                rootId: folderRootId,
-                folderId: item.id
-              }
-            });
+            const hasPermission = await this.checkPermission(folderRootType, folderRootId, item.id);
+            if (hasPermission) {
+              this.$router.push({
+                name: 'driveFolder',
+                params: {
+                  rootType: folderRootType,
+                  rootId: folderRootId,
+                  folderId: item.id
+                }
+              });
+            }
           }
         } else {
           // rootType이 없으면 현재 프로젝트의 폴더로 가정하고 프로젝트 문서함 안에서 이동
@@ -2888,30 +2923,57 @@ export default {
       
       // 일반 폴더 - item에 rootType과 rootId가 있으면 바로 사용, 없으면 API 호출
       if (item.rootType && item.rootId) {
-        // 트리뷰 아이템에 rootType과 rootId가 있으면 바로 사용
-        this.$router.push({
-          name: 'driveFolder',
-          params: { 
-            rootType: item.rootType,
-            rootId: item.rootId,
-            folderId: item.id 
-          }
-        });
+        // 트리뷰 아이템에 rootType과 rootId가 있으면 권한 체크 후 사용
+        const hasPermission = await this.checkPermission(item.rootType, item.rootId, item.id);
+        if (hasPermission) {
+          this.$router.push({
+            name: 'driveFolder',
+            params: { 
+              rootType: item.rootType,
+              rootId: item.rootId,
+              folderId: item.id 
+            }
+          });
+        }
       } else {
         // 없으면 폴더 정보 조회 (fallback)
         try {
           const folderInfo = await driveService.getFolderInfo(item.id);
           if (folderInfo.result && folderInfo.result.rootType && folderInfo.result.rootId) {
-            this.$router.push({
-              name: 'driveFolder',
-              params: { 
-                rootType: folderInfo.result.rootType,
-                rootId: folderInfo.result.rootId,
-                folderId: item.id 
-              }
-            });
+            const hasPermission = await this.checkPermission(
+              folderInfo.result.rootType, 
+              folderInfo.result.rootId, 
+              item.id
+            );
+            if (hasPermission) {
+              this.$router.push({
+                name: 'driveFolder',
+                params: { 
+                  rootType: folderInfo.result.rootType,
+                  rootId: folderInfo.result.rootId,
+                  folderId: item.id 
+                }
+              });
+            }
           } else {
-            // 없으면 워크스페이스로 기본 설정
+            // 없으면 권한 체크 후 워크스페이스로 기본 설정
+            const hasPermission = await this.checkPermission('WORKSPACE', workspaceId, item.id);
+            if (hasPermission) {
+              this.$router.push({
+                name: 'driveFolder',
+                params: { 
+                  rootType: 'WORKSPACE',
+                  rootId: workspaceId,
+                  folderId: item.id 
+                }
+              });
+            }
+          }
+        } catch (error) {
+          console.error('폴더 정보 조회 실패:', error);
+          // 에러 발생 시 권한 체크 후 워크스페이스로 기본 설정
+          const hasPermission = await this.checkPermission('WORKSPACE', workspaceId, item.id);
+          if (hasPermission) {
             this.$router.push({
               name: 'driveFolder',
               params: { 
@@ -2921,17 +2983,6 @@ export default {
               }
             });
           }
-        } catch (error) {
-          console.error('폴더 정보 조회 실패:', error);
-          // 에러 발생 시 워크스페이스로 기본 설정
-          this.$router.push({
-            name: 'driveFolder',
-            params: { 
-              rootType: 'WORKSPACE',
-              rootId: workspaceId,
-              folderId: item.id 
-            }
-          });
         }
       }
     },
@@ -3417,8 +3468,36 @@ export default {
       });
     },
 
+    // 권한 체크 함수
+    async checkPermission(rootType, rootId, folderId = null) {
+      try {
+        if (folderId) {
+          // 폴더 권한 체크
+          await driveService.getFolderContents(folderId);
+        } else if (rootType && rootId) {
+          // 루트 문서함 권한 체크
+          await driveService.getContentsByRoot(rootType, rootId);
+        } else {
+          return false;
+        }
+        return true;
+      } catch (error) {
+        console.error('권한 체크 실패:', error);
+        // 400, 401, 403 에러는 권한 없음
+        if (error.response?.status === 400 || error.response?.status === 401 || error.response?.status === 403) {
+          const errorMessage = error.response?.data?.statusMessage || '접근 권한이 없습니다.';
+          showSnackbar(errorMessage, { color: 'error' });
+          return false;
+        }
+        // 네트워크 에러나 기타 에러도 권한 없음으로 처리 (안전하게)
+        const errorMessage = error.response?.data?.statusMessage || error.message || '접근 권한을 확인할 수 없습니다.';
+        showSnackbar(errorMessage, { color: 'error' });
+        return false;
+      }
+    },
+
     // 아이템 클릭
-    handleItemClick(item) {
+    async handleItemClick(item) {
       console.log('Item clicked:', item);
       
       // folderName이 없고 rootName이 있는 경우 (루트 항목)
@@ -3432,14 +3511,17 @@ export default {
               this.loadFolderContents(null, 'STONE', String(this.stoneId));
               return;
             }
-            // 다른 루트 항목이면 라우팅
-            this.$router.push({
-              name: 'driveRoot',
-              params: { 
-                rootType: item.rootType, 
-                rootId: item.rootId 
-              }
-            });
+            // 다른 루트 항목이면 권한 체크 후 라우팅
+            const hasPermission = await this.checkPermission(item.rootType, item.rootId);
+            if (hasPermission) {
+              this.$router.push({
+                name: 'driveRoot',
+                params: { 
+                  rootType: item.rootType, 
+                  rootId: item.rootId 
+                }
+              });
+            }
             return;
           }
           
@@ -3455,7 +3537,23 @@ export default {
               this.loadFolderContents(null, 'PROJECT', this.projectId);
               return;
             }
-            // 다른 루트 항목이면 라우팅
+            // 다른 루트 항목이면 권한 체크 후 라우팅
+            const hasPermission = await this.checkPermission(item.rootType, item.rootId);
+            if (hasPermission) {
+              this.$router.push({
+                name: 'driveRoot',
+                params: { 
+                  rootType: item.rootType, 
+                  rootId: item.rootId 
+                }
+              });
+            }
+            return;
+          }
+          
+          // projectId/stoneId가 없으면 권한 체크 후 라우팅
+          const hasPermission = await this.checkPermission(item.rootType, item.rootId);
+          if (hasPermission) {
             this.$router.push({
               name: 'driveRoot',
               params: { 
@@ -3463,17 +3561,7 @@ export default {
                 rootId: item.rootId 
               }
             });
-            return;
           }
-          
-          // projectId/stoneId가 없으면 라우팅
-          this.$router.push({
-            name: 'driveRoot',
-            params: { 
-              rootType: item.rootType, 
-              rootId: item.rootId 
-            }
-          });
           return;
         }
       }
@@ -3517,21 +3605,27 @@ export default {
             if (folderRootType === 'PROJECT' && folderRootId === this.projectId) {
               this.loadFolderContents(item.id, 'PROJECT', this.projectId);
             } 
-            // STONE 루트의 하위 폴더면 프로젝트 문서함 안에서 스톤 폴더로 이동 (내부 상태만 업데이트)
+            // STONE 루트의 하위 폴더면 프로젝트 문서함 안에서 권한 체크 후 스톤 폴더로 이동
             else if (folderRootType === 'STONE') {
-              this.loadFolderContents(item.id, 'STONE', folderRootId);
+              const hasPermission = await this.checkPermission('STONE', folderRootId, item.id);
+              if (hasPermission) {
+                this.loadFolderContents(item.id, 'STONE', folderRootId);
+              }
             } 
-            // 워크스페이스 폴더면 워크스페이스로 이동 (라우팅)
+            // 워크스페이스 폴더면 권한 체크 후 라우팅
             else {
               const workspaceId = localStorage.getItem('selectedWorkspaceId');
-              this.$router.push({
-                name: 'driveFolder',
-                params: {
-                  rootType: 'WORKSPACE',
-                  rootId: workspaceId,
-                  folderId: item.id
-                }
-              });
+              const hasPermission = await this.checkPermission('WORKSPACE', workspaceId, item.id);
+              if (hasPermission) {
+                this.$router.push({
+                  name: 'driveFolder',
+                  params: {
+                    rootType: 'WORKSPACE',
+                    rootId: workspaceId,
+                    folderId: item.id
+                  }
+                });
+              }
             }
           } else {
             // rootType이 없으면 현재 프로젝트의 폴더로 가정하고 프로젝트 문서함 안에서 이동
@@ -3544,28 +3638,35 @@ export default {
         const rootType = item.rootType || this.currentRootType || 'WORKSPACE';
         const rootId = item.rootId || this.currentRootId || localStorage.getItem('selectedWorkspaceId');
         
-        // 폴더 경로에 추가 (폴더 이름 정보가 있으므로)
-        // 백엔드에서 ancestors 오면 덮어쓰기
-        this.folderPath.push({
-          id: item.id,
-          name: item.name
-        });
-        
-        this.$router.push({
-          name: 'driveFolder',
-          params: { 
-            rootType: rootType,
-            rootId: rootId,
-            folderId: item.id 
-          }
-        });
+        // 권한 체크 후 라우팅
+        const hasPermission = await this.checkPermission(rootType, rootId, item.id);
+        if (hasPermission) {
+          // 폴더 경로에 추가 (폴더 이름 정보가 있으므로)
+          // 백엔드에서 ancestors 오면 덮어쓰기
+          this.folderPath.push({
+            id: item.id,
+            name: item.name
+          });
+          
+          this.$router.push({
+            name: 'driveFolder',
+            params: { 
+              rootType: rootType,
+              rootId: rootId,
+              folderId: item.id 
+            }
+          });
+        }
       }
       // STONE: 스톤 문서함으로 바로가기
       else if (item.type === 'STONE') {
         console.log('Navigating to STONE drive:', item.id);
-        // projectId가 있으면 프로젝트 문서함 안에서 내부 상태만 업데이트
+        // projectId가 있으면 프로젝트 문서함 안에서 권한 체크 후 내부 상태만 업데이트
         if (this.projectId) {
-          this.loadFolderContents(null, 'STONE', item.id);
+          const hasPermission = await this.checkPermission('STONE', item.id);
+          if (hasPermission) {
+            this.loadFolderContents(null, 'STONE', item.id);
+          }
           return;
         }
         // stoneId가 있으면 내부 상태만 업데이트
@@ -3573,11 +3674,14 @@ export default {
           this.loadFolderContents(null, 'STONE', String(this.stoneId));
           return;
         }
-        // 라우팅
-        this.$router.push({
-          name: 'driveRoot',
-          params: { rootType: 'STONE', rootId: item.id }
-        });
+        // 권한 체크 후 라우팅
+        const hasPermission = await this.checkPermission('STONE', item.id);
+        if (hasPermission) {
+          this.$router.push({
+            name: 'driveRoot',
+            params: { rootType: 'STONE', rootId: item.id }
+          });
+        }
       }
       // PROJECT: 프로젝트 문서함으로 바로가기
       else if (item.type === 'PROJECT') {
@@ -3592,11 +3696,14 @@ export default {
           this.loadFolderContents(null, 'STONE', String(this.stoneId));
           return;
         }
-        // 라우팅
-        this.$router.push({
-          name: 'driveRoot',
-          params: { rootType: 'PROJECT', rootId: item.id }
-        });
+        // 권한 체크 후 라우팅
+        const hasPermission = await this.checkPermission('PROJECT', item.id);
+        if (hasPermission) {
+          this.$router.push({
+            name: 'driveRoot',
+            params: { rootType: 'PROJECT', rootId: item.id }
+          });
+        }
       }
       // document: 문서 편집
       else if (item.type === 'document') {
