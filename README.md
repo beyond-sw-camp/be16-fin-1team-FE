@@ -509,7 +509,19 @@
 <details id="chatbot">
   <summary><b>🤖 챗봇</b></summary>
   <br/>
-  
+  <p><b>사용가이드</b></p>
+      <img width="75%" alt="User Group Search" src="https://github.com/user-attachments/assets/98ea0494-d452-4776-b72b-52906151dbf6" />
+  <p><b>일정 등록</b></p>
+    <img width="75%" alt="User Group Create" src="https://github.com/user-attachments/assets/ab6faa3d-5352-43bf-948a-625cfc7ef36e" />  
+  <p><b>읽지 않은 채팅방 메시지 요약</b></p>
+    <img width="75%" alt="User Group Update" src="https://github.com/user-attachments/assets/e9575c0a-d687-4cb4-98ca-7aa4ab00fa03" /> 
+  <p><b>일정 브리핑</b></p>
+    <img width="75%" alt="User Group Delete" src="https://github.com/user-attachments/assets/b0b448a0-cf5d-47d7-871a-87c43fce30a4" />    
+  <p><b>프로젝트 요약</b></p>
+    <img width="75%" alt="User Group Search" src="https://github.com/user-attachments/assets/ec8f0157-2127-47cc-bbaa-738c5665e797" />
+  <p><b>일상 대화</b></p>
+      <img width="75%" alt="User Group Search" src="https://github.com/user-attachments/assets/a9478b7d-c2fd-461f-82c7-fc0d70bd4fe0" />
+
 </details>
 
 <details id="search">
