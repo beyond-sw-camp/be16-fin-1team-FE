@@ -68,28 +68,17 @@
       <v-list density="compact" class="notif-menu-list">
         <div class="notif-menu-header">
           <div class="notif-title">알림</div>
-          <div class="notif-count-pill">{{ notifCount }}</div>
+          <div class="notif-count-pill">{{ notifList.length }}</div>
         </div>
         <v-divider class="user-menu-divider"></v-divider>
         <div v-if="notifLoading" class="notif-loading">불러오는 중…</div>
         <template v-else>
           <div v-if="notifList.length === 0" class="notif-empty">알림이 없습니다</div>
           <div v-else class="notif-list">
-            <div
-              v-for="(n, idx) in notifList"
-              :key="n.id"
-              class="notif-item"
-              :class="{ unread: (n.readStatus||'').toUpperCase()==='UNREAD' }"
-              @click="onNotificationClick(n, idx)"
-            >
+            <div v-for="(n, idx) in notifList" :key="n.id" class="notif-item" :class="{ unread: (n.readStatus||'').toUpperCase()==='UNREAD' }" @click="onNotificationClick(n)">
               <button class="notif-dismiss" title="닫기" @click.stop="onDismissNotif(n.id, idx)">
                 <img src="@/assets/icons/user/close.svg" alt="닫기" />
               </button>
-              <span
-                v-if="(n.readStatus || '').toUpperCase() === 'UNREAD'"
-                class="notif-unread-dot"
-                aria-hidden="true"
-              ></span>
               <div class="notif-item-title">{{ n.title }}</div>
               <div class="notif-item-content">{{ n.content }}</div>
               <div class="notif-item-time">{{ formatDateTime(n.createdAt) }}</div>
@@ -252,7 +241,7 @@ export default {
       } finally {
         this.notifLoading = false;
       }
-      this.updateUnreadCount();
+      this.notifCount = this.notifList.length;
     },
     async onDismissNotif(id, index) {
       // optimistic remove
@@ -268,8 +257,6 @@ export default {
       } catch (_) {
         // rollback on failure
         if (removed && removed.length) this.notifList.splice(index, 0, removed[0]);
-      } finally {
-        this.updateUnreadCount();
       }
     },
     formatDateTime(iso) {
@@ -298,43 +285,13 @@ export default {
           taskId: n.taskId,
         };
         this.notifList = [item, ...(this.notifList || [])];
-        this.updateUnreadCount();
+        this.notifCount = this.notifList.length;
       } catch(_) {}
     },
-    // 알림 클릭 시 프로젝트 페이지로 이동 + 읽음 처리
-    async onNotificationClick(notification, index) {
-      try {
-        const baseURL = import.meta.env.VITE_API_BASE_URL;
-        const accessToken = localStorage.getItem('accessToken');
-        const headers = { 'Content-Type': 'application/json' };
-        if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-        if (notification?.id !== undefined && notification?.id !== null) {
-          await axios.post(`${baseURL}/user-service/notification/${notification.id}/read`, {}, { headers });
-          if (typeof index === 'number' && this.notifList[index]) {
-            this.notifList[index] = {
-              ...this.notifList[index],
-              readStatus: 'READ',
-            };
-          }
-          this.updateUnreadCount();
-        }
-      } catch (_) {
-        // no-op: 읽음 처리 실패 시에도 라우팅은 진행
-      } finally {
-        this.notifMenu = false;
-        if (notification?.projectId) {
-          this.$router.push(`/project?id=${notification.projectId}`);
-        }
-      }
-    },
-    updateUnreadCount() {
-      try {
-        const unread = (this.notifList || []).filter(
-          (n) => (n.readStatus || '').toUpperCase() === 'UNREAD'
-        ).length;
-        this.notifCount = unread;
-      } catch (_) {
-        this.notifCount = 0;
+    // 알림 클릭 시 프로젝트 페이지로 이동
+    onNotificationClick(notification) {
+      if (notification.projectId) {
+        this.$router.push(`/project?id=${notification.projectId}`);
       }
     },
     // 검색창 포커스
@@ -1155,7 +1112,7 @@ export default {
 .notif-loading, .notif-empty { padding: 16px 14px; font-size: 13px; color: #CFCFCF; }
 .notif-list { max-height: 380px; overflow-y: auto; padding: 4px 8px; }
 .notif-item {
-  padding: 12px 8px 12px 20px;
+  padding: 12px 8px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
   border-radius: 0;
   background: transparent;
@@ -1169,17 +1126,6 @@ export default {
 .notif-item-title { font-weight: 700; font-size: 15px; color: #FFFFFF; margin-bottom: 4px; line-height: 1.35; }
 .notif-item-content { font-size: 14px; color: #DEDEDE; margin-bottom: 6px; line-height: 1.45; }
 .notif-item-time { font-size: 11.5px; color: #BDBDBD; }
-.notif-unread-dot {
-  position: absolute;
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #FF5252;
-  box-shadow: 0 0 4px rgba(255,82,82,0.6);
-}
 
 .notif-dismiss {
   position: absolute;
