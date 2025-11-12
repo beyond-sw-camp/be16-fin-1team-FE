@@ -53,7 +53,7 @@ export default {
   },
   mounted() {
     this.$nextTick(() => {
-      this.loadFabPosition();
+      this.applyInitialFabPosition();
       window.addEventListener('mousemove', this.onFabPointerMove, { passive: false });
       window.addEventListener('mouseup', this.onFabPointerUp, { passive: true });
       window.addEventListener('touchmove', this.onFabPointerMove, { passive: false });
@@ -78,6 +78,16 @@ export default {
     }
   },
   methods: {
+    applyInitialFabPosition() {
+      const apply = () => {
+        this.loadFabPosition();
+      };
+      apply();
+      // 레이아웃 계산이 끝난 다음 한 번 더 적용해 위치가 덮어쓰여도 복원
+      window.requestAnimationFrame(() => {
+        apply();
+      });
+    },
     onFabClick() {
       if (this.hasFabMoved) { 
         this.hasFabMoved = false; 
