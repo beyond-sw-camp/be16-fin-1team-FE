@@ -170,6 +170,8 @@ export default {
     this.loadNotifications();
     // realtime incoming notification
     window.addEventListener('pushNotification', this.onPushNotif);
+    // 워크스페이스 변경 이벤트 리스너
+    window.addEventListener('workspaceChanged', this.onWorkspaceChanged);
   },
 
   beforeUnmount() {
@@ -178,6 +180,7 @@ export default {
       clearTimeout(this.suggestTimer);
     }
     window.removeEventListener('pushNotification', this.onPushNotif);
+    window.removeEventListener('workspaceChanged', this.onWorkspaceChanged);
   },
 
   methods: {
@@ -648,6 +651,33 @@ export default {
       if (searchContainer && !searchContainer.contains(event.target)) {
         this.showSuggestions = false;
       }
+    },
+    
+    // 워크스페이스 변경 시 헤더 새로고침
+    onWorkspaceChanged(event) {
+      console.log('워크스페이스 변경 감지 - 헤더 새로고침', event.detail);
+      
+      // 검색어 및 자동완성 초기화
+      this.searchKeyword = '';
+      this.suggestions = [];
+      this.showSuggestions = false;
+      
+      // 타이머 정리
+      if (this.suggestTimer) {
+        clearTimeout(this.suggestTimer);
+        this.suggestTimer = null;
+      }
+      if (this.typingTimer) {
+        clearTimeout(this.typingTimer);
+        this.typingTimer = null;
+      }
+      
+      // 알림 목록 새로고침
+      this.loadNotifications();
+      
+      // 메뉴 닫기
+      this.userMenu = false;
+      this.notifMenu = false;
     },
   },
   watch: {
