@@ -141,6 +141,12 @@ export default {
         const xp = Number(localStorage.getItem('chatbotFabXPct'));
         const yp = Number(localStorage.getItem('chatbotFabYPct'));
         if (Number.isFinite(xp) && Number.isFinite(yp) && xp >= 0 && xp <= 1 && yp >= 0 && yp <= 1) {
+          // 저장된 값이 왼쪽 상단 근처(10% 이하)인 경우 기본값으로 재설정
+          if (xp < 0.1 && yp < 0.1) {
+            console.log('챗봇 위치가 왼쪽 상단에 있어 기본값(우측 하단)으로 재설정');
+            this.setDefaultPosition();
+            return;
+          }
           this.fabXPct = xp;
           this.fabYPct = yp;
           const pxX = xp * window.innerWidth;
@@ -155,6 +161,12 @@ export default {
         const x = Number(localStorage.getItem('chatbotFabX'));
         const y = Number(localStorage.getItem('chatbotFabY'));
         if (Number.isFinite(x) && Number.isFinite(y)) {
+          // 저장된 값이 왼쪽 상단 근처(100px 이하)인 경우 기본값으로 재설정
+          if (x < 100 && y < 100) {
+            console.log('챗봇 위치가 왼쪽 상단에 있어 기본값(우측 하단)으로 재설정');
+            this.setDefaultPosition();
+            return;
+          }
           if (!(x <= 24 && y <= 24)) {
             const clampedStored = this.clampToViewport(x, y);
             this.fabX = clampedStored.x;
@@ -167,6 +179,10 @@ export default {
         }
       } catch (_) {}
       // 3) 기본: 우하단 기준 상대값으로 배치
+      this.setDefaultPosition();
+    },
+    setDefaultPosition() {
+      // 우측 하단으로 기본 위치 설정
       const margin = 24;
       const defX = window.innerWidth - margin - this.fabSize;
       const defY = window.innerHeight - margin - this.fabSize;
