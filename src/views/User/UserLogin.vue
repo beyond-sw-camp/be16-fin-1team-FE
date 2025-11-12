@@ -102,10 +102,14 @@ export default {
   methods: {
     ensureChatbotFabDefaults() {
       try {
-        const hasXPct = Number.isFinite(Number(localStorage.getItem('chatbotFabXPct')));
-        const hasYPct = Number.isFinite(Number(localStorage.getItem('chatbotFabYPct')));
-        const hasX = Number.isFinite(Number(localStorage.getItem('chatbotFabX')));
-        const hasY = Number.isFinite(Number(localStorage.getItem('chatbotFabY')));
+        const xpRaw = localStorage.getItem('chatbotFabXPct');
+        const ypRaw = localStorage.getItem('chatbotFabYPct');
+        const xRaw = localStorage.getItem('chatbotFabX');
+        const yRaw = localStorage.getItem('chatbotFabY');
+        const hasXPct = xpRaw !== null && xpRaw !== '' && Number.isFinite(Number(xpRaw));
+        const hasYPct = ypRaw !== null && ypRaw !== '' && Number.isFinite(Number(ypRaw));
+        const hasX = xRaw !== null && xRaw !== '' && Number.isFinite(Number(xRaw));
+        const hasY = yRaw !== null && yRaw !== '' && Number.isFinite(Number(yRaw));
         if (hasXPct && hasYPct && hasX && hasY) {
           return;
         }
