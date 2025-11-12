@@ -167,8 +167,9 @@ export default {
         }
       } catch (_) {}
       // 3) 기본: 우하단 기준 상대값으로 배치
-      const defX = window.innerWidth - 24 - this.fabSize;
-      const defY = window.innerHeight - 24 - this.fabSize;
+      const margin = 24;
+      const defX = window.innerWidth - margin - this.fabSize;
+      const defY = window.innerHeight - margin - this.fabSize;
       const clampedDefault = this.clampToViewport(defX, defY);
       this.fabX = clampedDefault.x;
       this.fabY = clampedDefault.y;
