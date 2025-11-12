@@ -96,7 +96,31 @@ export default {
       googleScope: "openid email profile",
     };
   },
+  mounted() {
+    this.ensureChatbotFabDefaults();
+  },
   methods: {
+    ensureChatbotFabDefaults() {
+      try {
+        const hasXPct = Number.isFinite(Number(localStorage.getItem('chatbotFabXPct')));
+        const hasYPct = Number.isFinite(Number(localStorage.getItem('chatbotFabYPct')));
+        const hasX = Number.isFinite(Number(localStorage.getItem('chatbotFabX')));
+        const hasY = Number.isFinite(Number(localStorage.getItem('chatbotFabY')));
+        if (hasXPct && hasYPct && hasX && hasY) {
+          return;
+        }
+        const fabSize = 56;
+        const margin = 24;
+        const defX = window.innerWidth - margin - fabSize;
+        const defY = window.innerHeight - margin - fabSize;
+        const xp = Math.min(Math.max(defX / window.innerWidth, 0), 1);
+        const yp = Math.min(Math.max(defY / window.innerHeight, 0), 1);
+        localStorage.setItem('chatbotFabX', String(defX));
+        localStorage.setItem('chatbotFabY', String(defY));
+        localStorage.setItem('chatbotFabXPct', String(xp));
+        localStorage.setItem('chatbotFabYPct', String(yp));
+      } catch (_) {}
+    },
     async handleLogin() {
       if (!this.email || !this.password) {
         showSnackbar('이메일과 비밀번호를 입력하세요.', { color: 'error' });
