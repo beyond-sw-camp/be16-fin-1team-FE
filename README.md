@@ -1,74 +1,43 @@
-# Orbit(오르빗)
+# 🪐 Orbit(오르빗)
 
-> 모든 일정/협업을 하나로! 캘린더·간트·마일스톤·칸반·채팅·문서를 **실시간으로 연동**하는 애자일 기반 통합 프로젝트 플랫폼
+> 💫 모든 일정/협업을 하나로! 캘린더·간트·마일스톤·칸반·채팅·문서를 **실시간으로 연동**하는 애자일 기반 통합 프로젝트 플랫폼
 > <p align="center">
 </p>
 <img width="2400" height="800" alt="image" src="https://github.com/user-attachments/assets/045e5ea7-5171-485d-880d-3e9c2110e06a" />
 
+<br/>
+
 ## 👀 팀원 구성
 <table>
-  <tr>
-    <!-- 1행: 사진(클릭 가능) + 이름 -->
-    <td align="center">
-      <a href="https://github.com/EunDuk2" target="_blank">
-        <img src="https://avatars.githubusercontent.com/u/124436476?v=4" width="100px;" alt="조은성"/>
-      </a><br />
-      <b>조은성</b>
-    </td>
-        <td align="center">
-      <a href="https://github.com/YoungKwanK" target="_blank">
-        <img src="https://avatars.githubusercontent.com/u/154659797?v=4" width="100px;" alt="김영관"/>
-      </a><br />
-      <b>김영관</b>
-    </td>
-    <td align="center">
-      <a href="https://github.com/jominhyeong97" target="_blank">
-        <img src="https://avatars.githubusercontent.com/u/206010512?v=4" width="100px;" alt="조민형"/>
-      </a><br />
-      <b>조민형</b>
-    </td>
-    <td align="center">
-      <a href="https://github.com/ifunhy" target="_blank">
-        <img src="https://avatars.githubusercontent.com/u/194198612?v=4" width="100px;" alt="김현지"/>
-      </a><br />
-      <b>김현지</b>
-    </td>
-    <td align="center">
-      <a href="https://github.com/rm2001kr" target="_blank">
-        <img src="https://avatars.githubusercontent.com/u/207882668?v=4" width="100px;" alt="김강산"/>
-      </a><br />
-      <b>김강산</b>
-    </td>
+	<tr>
+    <td><img width="300" alt="은성" src="https://avatars.githubusercontent.com/u/124436476?v=4"> </td>
+    <td><img width="300" alt="영관" src="https://avatars.githubusercontent.com/u/154659797?v=4"></td>
+    <td><img width="300" alt="민형" src="https://avatars.githubusercontent.com/u/206010512?v=4"></td>
+    <td><img width="300" alt="현지" src="https://avatars.githubusercontent.com/u/194198612?v=4"></td>
+    <td><img width="300" alt="강산" src="https://avatars.githubusercontent.com/u/207882668?v=4"></td>
+	</tr>
+		<tr>
+    <th><a href="https://github.com/EunDuk2"> 조은성 </a></th>
+    <th><a href="https://github.com/YoungKwanK"> 김영관</a> </th>
+    <th><a href="https://github.com/jominhyeong97"> 조민형</a> </th>
+    <th><a href="https://github.com/ifunhy"> 김현지</a> </th>
+    <th><a href="https://github.com/rm2001kr"> 김강산</a> </th>
   </tr>
-  <tr>
-    <!-- 2행: GitHub 배지 -->
-    <td align="center">
-      <a href="https://github.com/EunDuk2" target="_blank">
-        <img src="https://img.shields.io/badge/GitHub_Profile-181717?style=flat-square&logo=github&logoColor=white"/>
-      </a>
-    </td>
-        <td align="center">
-      <a href="https://github.com/YoungKwanK" target="_blank">
-        <img src="https://img.shields.io/badge/GitHub_Profile-181717?style=flat-square&logo=github&logoColor=white"/>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/jominhyeong97" target="_blank">
-        <img src="https://img.shields.io/badge/GitHub_Profile-181717?style=flat-square&logo=github&logoColor=white"/>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/ifunhy" target="_blank">
-        <img src="https://img.shields.io/badge/GitHub_Profile-181717?style=flat-square&logo=github&logoColor=white"/>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/rm2001kr" target="_blank">
-        <img src="https://img.shields.io/badge/GitHub_Profile-181717?style=flat-square&logo=github&logoColor=white"/>
-      </a>
-    </td>
-  </tr>
+  <th> 팀장,BE,FE </th>
+  <th> BE,FE </th>
+  <th> BE,FE </th>
+  <th> BE,FE </th>
+  <th> BE,FE </th>
 </table>
+
+<br/>
+
+## 💻 발표자료
+<div align="center">
+<img width="200" height="76" alt="스크린샷 2025-11-12 오전 9 26 06" src="https://github.com/user-attachments/assets/45d23073-8c7d-4666-a480-d3906f1a687b" />
+
+  [📢 Orbit 발표자료 링크](https://www.canva.com/design/DAG4NaBfaR4/UsBnWrrg8tfeKBiI4FJu9g/view?utm_content=DAG4NaBfaR4&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=he4aab767d6)
+</div>
 
 <br/>
 
@@ -88,18 +57,28 @@
 - 일정 상태/중요도 색상 구분, 날짜 클릭 상세/수정
 - **간트 차트·마일스톤과 양방향 연동**, To-Do(개인 작업)까지 한 화면에서
 
-### 2) ⏰ 체계적인 알림
-- 마감/회의 등 **예약 알림** (예: 1일 전, 15분 전)
-- WebSocket/SSE 기반 **실시간 동기화**
-- 워크스페이스/프로젝트/스톤/태스크 **메타데이터 포함 푸시**
+### 2) 🔔 알림 시스템 (Kafka + Redis)
+- 여러 서비스에서 발생한 알림 이벤트를 **Kafka로 수집**하고  
+  **Noti Service**가 이를 구독해 **Redis Pub/Sub**으로 실시간 전파  
+- **Kafka**는 메시지의 **안정성과 복구력**,  
+  **Redis**는 **지연 없는 실시간 전송**을 담당  
+- 예약 알림은 Redis **Z-Set**을 사용해 시간 기반 정렬 후  
+  스케줄러가 1초 단위로 빠르게 조회 및 발송  
+- 결과적으로 **Kafka의 안정성**과 **Redis의 속도**를 결합한  
+  **하이브리드 알림 구조** 구현
 
 ### 3) 🛠 스크럼 & 칸반
 - 스프린트·태스크·이슈를 **칸반 보드**로 관리
 - 진행률/리드타임 등 생산성 지표 시각화
 
-### 4) 💬 실시간 채팅·피드백
-- 워크스페이스/프로젝트 **전용 채팅방 자동 개설(옵션)**
-- 멘션·명령어·파일 공유, 메시지 내 날짜 → **캘린더 일정 등록**
+### 3) 💬 실시간 채팅
+- **WebSocket + STOMP + Kafka** 기반의 실시간 채팅 구조  
+- STOMP로 **양방향 통신**, Kafka로 **멀티 서버 간 메시지 동기화**  
+- 서버 확장 시에도 메시지 손실 없이 일관된 채팅 유지  
+- DB 저장과 실시간 전송을 한 Kafka 메시지로 관리하여  
+  장애 시에도 **메시지 복구 및 재처리 가능**  
+- Redis Pub/Sub을 통한 **빠르고 가벼운 실시간 전파**  
+- 화상회의 기능 제공 → **실시간 화상 통화 가능**
 
 ### 5) 📁 통합 문서 관리
 - 워크스페이스/프로젝트/스톤별 문서 및 파일 관리 시스템
@@ -123,9 +102,14 @@
 - matchBoolPrefix 기반 **자동완성 제안** (최대 10개 결과)
 - 권한 기반 검색 필터링 (사용자별 접근 권한에 따른 결과 제한)
 
-### 8) 🤖 AI 어시스턴트
-- 사전 회의 주제 기반 자료 추천
-- 회의록/채팅 요약, 태스크 추출
+### 4) 🤖 AI 어시스턴트 (n8n + Redis-Semantic)
+- **n8n 워크플로우**를 활용해 챗봇 요청을 자동으로 분석 및 처리  
+- LLM이 사용자의 **의도를 파악**해 프로젝트 요약, 일정 등록, 브리핑 등 수행  
+- **서버 데이터와 직접 연동**되어, 단순 Q&A가 아닌  
+  **지능형 업무 비서**처럼 동작  
+- **Redis 시멘틱 메모리**로 의미 기반 캐싱 적용  
+  → 비슷한 질문은 LLM 호출 없이 즉시 응답  
+- 이를 통해 **응답 속도 향상 + API 비용 절감 + 일관된 응답 품질** 확보
 
 <br/>
 
@@ -639,13 +623,19 @@
 
 <br/>
 
+## 🔍 Backend상세
+
+🔗 [Backend 더 자세한 설명](https://github.com/beyond-sw-camp/be16-fin-Dolmeng_E-Orbit-BE/blob/develop/README-be.md)
+
+<br />
+
 ## 📝 프로젝트 회고
 
 | 팀원 | 회고 내용 |
 |------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 조은성 |  |
+| 조은성 | 이번 프로젝트를 통해 프론트엔드, 백엔드, 데브옵스 전반에서 사용자 경험 중심의 구조를 설계할 수 있었습니다. <br>프론트엔드에서는 마일스톤 노드를 트리 형태로 시각화해 프로젝트의 전체 흐름을 한눈에 볼 수 있도록 구현했습니다. 노드가 많아질 때의 복잡도를 줄이기 위해 포커스 모드와 전체보기 모드를 구분하고, 특정 트리를 핀으로 고정해 기본 로딩 상태로 설정할 수 있도록 개선했습니다. <br>백엔드는 WebSocket + STOMP + Kafka를 활용한 실시간 채팅 구조를 설계했습니다. STOMP로 양방향 실시간 통신을 구현하고, Kafka로 멀티 서버 간 메시지 동기화와 순서를 보장했습니다. 이를 통해 확장성과 안정성을 동시에 확보했습니다. <br>데브옵스 영역에서는 쿠버네티스 기반의 고가용성 구조를 구성했습니다. Deployment를 통해 파드 수를 자동으로 관리하고, GitHub Actions와 롤링 업데이트를 이용해 CI/CD 파이프라인을 안정적으로 운영했습니다. <br>이번 프로젝트는 기능 구현을 넘어, 사용자가 끊김 없이 서비스를 경험할 수 있는 시스템 아키텍처를 실제로 설계하고 개선할 수 있었던 의미 있는 경험이었습니다. |
 | 김영관 | 이번 프로젝트에서 문서함, 통합 검색, 실시간 문서 편집이라는 세 가지 핵심 도메인을 개발했습니다.<br>문서함: 처음엔 단순 `parentId` 구조로 계층형 폴더를 설계했지만, 조상 경로 조회 시 발생하는 재귀 쿼리와 N+1 능 이슈에 직면했습니다. <br>이는 MariaDB의 `WITH RECURSIVE`를 도입해 단일 네이티브 쿼리로 해결하며 견고한 데이터 뼈대를 완성할 수 있었습니다.<br>통합 검색: Elasticsearch의 기본 `analyzer`는 한글 검색에 한계가 명확했습니다. <br>`Nori` 플러그인을 도입해 형태소 분석을 적용하고 나서야 비로소 제대로 된 검색이 가능했습니다. <br>이 과정에서 '정확도' 중심의 검색과 '성능' 중심의 자동완성은 쿼리 접근 방식과 데이터 모델링 자체가 달라야 함을 깨달았습니다.<br>실시간 편집은 가장 어려웠던 부분이었습니다.문서 전체 내용을 STOMP로 전송하니, 메시지 크기 한계로 인한 메모리 이슈와 편집 내용이 덮어써지는 동시성 문제가 발생했고 한 글자가 수정될 때마다 전송할 시 "안녕하세요" 5글자에 DB 트랜잭션 5개가 몰리는 등, DB 과부하라는 새로운 문제에 직면했습니다. <br> '라인(Line) 단위'로 변경 사항을 식별하고, 여러 수정을 '배치(Batch) 업데이트'로 묶어 처리하도록 구현했습니다.<br> 이로써 STOMP 메시지 크기와 DB 트랜잭션 횟수를 동시에 최적화하여 성능과 동시성을 확보했습니다. |
-| 조민형 |  |
+| 조민형 | 이번 프로젝트에서 관리자페이지, 워크스페이스와 프로젝트 파트를 맡아 개발했습니다. <br>관리자 페이지에서 가장 어려웠던 부분은 권한그룹을 만들고 “각 서비스에서 권한을 어디서, 어떻게 분기해 검사할 것인가”였습니다. 애플리케이션 구동 시 초기화 로직으로 DB에 값이 없으면 권한그룹과 권한 항목을 생성하고, 두 테이블을 매핑하는 연결 테이블로 확장성을 확보했습니다. 사용자는 사전에 부여된 권한그룹을 기반으로 각 항목의 T/F를 검사해 권한을 일관되게 관리할 수 있도록 구성했습니다. 그 결과 권한별 가시성과 제어 범위가 명확해져, 보안과 사용성을 함께 끌어올린 깊은 서비스 운영이 가능해졌습니다. <br>프로젝트는 ORBIT의 핵심 서비스인 프로젝트–스톤–태스크 구조 설계가 가장 어려웠습니다. CRUD가 많았지만 삭제·수정 시 다른 엔티티의 지표와 상태를 함께 반영해야 해 반복 수정이 발생했습니다. 이에 코딩 전에 데이터 변경 영향 범위를 선제적으로 도출하고 그에 맞춰 로직을 재설계했습니다. 그 결과 불필요한 재작업이 줄어 개발 효율이 개선되고 코드 일관성이 높아졌으며, 장애율도 낮아졌습니다. |
 | 김현지 |  |
-| 김강산 |  |
+| 김강산 | 이번 프로젝트에서는 화상 회의 파트를 개발하여 채팅 파트와 연동하였습니다. 처음에는 실시간 음성·영상 통신 및 데이터 전송을 지원하는 기술인 WebRTC를 직접 적용하려고 시도했으나, 이를 서비스로 구현하기 위해서는 수많은 요소를 직접 구성해야 동작하는 복잡한 구조였습니다. 이에 WebRTC를 보다 간단하고 유연하게 활용할 수 있도록 지원하는 오픈 소스 라이브러리인 **openVidu**를 사용하여 구현하였습니다. 개발 도중 가장 구현하기 어려웠던 부분은 영상 출력 부분이었습니다. 화면 주변에 의도치 않은 여백이 출력되거나 전체 화면에서도 빈 공간을 출력하는 문제가 있었습니다. 이를 해결하기 위해 비디오가 화면을 꽉 채우면서도 비율이 깨지지 않도록 크기 설정을 조정하고, 전체 화면일 때 우선 적용되는 스타일을 추가했습니다. 또한, 비디오를 감싸는 부모 컨테이너의 overflow 처리와 모서리 스타일을 정리하여 어떤 화면 크기에서도 빈 공간 없이 자연스럽게 영상을 출력하도록 구현했습니다. 두 번째로 구현하기 어려웠던 부분은 새로고침 시, 중복된 화면이 출력되거나 사용자의 이름이 *Unknown*으로 표시되는 문제였습니다. 이를 해결하기 위해 스트림 생성 이벤트를 임시로 모아 두었다가 세션 연결이 완료된 뒤 한 번에 처리하도록 변경하고, 자기 자신의 스트림은 구독 대상에서 제외했습니다. 또한 사용자 이름 정보는 재요청 후 캐시에 저장하고, 세션 정리 과정은 비동기 처리로 안정화하여 새로고침을 반복해도 정상적으로 화면을 출력하도록 구현했습니다. |
 
